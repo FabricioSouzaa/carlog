@@ -1,5 +1,6 @@
-import { useMemo, type ReactNode } from 'react'
-import { CategoryBars, MonthlyBars, TypeStack } from '../components/Charts'
+import { lazy, Suspense, useMemo, type ReactNode } from 'react'
+import { CategoryBars, TypeStack } from '../components/Charts'
+import { ErrorBoundary } from '../components/ErrorBoundary'
 import { EmptyState } from '../components/ui'
 import {
   costPerKm,
@@ -14,6 +15,9 @@ import {
 } from '../lib/calc'
 import { formatCurrency, formatDate, todayISO } from '../lib/format'
 import type { DataApi } from '../useData'
+
+// o Recharts é pesado: só é baixado quando a Visão geral tem gráfico para mostrar
+const MonthlyBars = lazy(() => import('../components/MonthlyBars'))
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
@@ -75,7 +79,11 @@ export function VisaoGeral({ api }: { api: DataApi }) {
         <EmptyState>Registre seu primeiro gasto na aba “Gastos” para ver os gráficos aqui.</EmptyState>
       ) : (
         <>
-          <Panel title="Gasto por mês (últimos 12 meses)"><MonthlyBars items={stats.byMonth} /></Panel>
+          <Panel title="Gasto por mês (últimos 12 meses)">
+            <ErrorBoundary message="Não foi possível carregar o gráfico. Verifique a internet e tente de novo.">
+              <Suspense fallback={<div className="h-56" />}><MonthlyBars items={stats.byMonth} /></Suspense>
+            </ErrorBoundary>
+          </Panel>
           <div className="grid gap-4 md:grid-cols-2">
             <Panel title="Gasto por categoria"><CategoryBars items={stats.byCategory} /></Panel>
             <Panel title="Gasto por tipo"><TypeStack totals={stats.byType} /></Panel>

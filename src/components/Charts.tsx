@@ -1,6 +1,5 @@
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import type { CategoryTotal, MonthTotal } from '../lib/calc'
-import { formatCurrency, formatMonth } from '../lib/format'
+import type { CategoryTotal } from '../lib/calc'
+import { formatCurrency } from '../lib/format'
 import { EXPENSE_TYPE_LABEL, type ExpenseType } from '../types'
 
 /** Magnitude por categoria: barras horizontais de uma só cor, ordenadas, valor direto no rótulo. */
@@ -54,31 +53,6 @@ export function TypeStack({ totals }: { totals: Record<ExpenseType, number> }) {
           </li>
         ))}
       </ul>
-    </div>
-  )
-}
-
-const compact = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 })
-
-/** Evolução mensal: colunas finas, uma série, tooltip no hover/toque. */
-export function MonthlyBars({ items }: { items: MonthTotal[] }) {
-  const data = items.map((i) => ({ ...i, label: formatMonth(i.month) }))
-  return (
-    <div className="h-56 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 8, right: 4, left: -8, bottom: 0 }}>
-          <CartesianGrid vertical={false} stroke="var(--grid)" />
-          <XAxis dataKey="label" tick={{ fill: 'var(--axis)', fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-          <YAxis tick={{ fill: 'var(--axis)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v: number) => compact.format(v)} width={44} />
-          <Tooltip
-            cursor={{ fill: 'var(--grid)', opacity: 0.5 }}
-            formatter={(v) => [formatCurrency(Number(v)), 'Gasto']}
-            labelStyle={{ color: 'var(--axis)' }}
-            contentStyle={{ borderRadius: 8, border: '1px solid var(--grid)' }}
-          />
-          <Bar dataKey="total" fill="var(--series-1)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-        </BarChart>
-      </ResponsiveContainer>
     </div>
   )
 }
