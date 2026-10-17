@@ -1,16 +1,36 @@
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, startTransition, useEffect, useState } from 'react'
 import { startupLink, supabaseConfigured } from './supabase'
 import { ResetPassword } from './pages/ResetPassword'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { useSession } from './useSession'
 import { Login } from './pages/Login'
 import { useData } from './useData'
 
 // cada aba vira um pedaço separado, baixado só quando é aberta
-const Ajustes = lazy(() => import('./pages/Ajustes').then((m) => ({ default: m.Ajustes })))
-const Galeria = lazy(() => import('./pages/Galeria').then((m) => ({ default: m.Galeria })))
-const Gastos = lazy(() => import('./pages/Gastos').then((m) => ({ default: m.Gastos })))
-const Planejados = lazy(() => import('./pages/Planejados').then((m) => ({ default: m.Planejados })))
-const VisaoGeral = lazy(() => import('./pages/VisaoGeral').then((m) => ({ default: m.VisaoGeral })))
+const loadVisaoGeral = () => import('./pages/VisaoGeral').then((m) => ({ default: m.VisaoGeral }))
+const loadGastos = () => import('./pages/Gastos').then((m) => ({ default: m.Gastos }))
+const loadPlanejados = () => import('./pages/Planejados').then((m) => ({ default: m.Planejados }))
+const loadAjustes = () => import('./pages/Ajustes').then((m) => ({ default: m.Ajustes }))
+const loadGaleria = () => import('./pages/Galeria').then((m) => ({ default: m.Galeria }))
+const loadMonthlyBars = () => import('./components/MonthlyBars')
+
+const VisaoGeral = lazy(loadVisaoGeral)
+const Gastos = lazy(loadGastos)
+const Planejados = lazy(loadPlanejados)
+const Ajustes = lazy(loadAjustes)
+const Galeria = lazy(loadGaleria)
+
+/** Baixa os pedaços em segundo plano para a primeira abertura de cada aba já encontrá-los prontos. */
+function prefetchPages() {
+  // a Visão geral é a aba inicial: começa já, em paralelo com o carregamento dos dados
+  void loadVisaoGeral().catch(() => {})
+  void loadMonthlyBars().catch(() => {})
+  const rest = () => {
+    for (const load of [loadGastos, loadPlanejados, loadAjustes, loadGaleria]) void load().catch(() => {})
+  }
+  if ('requestIdleCallback' in window) window.requestIdleCallback(rest)
+  else setTimeout(rest, 2000)
+}
 
 const TABS = [
   { id: 'visao', label: 'Visão geral', icon: '📊' },
@@ -44,7 +64,11 @@ export default function App() {
 
 function Main({ email }: { email: string }) {
   const api = useData()
-  const [tab, setTab] = useState<TabId | 'galeria'>('visao')
+  const [tab, setTabNow] = useState<TabId | 'galeria'>('visao')
+  // em transição, a tela atual continua visível até o pedaço da aba nova chegar (sem piscar "Carregando…")
+  const setTab = (t: TabId | 'galeria') => startTransition(() => setTabNow(t))
+
+  useEffect(prefetchPages, [])
 
   return (
     <div className="min-h-dvh">
@@ -97,20 +121,22 @@ function Main({ email }: { email: string }) {
             <button type="button" className="shrink-0 font-medium underline" onClick={api.clearError}>Fechar</button>
           </div>
         )}
-        <Suspense fallback={<p className="py-10 text-center muted">Carregando…</p>}>
-          {tab === 'galeria' ? (
-            <Galeria onBack={() => setTab('visao')} />
-          ) : api.loading ? (
-            <p className="py-10 text-center muted">Carregando seus dados…</p>
-          ) : (
-            <>
-              {tab === 'visao' && <VisaoGeral api={api} />}
-              {tab === 'gastos' && <Gastos api={api} />}
-              {tab === 'planejados' && <Planejados api={api} />}
-              {tab === 'ajustes' && <Ajustes api={api} email={email} />}
-            </>
-          )}
-        </Suspense>
+        <ErrorBoundary key={tab} message="Não foi possível carregar esta tela. Verifique a internet e tente de novo.">
+          <Suspense fallback={<p className="py-10 text-center muted">Carregando…</p>}>
+            {tab === 'galeria' ? (
+              <Galeria onBack={() => setTab('visao')} />
+            ) : api.loading ? (
+              <p className="py-10 text-center muted">Carregando seus dados…</p>
+            ) : (
+              <>
+                {tab === 'visao' && <VisaoGeral api={api} />}
+                {tab === 'gastos' && <Gastos api={api} />}
+                {tab === 'planejados' && <Planejados api={api} />}
+                {tab === 'ajustes' && <Ajustes api={api} email={email} />}
+              </>
+            )}
+          </Suspense>
+        </ErrorBoundary>
       </main>
     </div>
   )
