@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { loginErrorMessage } from '../lib/authErrors'
 import { supabase } from '../supabase'
 
-export function Login({ notice = null }: { notice?: string | null }) {
+export function Login({ notice = null, onBack }: { notice?: string | null; onBack?: () => void }) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -32,6 +32,7 @@ export function Login({ notice = null }: { notice?: string | null }) {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center p-6">
+      {onBack && <button type="button" className="btn-ghost mb-4 self-start" onClick={onBack}>← Voltar</button>}
       <h1 className="mb-1 text-2xl font-bold">🚗 Histórico do Carro</h1>
       <p className="muted mb-6">{mode === 'signin' ? 'Entre para ver seus gastos.' : 'Crie sua conta para guardar seus gastos na nuvem.'}</p>
       <form onSubmit={handleSubmit} className="card space-y-3">

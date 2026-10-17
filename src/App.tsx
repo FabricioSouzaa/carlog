@@ -3,6 +3,7 @@ import { startupLink, supabaseConfigured } from './supabase'
 import { ResetPassword } from './pages/ResetPassword'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useSession } from './useSession'
+import { Landing } from './pages/Landing'
 import { Login } from './pages/Login'
 import { useData } from './useData'
 
@@ -55,9 +56,13 @@ function MissingConfig() {
 
 export default function App() {
   const { session, ready, recovering, finishRecovery } = useSession()
+  // quem chega por um link de e-mail com erro vai direto ao login, onde o aviso aparece
+  const [showLogin, setShowLogin] = useState(Boolean(startupLink.error))
   if (!supabaseConfigured) return <MissingConfig />
   if (!ready) return <p className="p-6 text-center muted">Carregando…</p>
-  if (!session) return <Login notice={startupLink.error} />
+  if (!session) {
+    return showLogin ? <Login notice={startupLink.error} onBack={() => setShowLogin(false)} /> : <Landing onLogin={() => setShowLogin(true)} />
+  }
   if (recovering) return <ResetPassword onDone={finishRecovery} />
   return <Main email={session.user.email ?? ''} />
 }
