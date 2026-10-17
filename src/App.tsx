@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { startupLink, supabaseConfigured } from './supabase'
 import { ResetPassword } from './pages/ResetPassword'
 import { useSession } from './useSession'
 import { Login } from './pages/Login'
-import { Ajustes } from './pages/Ajustes'
-import { Galeria } from './pages/Galeria'
-import { Gastos } from './pages/Gastos'
-import { Planejados } from './pages/Planejados'
-import { VisaoGeral } from './pages/VisaoGeral'
 import { useData } from './useData'
+
+// cada aba vira um pedaço separado, baixado só quando é aberta
+const Ajustes = lazy(() => import('./pages/Ajustes').then((m) => ({ default: m.Ajustes })))
+const Galeria = lazy(() => import('./pages/Galeria').then((m) => ({ default: m.Galeria })))
+const Gastos = lazy(() => import('./pages/Gastos').then((m) => ({ default: m.Gastos })))
+const Planejados = lazy(() => import('./pages/Planejados').then((m) => ({ default: m.Planejados })))
+const VisaoGeral = lazy(() => import('./pages/VisaoGeral').then((m) => ({ default: m.VisaoGeral })))
 
 const TABS = [
   { id: 'visao', label: 'Visão geral', icon: '📊' },
@@ -95,18 +97,20 @@ function Main({ email }: { email: string }) {
             <button type="button" className="shrink-0 font-medium underline" onClick={api.clearError}>Fechar</button>
           </div>
         )}
-        {tab === 'galeria' ? (
-          <Galeria onBack={() => setTab('visao')} />
-        ) : api.loading ? (
-          <p className="py-10 text-center muted">Carregando seus dados…</p>
-        ) : (
-          <>
-            {tab === 'visao' && <VisaoGeral api={api} />}
-            {tab === 'gastos' && <Gastos api={api} />}
-            {tab === 'planejados' && <Planejados api={api} />}
-            {tab === 'ajustes' && <Ajustes api={api} email={email} />}
-          </>
-        )}
+        <Suspense fallback={<p className="py-10 text-center muted">Carregando…</p>}>
+          {tab === 'galeria' ? (
+            <Galeria onBack={() => setTab('visao')} />
+          ) : api.loading ? (
+            <p className="py-10 text-center muted">Carregando seus dados…</p>
+          ) : (
+            <>
+              {tab === 'visao' && <VisaoGeral api={api} />}
+              {tab === 'gastos' && <Gastos api={api} />}
+              {tab === 'planejados' && <Planejados api={api} />}
+              {tab === 'ajustes' && <Ajustes api={api} email={email} />}
+            </>
+          )}
+        </Suspense>
       </main>
     </div>
   )
