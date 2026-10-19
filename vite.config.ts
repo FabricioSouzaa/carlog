@@ -13,9 +13,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'fonts/space-grotesk-700.woff2'],
       manifest: {
-        name: 'Histórico do Carro',
-        short_name: 'Meu Carro',
-        description: 'Controle de gastos e manutenções do carro',
+        name: 'Carlog · o histórico do seu carro',
+        short_name: 'Carlog',
+        description: 'Controle de gastos e histórico do seu carro',
         lang: 'pt-BR',
         theme_color: '#0f172a',
         background_color: '#0f172a',

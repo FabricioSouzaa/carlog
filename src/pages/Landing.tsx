@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { Logo } from '../components/Logo'
 import { CategoriesMock, ExpenseFormMock, MonthlyMock, OverviewStats, PlannedMock, TypesMock } from '../components/LandingMocks'
 import { Reveal, RevealItem } from '../components/Reveal'
-import { ACCESS_MESSAGE, ACCESS_WHATSAPP } from '../config'
+import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME, APP_TAGLINE } from '../config'
 import { whatsappLink } from '../lib/whatsapp'
 
 const FEATURES = [
@@ -42,42 +42,54 @@ function Heading({ id, title, children }: { id: string; title: string; children?
   )
 }
 
+const CHECKS = ['Registre cada gasto em segundos', 'Planeje o que ainda vem pela frente', 'Veja para onde vai o seu dinheiro'] as const
+
 export function Landing({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-30 bg-slate-50/80 backdrop-blur dark:bg-slate-950/80">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <span className="flex items-center gap-2.5 text-lg font-bold">
-            <Logo size={32} />
-            Histórico do Carro
+      {/* hero escuro em tela cheia: o velocímetro grande ao fundo é a imagem; o cabeçalho é só o nome e o descritivo */}
+      <div className="relative flex min-h-dvh flex-col overflow-hidden bg-linear-to-b from-slate-900 to-blue-700 text-white">
+        <Logo tile={false} size={900} className="pointer-events-none absolute top-[8%] -right-[35%] h-[110vw] w-[110vw] opacity-20 md:-top-[2%] md:-right-[12%] md:h-[900px] md:w-[900px]" />
+        <header className="relative mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-5">
+          <span className="flex items-center gap-3.5">
+            <span className="font-display text-2xl font-bold tracking-tight">{APP_NAME}</span>
+            <span aria-hidden="true" className="hidden h-[18px] w-px bg-white/30 sm:block" />
+            <span className="hidden text-sm text-slate-300 sm:block">{APP_TAGLINE}</span>
           </span>
-          <button type="button" className="btn-ghost" onClick={onLogin}>Entrar</button>
-        </div>
-      </header>
+          <button type="button" className="btn-ghost !text-slate-200 hover:!bg-white/10" onClick={onLogin}>Entrar</button>
+        </header>
 
-      <main className="mx-auto max-w-5xl space-y-20 px-4 pt-10 pb-16 md:space-y-28 md:pt-16">
-        <section aria-labelledby="pitch" className="flex min-h-[calc(100dvh-6rem)] flex-col items-center justify-center text-center md:min-h-[calc(100dvh-7.5rem)]">
+        <section aria-labelledby="pitch" className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 pb-20 md:pl-40">
           {/* entrada ao carregar (Reveal) e, ao rolar, cada parte sai subindo em ritmos diferentes (scrub-exit) */}
           <div className="scrub-exit" style={{ '--shift': '-28px' } as CSSProperties}>
             <Reveal>
-              <h1 id="pitch" className="font-display mx-auto max-w-4xl text-4xl leading-[1.08] font-bold tracking-tight md:text-6xl lg:text-7xl">Cada real do seu carro, no lugar certo.</h1>
+              <h1 id="pitch" className="font-display max-w-3xl text-5xl leading-[1.06] font-bold tracking-tight md:text-7xl">Cada real do seu carro, no lugar certo.</h1>
             </Reveal>
           </div>
           <div className="scrub-exit" style={{ '--shift': '-56px' } as CSSProperties}>
             <Reveal delay={350}>
-              <p className="muted mx-auto mt-5 max-w-xl !text-base md:!text-lg lg:max-w-2xl lg:!text-xl">
-                Registre combustível, manutenção, seguro e melhorias logo depois de pagar. Veja o total gasto, planeje os próximos gastos e tenha o histórico completo do carro no celular e no computador.
-              </p>
+              <ul className="mt-8 space-y-3.5 text-lg md:text-xl">
+                {CHECKS.map((c) => (
+                  <li key={c} className="flex items-center gap-3 font-medium">
+                    <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500 text-sm font-bold">✓</span>
+                    {c}
+                  </li>
+                ))}
+              </ul>
             </Reveal>
           </div>
           <div className="scrub-exit" style={{ '--shift': '-84px' } as CSSProperties}>
-            <Reveal delay={700} className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <RequestAccess className="w-full sm:w-auto" />
-              <button type="button" className="btn-ghost w-full sm:w-auto" onClick={onLogin}>Já tenho conta</button>
+            <Reveal delay={700} className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <a href={whatsappLink(ACCESS_WHATSAPP, ACCESS_MESSAGE)} target="_blank" rel="noopener noreferrer" className="btn !bg-white !px-6 !py-3.5 !text-[15px] !font-semibold !text-slate-900 hover:!bg-slate-100">
+                Solicitar acesso pelo WhatsApp
+              </a>
+              <button type="button" className="btn border border-white/40 !px-6 !py-3.5 !text-[15px] !font-semibold text-white hover:bg-white/10" onClick={onLogin}>Já tenho conta</button>
             </Reveal>
           </div>
         </section>
+      </div>
 
+      <main className="mx-auto max-w-5xl space-y-20 px-4 pt-20 pb-16 md:space-y-28 md:pt-28">
         <section aria-labelledby="abas">
           <Heading id="abas" title="Tudo em um só lugar" />
           <ul className="flex flex-wrap justify-center gap-4">

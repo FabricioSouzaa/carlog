@@ -3,6 +3,7 @@ import { startupLink, supabaseConfigured } from './supabase'
 import { ResetPassword } from './pages/ResetPassword'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Logo } from './components/Logo'
+import { APP_NAME } from './config'
 import { useSession } from './useSession'
 import { Landing } from './pages/Landing'
 import { Login } from './pages/Login'
@@ -83,12 +84,12 @@ function Main({ email }: { email: string }) {
         <button
           type="button"
           onClick={() => setTab('galeria')}
-          aria-label="Histórico do Carro: abrir fotos do carro"
+          aria-label={`${APP_NAME}: abrir fotos do carro`}
           aria-current={tab === 'galeria' ? 'page' : undefined}
           className={`flex items-center gap-2 py-2 font-bold ${tab === 'galeria' ? 'text-blue-600 dark:text-blue-400' : ''}`}
         >
           <Logo size={24} />
-          Histórico do Carro
+          {APP_NAME}
         </button>
       </header>
       <nav
@@ -99,12 +100,12 @@ function Main({ email }: { email: string }) {
           <button
             type="button"
             onClick={() => setTab('galeria')}
-            aria-label="Histórico do Carro: abrir fotos do carro"
+            aria-label={`${APP_NAME}: abrir fotos do carro`}
             aria-current={tab === 'galeria' ? 'page' : undefined}
             className={`mr-4 hidden items-center gap-2 rounded-lg px-2 py-1 font-bold hover:bg-slate-100 md:flex dark:hover:bg-slate-800 ${tab === 'galeria' ? 'text-blue-600 dark:text-blue-400' : ''}`}
           >
             <Logo size={24} />
-            Histórico do Carro
+            {APP_NAME}
           </button>
           {TABS.map((t) => (
             <button
