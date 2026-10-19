@@ -29,8 +29,8 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
   return (
     <div className="min-h-dvh md:grid md:grid-cols-2">
       {/* metade da tela com a marca; no celular vira uma faixa no topo */}
-      <aside className="flex flex-col items-center justify-center gap-10 bg-linear-to-b from-slate-900 to-blue-700 px-8 py-8 text-center text-white md:min-h-dvh md:px-16">
-        <Logo tile={false} size={180} className="h-32 w-32 md:h-72 md:w-72" />
+      <aside className="flex flex-col items-center justify-center gap-10 bg-linear-to-b from-slate-900 to-blue-700 px-8 py-6 text-center text-white md:min-h-dvh md:px-16">
+        <Logo tile={false} size={288} className="h-24 w-24 md:h-72 md:w-72" />
         <div className="hidden max-w-md md:block">
           <p className="text-3xl leading-tight font-bold">Saiba quanto o seu carro realmente custa</p>
           <p className="mt-3 text-slate-300">Registre gastos, planeje os próximos e tenha o histórico do carro no celular e no computador.</p>

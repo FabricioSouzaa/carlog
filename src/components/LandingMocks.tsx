@@ -1,13 +1,23 @@
 import type { ReactNode } from 'react'
-import { formatCurrency } from '../lib/format'
+import { formatCurrency, formatDate, formatMonth, todayISO } from '../lib/format'
 
 /* Telas de exemplo da landing, desenhadas em código com dados fictícios (nada aqui vem da conta de ninguém). */
 
+const TODAY = todayISO()
+const THIS_MONTH = TODAY.slice(0, 7)
+const THIS_YEAR = TODAY.slice(0, 4)
+const monthsAgo = (n: number) => {
+  const [y, m] = THIS_MONTH.split('-').map(Number)
+  const d = new Date(Date.UTC(y, m - 1 - n, 1))
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+}
+const longMonth = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+
 const SHADOW = 'shadow-[0_8px_24px_rgba(0,0,0,0.08)]'
 
-function Mock({ label, className = '', children }: { label: string; className?: string; children: ReactNode }) {
+function Mock({ className = '', children }: { className?: string; children: ReactNode }) {
   return (
-    <div role="img" aria-label={label} className={`rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 ${SHADOW} ${className}`}>
+    <div aria-hidden="true" className={`rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 ${SHADOW} ${className}`}>
       {children}
     </div>
   )
@@ -32,12 +42,12 @@ function Chip({ children, active = false }: { children: ReactNode; active?: bool
 
 export function ExpenseFormMock() {
   return (
-    <Mock label="Exemplo do formulário de novo gasto" className="space-y-3 text-base">
+    <Mock className="space-y-3 text-base">
       <div className="font-semibold">Novo gasto</div>
       <Field label="Descrição" value="Troca de óleo e filtro" />
       <div className="grid grid-cols-2 gap-3">
         <Field label="Valor" value={formatCurrency(389.9)} />
-        <Field label="Data" value="18/10/2026" />
+        <Field label="Data" value={formatDate(TODAY)} />
       </div>
       <Field label="Categoria" value="Manutenção" />
       <div>
@@ -59,7 +69,7 @@ export function ExpenseFormMock() {
 
 export function PlannedMock() {
   return (
-    <Mock label="Exemplo de gasto planejado com o botão Marcar como realizado" className="space-y-2.5">
+    <Mock className="space-y-2.5">
       <div className="flex items-center justify-between gap-3">
         <span className="font-semibold">Trocar farol para LED</span>
         <span className="shrink-0 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700 dark:bg-red-950 dark:text-red-300">Prioridade alta</span>
@@ -72,14 +82,14 @@ export function PlannedMock() {
 
 const STATS = [
   { label: 'Total gasto', value: formatCurrency(18742.3), hint: 'desde o primeiro gasto' },
-  { label: 'Este mês', value: formatCurrency(1230), hint: 'outubro de 2026' },
-  { label: 'Este ano', value: formatCurrency(9860.45), hint: '2026' },
+  { label: 'Este mês', value: formatCurrency(1230), hint: longMonth.format(new Date(`${THIS_MONTH}-01T00:00:00Z`)) },
+  { label: 'Este ano', value: formatCurrency(9860.45), hint: THIS_YEAR },
   { label: 'Custo por km', value: formatCurrency(0.38), hint: 'com a quilometragem' },
 ] as const
 
 export function OverviewStats() {
   return (
-    <div role="img" aria-label="Exemplo dos indicadores da visão geral" className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+    <div aria-hidden="true" className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
       {STATS.map((s) => (
         <div key={s.label} className="card !p-4">
           <div className="muted !text-[13px]">{s.label}</div>
@@ -95,7 +105,7 @@ const MONTHS = [28, 46, 37, 63, 50, 86, 69, 44, 60, 79, 53, 100]
 
 export function MonthlyMock() {
   return (
-    <div role="img" aria-label="Exemplo do gráfico de gasto por mês" className="card">
+    <div aria-hidden="true" className="card">
       <div className="mb-3 text-sm font-semibold">Gasto por mês (últimos 12 meses)</div>
       <div className="flex h-40 items-end gap-2">
         {MONTHS.map((h, i) => (
@@ -103,8 +113,8 @@ export function MonthlyMock() {
         ))}
       </div>
       <div className="mt-2 flex justify-between text-[11px] text-slate-400 dark:text-slate-500">
-        <span>nov/25</span>
-        <span>out/26</span>
+        <span>{formatMonth(monthsAgo(11))}</span>
+        <span>{formatMonth(THIS_MONTH)}</span>
       </div>
     </div>
   )
@@ -119,7 +129,7 @@ const CATEGORIES = [
 
 export function CategoriesMock() {
   return (
-    <div role="img" aria-label="Exemplo do gráfico de gasto por categoria" className="card space-y-3">
+    <div aria-hidden="true" className="card space-y-3">
       <div className="text-sm font-semibold">Gasto por categoria</div>
       {CATEGORIES.map((c, i) => (
         <div key={c.name}>
@@ -144,11 +154,11 @@ const TYPES = [
 
 export function TypesMock() {
   return (
-    <div role="img" aria-label="Exemplo do gráfico de gasto por tipo" className="card space-y-3">
+    <div aria-hidden="true" className="card space-y-3">
       <div className="text-sm font-semibold">Gasto por tipo</div>
       <div className="flex h-3.5 gap-0.5 overflow-hidden rounded-full">
         {TYPES.map((t) => (
-          <div key={t.name} style={{ width: `${t.pct}%`, background: t.color }} />
+          <div key={t.name} style={{ flex: `${t.pct} 1 0`, background: t.color }} />
         ))}
       </div>
       <ul className="space-y-1.5 text-[13px]">

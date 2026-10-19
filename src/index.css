@@ -82,7 +82,7 @@ body {
 .reveal[data-visible='true'] .bar-x {
   transform: none;
 }
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce), print {
   .reveal,
   .bar-y,
   .bar-x {
