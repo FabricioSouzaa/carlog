@@ -25,7 +25,7 @@ export function Logo({ size = 32, tile = true, label, className }: { size?: numb
       aria-hidden={label ? undefined : true}
     >
       {tile && <rect width="512" height="512" rx="112" fill="#0f172a" />}
-      {/* o desenho ocupa y de 86 a ~396: sobe 15 para ficar no meio do quadrado (igual ao favicon) */}
+      {/* o desenho ocupa y de 86 a ~396 (centro ~241): desce 15 para ficar no meio da caixa de 512 (igual ao favicon) */}
       <g transform="translate(0 15)">
         <path d={g.track} fill={track} />
         <path d={g.progress} fill={progress} />

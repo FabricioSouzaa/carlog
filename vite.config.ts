@@ -23,7 +23,7 @@ export default defineConfig({
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          // arte em tela cheia com o carro dentro da área segura, serve também como maskable
+          // arte em tela cheia com o velocímetro a 85% (dentro da área segura), serve também como maskable; ver design/build-icons.mjs
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
