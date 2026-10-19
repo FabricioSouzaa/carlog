@@ -105,3 +105,23 @@ body {
     transition: none;
   }
 }
+
+/*
+ * Animação ligada à rolagem (scroll-driven): o progresso segue a posição da página e volta ao rolar para cima.
+ * Só onde o navegador suporta (Chrome, Edge, Safari 26+); nos outros o conteúdo simplesmente fica visível.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .scrub-exit {
+      animation: scrub-exit linear both;
+      animation-timeline: view();
+      animation-range: exit 0% exit 75%;
+    }
+    @keyframes scrub-exit {
+      to {
+        opacity: 0;
+        transform: translateY(var(--shift, -40px)) scale(0.97);
+      }
+    }
+  }
+}

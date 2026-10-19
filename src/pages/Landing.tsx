@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { Logo } from '../components/Logo'
 import { CategoriesMock, ExpenseFormMock, MonthlyMock, OverviewStats, PlannedMock, TypesMock } from '../components/LandingMocks'
 import { Reveal, RevealItem } from '../components/Reveal'
@@ -57,18 +57,25 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
 
       <main className="mx-auto max-w-5xl space-y-20 px-4 pt-10 pb-16 md:space-y-28 md:pt-16">
         <section aria-labelledby="pitch" className="text-center">
-          <Reveal>
-            <h1 id="pitch" className="mx-auto max-w-3xl text-4xl leading-[1.1] font-bold md:text-6xl">Saiba quanto o seu carro realmente custa</h1>
-          </Reveal>
-          <Reveal delay={350}>
-            <p className="muted mx-auto mt-4 max-w-xl !text-base md:!text-lg">
-              Registre combustível, manutenção, seguro e melhorias logo depois de pagar. Veja o total gasto, planeje os próximos gastos e tenha o histórico completo do carro no celular e no computador.
-            </p>
-          </Reveal>
-          <Reveal delay={700} className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <RequestAccess className="w-full sm:w-auto" />
-            <button type="button" className="btn-ghost w-full sm:w-auto" onClick={onLogin}>Já tenho conta</button>
-          </Reveal>
+          {/* entrada ao carregar (Reveal) e, ao rolar, cada parte sai subindo em ritmos diferentes (scrub-exit) */}
+          <div className="scrub-exit" style={{ '--shift': '-28px' } as CSSProperties}>
+            <Reveal>
+              <h1 id="pitch" className="mx-auto max-w-3xl text-4xl leading-[1.1] font-bold md:text-6xl">Saiba quanto o seu carro realmente custa</h1>
+            </Reveal>
+          </div>
+          <div className="scrub-exit" style={{ '--shift': '-56px' } as CSSProperties}>
+            <Reveal delay={350}>
+              <p className="muted mx-auto mt-4 max-w-xl !text-base md:!text-lg">
+                Registre combustível, manutenção, seguro e melhorias logo depois de pagar. Veja o total gasto, planeje os próximos gastos e tenha o histórico completo do carro no celular e no computador.
+              </p>
+            </Reveal>
+          </div>
+          <div className="scrub-exit" style={{ '--shift': '-84px' } as CSSProperties}>
+            <Reveal delay={700} className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <RequestAccess className="w-full sm:w-auto" />
+              <button type="button" className="btn-ghost w-full sm:w-auto" onClick={onLogin}>Já tenho conta</button>
+            </Reveal>
+          </div>
         </section>
 
         <section aria-labelledby="abas">
