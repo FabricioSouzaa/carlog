@@ -1,4 +1,4 @@
--- Histórico do Carro — esquema do banco (Supabase / Postgres)
+-- Carlog — esquema do banco (Supabase / Postgres)
 -- Rode UMA vez: Supabase → SQL Editor → New query → cole tudo → Run.
 
 -- ============ Tabelas ============
