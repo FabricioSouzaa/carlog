@@ -25,13 +25,16 @@ export function Logo({ size = 32, tile = true, label, className }: { size?: numb
       aria-hidden={label ? undefined : true}
     >
       {tile && <rect width="512" height="512" rx="112" fill="#0f172a" />}
-      <path d={g.track} fill={track} />
-      <path d={g.progress} fill={progress} />
-      {g.caps.map((c, i) => (
-        <circle key={i} cx={c.cx} cy={c.cy} r={c.r} fill={progress} />
-      ))}
-      <path d={g.needle} fill={ink} />
-      <circle cx={g.hub.cx} cy={g.hub.cy} r={g.hub.r} fill={ink} />
+      {/* o desenho ocupa y de 86 a ~396 (centro ~241): desce 15 para ficar no meio da caixa de 512 (igual ao favicon) */}
+      <g transform="translate(0 15)">
+        <path d={g.track} fill={track} />
+        <path d={g.progress} fill={progress} />
+        {g.caps.map((c, i) => (
+          <circle key={i} cx={c.cx} cy={c.cy} r={c.r} fill={progress} />
+        ))}
+        <path d={g.needle} fill={ink} />
+        <circle cx={g.hub.cx} cy={g.hub.cy} r={g.hub.r} fill={ink} />
+      </g>
     </svg>
   )
 }
