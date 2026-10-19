@@ -76,7 +76,7 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
           <ul className="flex flex-wrap justify-center gap-4">
             {FEATURES.map((f, i) => (
               <li key={f.title} className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc((100%-2rem)/3)]">
-                <Reveal delay={(i % 3) * 220} className="card h-full">
+                <Reveal delay={(i % 3) * 450} className="card h-full">
                   <RevealItem i={0}><div aria-hidden="true" className="mb-2 text-3xl">{f.icon}</div></RevealItem>
                   <RevealItem i={1}><h3 className="font-semibold">{f.title}</h3></RevealItem>
                   <RevealItem i={2}><p className="muted mt-1">{f.text}</p></RevealItem>
