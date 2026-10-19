@@ -60,7 +60,7 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
           {/* entrada ao carregar (Reveal) e, ao rolar, cada parte sai subindo em ritmos diferentes (scrub-exit) */}
           <div className="scrub-exit" style={{ '--shift': '-28px' } as CSSProperties}>
             <Reveal>
-              <h1 id="pitch" className="mx-auto max-w-4xl text-4xl leading-[1.1] font-bold md:text-6xl lg:text-7xl">Saiba quanto o seu carro realmente custa</h1>
+              <h1 id="pitch" className="font-display mx-auto max-w-4xl text-4xl leading-[1.08] font-bold tracking-tight md:text-6xl lg:text-7xl">Cada real do seu carro, no lugar certo.</h1>
             </Reveal>
           </div>
           <div className="scrub-exit" style={{ '--shift': '-56px' } as CSSProperties}>
