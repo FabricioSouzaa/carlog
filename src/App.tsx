@@ -2,6 +2,7 @@ import { lazy, Suspense, startTransition, useEffect, useState } from 'react'
 import { startupLink, supabaseConfigured } from './supabase'
 import { ResetPassword } from './pages/ResetPassword'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { Logo } from './components/Logo'
 import { useSession } from './useSession'
 import { Landing } from './pages/Landing'
 import { Login } from './pages/Login'
@@ -84,9 +85,10 @@ function Main({ email }: { email: string }) {
           onClick={() => setTab('galeria')}
           aria-label="Histórico do Carro: abrir fotos do carro"
           aria-current={tab === 'galeria' ? 'page' : undefined}
-          className={`py-2 font-bold ${tab === 'galeria' ? 'text-blue-600 dark:text-blue-400' : ''}`}
+          className={`flex items-center gap-2 py-2 font-bold ${tab === 'galeria' ? 'text-blue-600 dark:text-blue-400' : ''}`}
         >
-          🚗 Histórico do Carro
+          <Logo size={24} />
+          Histórico do Carro
         </button>
       </header>
       <nav
@@ -99,9 +101,10 @@ function Main({ email }: { email: string }) {
             onClick={() => setTab('galeria')}
             aria-label="Histórico do Carro: abrir fotos do carro"
             aria-current={tab === 'galeria' ? 'page' : undefined}
-            className={`mr-4 hidden rounded-lg px-2 py-1 font-bold hover:bg-slate-100 md:block dark:hover:bg-slate-800 ${tab === 'galeria' ? 'text-blue-600 dark:text-blue-400' : ''}`}
+            className={`mr-4 hidden items-center gap-2 rounded-lg px-2 py-1 font-bold hover:bg-slate-100 md:flex dark:hover:bg-slate-800 ${tab === 'galeria' ? 'text-blue-600 dark:text-blue-400' : ''}`}
           >
-            🚗 Histórico do Carro
+            <Logo size={24} />
+            Histórico do Carro
           </button>
           {TABS.map((t) => (
             <button
