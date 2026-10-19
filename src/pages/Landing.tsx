@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Logo } from '../components/Logo'
 import { CategoriesMock, ExpenseFormMock, MonthlyMock, OverviewStats, PlannedMock, TypesMock } from '../components/LandingMocks'
-import { Reveal } from '../components/Reveal'
+import { Reveal, RevealItem } from '../components/Reveal'
 import { ACCESS_MESSAGE, ACCESS_WHATSAPP } from '../config'
 import { whatsappLink } from '../lib/whatsapp'
 
@@ -29,10 +29,16 @@ function RequestAccess({ className = '' }: { className?: string }) {
 
 function Heading({ id, title, children }: { id: string; title: string; children?: ReactNode }) {
   return (
-    <Reveal className="mx-auto mb-8 max-w-xl text-center md:mb-10">
-      <h2 id={id} className="text-2xl font-bold md:text-3xl">{title}</h2>
-      {children && <p className="muted mt-3 !text-base">{children}</p>}
-    </Reveal>
+    <div className="mx-auto mb-8 max-w-xl text-center md:mb-10">
+      <Reveal>
+        <h2 id={id} className="text-2xl font-bold md:text-3xl">{title}</h2>
+      </Reveal>
+      {children && (
+        <Reveal delay={250}>
+          <p className="muted mt-3 !text-base">{children}</p>
+        </Reveal>
+      )}
+    </div>
   )
 }
 
@@ -54,12 +60,12 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
           <Reveal>
             <h1 id="pitch" className="mx-auto max-w-3xl text-4xl leading-[1.1] font-bold md:text-6xl">Saiba quanto o seu carro realmente custa</h1>
           </Reveal>
-          <Reveal delay={120}>
+          <Reveal delay={350}>
             <p className="muted mx-auto mt-4 max-w-xl !text-base md:!text-lg">
               Registre combustível, manutenção, seguro e melhorias logo depois de pagar. Veja o total gasto, planeje os próximos gastos e tenha o histórico completo do carro no celular e no computador.
             </p>
           </Reveal>
-          <Reveal delay={240} className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Reveal delay={700} className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <RequestAccess className="w-full sm:w-auto" />
             <button type="button" className="btn-ghost w-full sm:w-auto" onClick={onLogin}>Já tenho conta</button>
           </Reveal>
@@ -70,10 +76,10 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
           <ul className="flex flex-wrap justify-center gap-4">
             {FEATURES.map((f, i) => (
               <li key={f.title} className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc((100%-2rem)/3)]">
-                <Reveal delay={(i % 3) * 90} className="card h-full">
-                  <div aria-hidden="true" className="mb-2 text-3xl">{f.icon}</div>
-                  <h3 className="font-semibold">{f.title}</h3>
-                  <p className="muted mt-1">{f.text}</p>
+                <Reveal delay={(i % 3) * 220} className="card h-full">
+                  <RevealItem i={0}><div aria-hidden="true" className="mb-2 text-3xl">{f.icon}</div></RevealItem>
+                  <RevealItem i={1}><h3 className="font-semibold">{f.title}</h3></RevealItem>
+                  <RevealItem i={2}><p className="muted mt-1">{f.text}</p></RevealItem>
                 </Reveal>
               </li>
             ))}
@@ -90,7 +96,7 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
               <ol className="space-y-4">
                 {STEPS.map((s, i) => (
                   <li key={s.title}>
-                    <Reveal delay={i * 100} className="flex gap-3">
+                    <Reveal delay={i * 200} className="flex gap-3">
                       <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">{i + 1}</span>
                       <div>
                         <h3 className="font-semibold">{s.title}</h3>
@@ -118,8 +124,8 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
             <div className="grid items-start gap-4 lg:grid-cols-[1.4fr_1fr]">
               <Reveal><MonthlyMock /></Reveal>
               <div className="space-y-4">
-                <Reveal delay={100}><CategoriesMock /></Reveal>
-                <Reveal delay={200}><TypesMock /></Reveal>
+                <Reveal delay={150}><CategoriesMock /></Reveal>
+                <Reveal delay={300}><TypesMock /></Reveal>
               </div>
             </div>
             <p className="muted text-center !text-xs">Dados de exemplo</p>
@@ -128,14 +134,16 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
 
         <section aria-labelledby="usar">
           <Reveal className="card mx-auto max-w-3xl text-center !p-8 md:!p-10">
-            <h2 id="usar" className="text-2xl font-bold md:text-3xl">Quer usar?</h2>
-            <p className="muted mx-auto mt-3 max-w-md !text-base">
-              O acesso é liberado manualmente. Mande uma mensagem pelo WhatsApp com o seu e-mail e você recebe o acesso.
-            </p>
-            <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <RevealItem i={0}><h2 id="usar" className="text-2xl font-bold md:text-3xl">Quer usar?</h2></RevealItem>
+            <RevealItem i={1}>
+              <p className="muted mx-auto mt-3 max-w-md !text-base">
+                O acesso é liberado manualmente. Mande uma mensagem pelo WhatsApp com o seu e-mail e você recebe o acesso.
+              </p>
+            </RevealItem>
+            <RevealItem i={2} className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <RequestAccess className="w-full sm:w-auto" />
               <button type="button" className="btn-ghost w-full sm:w-auto" onClick={onLogin}>Já tenho conta</button>
-            </div>
+            </RevealItem>
           </Reveal>
         </section>
       </main>
