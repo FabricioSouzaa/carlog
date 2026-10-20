@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 /**
  * Faz o conteúdo entrar (sobe e aparece) quando chega à tela ao rolar. Só anima uma vez.
  * Sem IntersectionObserver o conteúdo aparece direto, e `prefers-reduced-motion` desliga o movimento (ver index.css).
- * Os filhos com `.bar-y` / `.bar-x` crescem junto, com atraso por `--i`.
+ * Dentro dele, `RevealItem` e as barras (`.bar-y` / `.bar-x`) entram em sequência, com atraso por `--i`.
  */
 export function Reveal({ children, delay = 0, className = '' }: { children: ReactNode; delay?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -27,6 +27,15 @@ export function Reveal({ children, delay = 0, className = '' }: { children: Reac
 
   return (
     <div ref={ref} data-visible={visible} style={{ '--reveal-delay': `${delay}ms` } as CSSProperties} className={`reveal ${className}`}>
+      {children}
+    </div>
+  )
+}
+
+/** Parte de um bloco `Reveal` que entra depois dele, em sequência (`i` = posição na fila). */
+export function RevealItem({ i = 0, children, className = '' }: { i?: number; children: ReactNode; className?: string }) {
+  return (
+    <div className={`reveal-item ${className}`} style={{ '--i': i } as CSSProperties}>
       {children}
     </div>
   )

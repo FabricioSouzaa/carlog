@@ -1,17 +1,19 @@
-# Histórico do Carro
+# Carlog
 
-App pessoal para registrar as despesas e manutenções do carro, ver quanto já foi gasto e planejar gastos futuros. Funciona no celular e no computador (PWA) e guarda tudo na nuvem.
+**Carlog** ("o histórico do seu carro") é um app pessoal para registrar as despesas e manutenções do carro, ver quanto já foi gasto e planejar gastos futuros. Funciona no celular e no computador (PWA) e guarda tudo na nuvem. Em produção: <https://historico-carro.vercel.app>.
 
 ## Funcionalidades
 
 - **Gastos:** cards com descrição, valor, data, categoria, tipo (manutenção, valorização ou rotina), quilometragem opcional e até 5 fotos (ex.: nota fiscal da oficina). Filtros por categoria, tipo e período, com o total acompanhando os filtros.
 - **Visão geral:** totais (geral, mês e ano), gráficos por mês, categoria e tipo, últimos gastos e custo por km.
 - **Planejados:** gastos que ainda vão acontecer, com valor estimado (ou faixa), prioridade e link. Ao realizar, viram um gasto de verdade.
+- **Meu carro:** galeria de fotos do carro (toque no nome do app).
 - **Ajustes:** categorias personalizadas, backup em JSON e conta.
+- **Landing e login:** quem não está logado vê uma página de apresentação em 5 seções (com animações ao rolar) e um login em tela dividida. O acesso é por pedido: o botão "Solicitar acesso pelo WhatsApp" abre uma conversa com a mensagem pronta.
 
 ## Stack
 
-React · TypeScript · Vite · Tailwind CSS · Recharts · Supabase (Postgres, Auth e Storage) · Vitest
+React · TypeScript · Vite (PWA) · Tailwind CSS · Recharts · Supabase (Postgres, Auth e Storage) · Vitest. Fonte de destaque: Space Grotesk (SIL OFL), hospedada no próprio site.
 
 ## Como rodar
 
@@ -23,8 +25,9 @@ Requer Node.js 20+ e um projeto no [Supabase](https://supabase.com) (plano gratu
    ```
 2. No Supabase, abra **SQL Editor** e rode o conteúdo de [`supabase/schema.sql`](supabase/schema.sql). Ele cria as tabelas, as regras de acesso (cada usuário só vê os próprios dados), as categorias padrão e o bucket privado das fotos.
 3. Copie `.env.local.example` para `.env.local` e preencha com a **Project URL** e a chave **anon public** (*Project Settings → API*). Nunca use a `service_role` no front-end.
-4. Em *Authentication → Providers → Email*, desligue **Confirm email** (uso pessoal) e, depois de criar sua conta, desative o cadastro público de novos usuários.
-5. Inicie:
+4. Em *Authentication → Providers → Email*, desligue **Confirm email** (uso pessoal) e, depois de criar sua conta, desative o cadastro público de novos usuários. O app não tem tela de cadastro: novas contas são criadas por você, no painel do Supabase (*Authentication → Users*).
+5. (Opcional) Troque o WhatsApp que recebe os pedidos de acesso em `src/config.ts`.
+6. Inicie:
    ```bash
    npm run dev
    ```
@@ -40,16 +43,19 @@ Requer Node.js 20+ e um projeto no [Supabase](https://supabase.com) (plano gratu
 
 ## Deploy
 
-Qualquer host de sites estáticos serve (Vercel, Netlify, Cloudflare Pages). Defina as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` no painel do host.
+Qualquer host de sites estáticos serve (Vercel, Netlify, Cloudflare Pages). Defina as variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` no painel do host. Hoje o site está na Vercel: cada merge na `main` publica em produção e cada branch enviada ganha um link de prévia.
 
 ## Estrutura
 
 ```
 src/
-  components/   cards, formulários, gráficos
-  pages/        Visão geral, Gastos, Planejados, Ajustes, Login
+  components/   cards, formulários, gráficos, logo, animações da landing
+  pages/        Landing, Login, Visão geral, Gastos, Planejados, Meu carro, Ajustes
   storage/      única camada que fala com o Supabase (dados, fotos, backup)
-  lib/          cálculos puros (totais, filtros) com testes
+  lib/          cálculos puros (totais, filtros, logo, link do WhatsApp) com testes
+  config.ts     nome do app e WhatsApp de acesso
+design/         arte-fonte do ícone e script que gera os SVGs (`node design/build-icons.mjs`)
+public/         ícones do PWA, favicon e fonte
 supabase/
   schema.sql    esquema do banco e regras de acesso
 ```
@@ -58,4 +64,4 @@ Detalhes de produto e decisões em [`CLAUDE.md`](CLAUDE.md).
 
 ## Licença
 
-[MIT](LICENSE)
+[MIT](LICENSE). A fonte Space Grotesk (`public/fonts/`) é distribuída sob a SIL Open Font License 1.1.

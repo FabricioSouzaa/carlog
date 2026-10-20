@@ -1,6 +1,6 @@
-# Histórico do Carro
+# Carlog
 
-App pessoal para registrar e acompanhar todas as despesas do carro (combustível, manutenção, melhorias etc.), ver quanto já foi gasto e planejar gastos futuros.
+**Carlog** ("o histórico do seu carro") é um app pessoal para registrar e acompanhar todas as despesas do carro (combustível, manutenção, melhorias etc.), ver quanto já foi gasto e planejar gastos futuros. O nome e o descritivo ficam em `src/config.ts` (`APP_NAME`, `APP_TAGLINE`); o repositório e a pasta ainda se chamam `historico-carro`.
 
 Idioma: interface, textos e mensagens em **português (pt-BR)**. Valores em **R$** (BRL), datas no formato `dd/mm/aaaa`. Código (nomes de variáveis, funções, tipos) em inglês.
 
@@ -16,6 +16,8 @@ Idioma: interface, textos e mensagens em **português (pt-BR)**. Valores em **R$
 - Esquema do banco, regras de acesso (RLS), categorias padrão e bucket de fotos: `supabase/schema.sql` (rodar uma vez no SQL Editor).
 - Fotos: Supabase Storage, bucket privado `receipts`, caminho `<user_id>/<image_id>.jpg`.
 - Testes: Vitest (focar em cálculos de totais/filtros)
+- Marca: logo "velocímetro" desenhado em código (`src/lib/gauge.ts` + `src/components/Logo.tsx`, versão grossa para tamanhos pequenos e fina para fundos grandes). Ícones do PWA/favicon saem de `design/build-icons.mjs` (ver o cabeçalho do script). Fonte de destaque Space Grotesk 700, hospedada em `public/fonts/` (SIL OFL), usada nos títulos da landing e do login.
+- Design no Figma (arquivo "Histórico do Carro: landing e login"): landing e login desenhados lá antes de implementar.
 
 ## Funcionalidades
 
@@ -62,6 +64,13 @@ Campos: descrição, categoria, tipo, **valor estimado** (ou faixa mín–máx),
 - Total estimado dos itens planejados
 - Ação **"Marcar como realizado"**: converte o item em um gasto real, pré-preenchendo o formulário (o usuário informa o valor real e a data)
 
+### 7. Landing e login (antes de entrar)
+Quem não tem sessão vê a **landing** (`src/pages/Landing.tsx`) e, ao clicar em "Entrar", o **login** (`src/pages/Login.tsx`).
+- **Landing, 5 seções:** (1) hero escuro em tela cheia com título, 3 checks e botões; (2) as abas do sistema; (3) como cadastrar um gasto, com o "marcar como realizado"; (4) visão geral, com indicadores e gráficos de exemplo; (5) "Quer usar?". As telas de exemplo são desenhadas em código com dados fictícios (`LandingMocks.tsx`), sem Recharts.
+- **Pedir acesso:** o cadastro público fica desativado no Supabase; o botão "Solicitar acesso pelo WhatsApp" abre `wa.me` com mensagem pronta (número e texto em `src/config.ts`, público de propósito). A liberação do acesso é manual no Supabase.
+- **Animações ao rolar:** `Reveal`/`RevealItem` (IntersectionObserver, sem dependência) fazem os blocos entrarem em sequência; a saída do hero é ligada à rolagem em CSS (`animation-timeline: view()`, só onde há suporte). Sempre respeitar `prefers-reduced-motion`.
+- **Login:** tela dividida (marca em gradiente + formulário); no celular a marca vira uma faixa no topo.
+
 ## Modelo de dados
 
 ```ts
@@ -99,11 +108,14 @@ interface PlannedExpense {
 
 ```
 src/
-  components/    # cards, formulários, filtros, gráficos
-  pages/         # Gastos, VisaoGeral, Planejados
+  components/    # cards, formulários, gráficos, Logo, Reveal, mocks da landing
+  pages/         # Landing, Login, Gastos, VisaoGeral, Planejados, Galeria, Ajustes
   storage/       # única camada que fala com o Supabase (remote.ts), fotos (images.ts), backup/migração
-  lib/           # cálculos puros (totais, agrupamentos, filtros) + testes
+  lib/           # cálculos puros (totais, agrupamentos, filtros, geometria do logo, link do WhatsApp) + testes
+  config.ts      # nome do app, WhatsApp de acesso
   types.ts
+design/          # arte-fonte do ícone e script que gera os SVGs
+public/          # ícones do PWA, favicon, fonte Space Grotesk
 ```
 
 ## Convenções
@@ -112,7 +124,7 @@ src/
 - Formatação de moeda e data centralizada em um único helper (`Intl.NumberFormat` / `Intl.DateTimeFormat` com `pt-BR`).
 - Trabalhar valores monetários com cuidado de arredondamento (somar em centavos ou arredondar na exibição).
 - Layout responsivo, pensado primeiro para celular (o uso típico é registrar o gasto logo após pagar).
-- Não adicionar dependências sem necessidade; manter o projeto simples.
+- Não adicionar dependências sem necessidade; manter o projeto simples (por isso fonte hospedada em `public/`, animações em CSS/IntersectionObserver e logo desenhado em código).
 - Dados do usuário nunca são apagados sem confirmação. Incluir exportar/importar JSON como backup, mesmo com os dados na nuvem.
 - Chaves e URL do Supabase ficam em variáveis de ambiente (`.env.local`, fora do git). Só a chave pública (anon) vai para o front-end; nunca a `service_role`.
 

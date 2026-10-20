@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* Space Grotesk 700 (SIL OFL 1.1), só o subconjunto latino: usada nos títulos de destaque da landing */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('/fonts/space-grotesk-700.woff2') format('woff2');
+}
+@theme {
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+}
+
 :root {
   color-scheme: light dark;
   /* categóricos (paleta validada: slots 1-3) e magnitude (azul) */
@@ -55,20 +67,33 @@ body {
 /* Landing: blocos que entram ao rolar (ver components/Reveal.tsx) */
 .reveal {
   opacity: 0;
-  transform: translateY(18px);
+  transform: translateY(28px);
   transition:
-    opacity 0.6s ease,
-    transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+    opacity 0.9s ease,
+    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
   transition-delay: var(--reveal-delay, 0ms);
 }
 .reveal[data-visible='true'] {
   opacity: 1;
   transform: none;
 }
+/* partes de dentro do bloco (campos, indicadores, linhas) entram uma após a outra, depois do bloco */
+.reveal-item {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--reveal-delay, 0ms) + 300ms + var(--i, 0) * 140ms);
+}
+.reveal[data-visible='true'] .reveal-item {
+  opacity: 1;
+  transform: none;
+}
 .bar-y,
 .bar-x {
-  transition: transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
-  transition-delay: calc(var(--reveal-delay, 0ms) + var(--i, 0) * 45ms);
+  transition: transform 1.1s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: calc(var(--reveal-delay, 0ms) + 400ms + var(--i, 0) * 80ms);
 }
 .bar-y {
   transform: scaleY(0);
@@ -84,10 +109,41 @@ body {
 }
 @media (prefers-reduced-motion: reduce), print {
   .reveal,
+  .reveal-item,
   .bar-y,
   .bar-x {
     opacity: 1;
     transform: none;
     transition: none;
+  }
+}
+
+/*
+ * Animação ligada à rolagem (scroll-driven): o progresso segue a posição da página e volta ao rolar para cima.
+ * Só onde o navegador suporta (Chrome, Edge, Safari 26+); nos outros o conteúdo simplesmente fica visível.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .scrub-exit {
+      animation: scrub-exit linear both;
+      animation-timeline: view();
+      animation-range: exit 0% exit 75%;
+    }
+    @keyframes scrub-exit {
+      to {
+        opacity: 0;
+        transform: translateY(var(--shift, -40px)) scale(0.97);
+      }
+    }
+  }
+}
+
+/* cursor do Typewriter */
+.caret {
+  animation: caret-blink 1s steps(1) infinite;
+}
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
   }
 }
