@@ -77,21 +77,22 @@ function Cursor({ style }: { style: CSSProperties }) {
 export function FeatureDemo() {
   const [pos, setPos] = useState(0)
   // a cena só precisa de ~1 mudança por centésimo; evita renderizar a cada pixel de rolagem
-  const { ref, goTo } = useWheel(SCENE, { tau: 110, dwell: 0.2, weights: WEIGHTS, staticPosition: 3, onPosition: (p) => setPos(Math.round(p * 100) / 100) })
+  const { ref, goTo } = useWheel(SCENE, { tau: 200, dwell: 0.2, weights: WEIGHTS, staticPosition: 3, onPosition: (p) => setPos(Math.round(p * 100) / 100) })
   const step = Math.max(0, Math.min(STEPS.length - 1, Math.round(pos) - 1))
 
   const fit = useRef<HTMLDivElement>(null)
   const win = useRef<HTMLDivElement>(null)
+  const track = useRef<HTMLOListElement>(null)
   const [scale, setScale] = useState(1)
-  // em telas baixas a janela encolhe para caber embaixo do título, sem cortar o botão de salvar
+  // em telas baixas a janela encolhe para o conjunto (trilha + janela) caber inteiro na tela, sem cortar nada
   useEffect(() => {
     const measure = () => {
-      const box = fit.current
       const inner = win.current
       const stage = ref.current?.firstElementChild as HTMLElement | null
-      if (!box || !inner || !stage || getComputedStyle(stage).position !== 'sticky') return setScale(1)
-      const free = stage.clientHeight - (box.getBoundingClientRect().top - stage.getBoundingClientRect().top) - 20
-      setScale(Math.max(0.6, Math.min(1, free / inner.offsetHeight)))
+      if (!inner || !stage || getComputedStyle(stage).position !== 'sticky') return setScale(1)
+      const trackH = track.current ? track.current.offsetHeight + parseFloat(getComputedStyle(track.current).marginBottom) : 0
+      const free = stage.clientHeight - trackH - 56 // 28 px de folga em cima e embaixo (a área fixa tem sempre a altura da tela)
+      setScale(Math.max(0.5, Math.min(1, free / inner.offsetHeight)))
     }
     measure()
     window.addEventListener('resize', measure)
@@ -103,17 +104,17 @@ export function FeatureDemo() {
 
   // cena 1: Novo gasto
   const formOut = r(3.05, 3.4)
-  const typedDesc = typedOf(DESCRIPTION, r(0.2, 0.85))
-  const typedAmount = typedOf(AMOUNT, r(0.78, 0.95))
-  const pressSave = r(2.65, 2.78)
+  const typedDesc = typedOf(DESCRIPTION, r(0.26, 0.7))
+  const typedAmount = typedOf(AMOUNT, r(0.74, 0.88))
+  const pressSave = r(2.76, 2.86)
   // cena 2: Planejados
   const plannedIn = r(3.1, 3.45)
-  const createOut = r(3.93, 4.0) // o formulário de criar some...
-  const cardIn = r(4.0, 4.1) // ...e só depois o card aparece no lugar
-  const moveCursor = r(4.1, 4.45)
-  const clickReal = r(4.45, 4.55)
-  const typedReal = typedOf(REAL_AMOUNT, r(4.7, 4.88))
-  const pressReal = r(4.9, 4.96)
+  const createOut = r(4, 4.08) // o formulário de criar some...
+  const cardIn = r(4.06, 4.2) // ...e só depois o card aparece no lugar
+  const moveCursor = r(4.26, 4.5)
+  const clickReal = r(4.5, 4.58)
+  const typedReal = typedOf(REAL_AMOUNT, r(4.78, 4.9))
+  const pressReal = r(4.9, 4.95)
 
   return (
     <section ref={ref} id="cadastrar" aria-labelledby="cadastrar-titulo" className="wheel-section demo-section demo-bg relative" style={{ '--p': 0, '--n': SCENE, '--len': LEN } as CSSProperties}>
@@ -141,7 +142,7 @@ export function FeatureDemo() {
 
           <div className="mx-auto w-full max-w-[680px]">
             {/* a trilha: os 5 passos lado a lado; o rastro azul cresce com a rolagem */}
-            <ol className="demo-track relative mb-3 justify-between lg:mb-7" aria-label="Passos">
+            <ol ref={track} className="demo-track relative mb-3 justify-between lg:mb-6" aria-label="Passos">
               <span aria-hidden="true" className="absolute top-3.5 right-3.5 left-3.5 h-0.5 rounded-full bg-white/15" />
               <span
                 aria-hidden="true"
@@ -191,28 +192,28 @@ export function FeatureDemo() {
                     <span className="text-slate-400">✕</span>
                   </div>
                   <div className="flex-1 space-y-3.5 px-5 pt-4 lg:space-y-[18px] lg:px-7 lg:pt-5">
-                    <Field label="Descrição" focus={r(0.2, 0.22) > 0 && pos < 1.1} style={fly(r(0.04, 0.2), 'up')}>
+                    <Field label="Descrição" focus={r(0.26, 0.28) > 0 && pos < 0.74} style={fly(r(0.02, 0.24), 'up')}>
                       <span>{typedDesc}</span>
-                      {r(0.2, 0.22) > 0 && pos < 1.15 && <Caret />}
+                      {r(0.26, 0.28) > 0 && pos < 0.76 && <Caret />}
                     </Field>
                     <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                      <Field label="Valor" focus={r(0.78, 0.8) > 0 && pos < 0.97} style={fly(r(0.66, 0.8), 'right')}>
+                      <Field label="Valor" focus={r(0.74, 0.76) > 0 && pos < 0.9} style={fly(r(0.5, 0.72), 'right')}>
                         <span>{typedAmount}</span>
-                        {r(0.78, 0.8) > 0 && pos < 0.97 && <Caret />}
+                        {r(0.74, 0.76) > 0 && pos < 0.92 && <Caret />}
                       </Field>
-                      <Field label="Data" style={fly(r(0.84, 0.98), 'downright')}>
+                      <Field label="Data" style={fly(r(0.66, 0.9), 'downright')}>
                         {today}
                       </Field>
                     </div>
-                    <Field label="Categoria" style={fly(r(1, 1.22), 'right')}>
-                      <span style={show(r(1.1, 1.3), 6)}>Manutenção</span>
+                    <Field label="Categoria" style={fly(r(1.02, 1.26), 'right')}>
+                      <span style={show(r(1.28, 1.42), 6)}>Manutenção</span>
                       <span className="ml-auto text-slate-400">⌄</span>
                     </Field>
-                    <div style={fly(r(1.28, 1.46), 'down')}>
+                    <div style={fly(r(1.3, 1.54), 'down')}>
                       <div className="mb-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300">Tipo</div>
                       <div className="flex gap-2 text-sm font-medium">
                         {['Manutenção', 'Valorização', 'Rotina'].map((t, i) => {
-                          const on = i === 0 && r(1.5, 1.65) > 0.5
+                          const on = i === 0 && r(1.56, 1.62) > 0.5
                           return (
                             <span key={t} className={`rounded-full px-3.5 py-1.5 transition-colors ${on ? 'bg-blue-100 text-blue-700 ring-[1.5px] ring-blue-500 dark:bg-blue-950 dark:text-blue-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>{t}</span>
                           )
@@ -220,14 +221,14 @@ export function FeatureDemo() {
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                      <Field label="Km (opcional)" style={fly(r(1.62, 1.8), 'right')}>
-                        <span style={show(r(1.75, 1.95), 6)}>48.200 km</span>
+                      <Field label="Km (opcional)" style={fly(r(1.55, 1.78), 'right')}>
+                        <span style={show(r(1.8, 1.92), 6)}>48.200 km</span>
                       </Field>
-                      <div style={fly(r(1.98, 2.16), 'down')}>
+                      <div style={fly(r(2.02, 2.26), 'down')}>
                         <div className="mb-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300">Fotos (até 5)</div>
                         <div className="flex gap-1.5 lg:gap-2">
                           {[0, 1].map((i) => {
-                            const a = r(2.15 + i * 0.15, 2.4 + i * 0.15)
+                            const a = r(2.3 + i * 0.14, 2.5 + i * 0.14)
                             return a > 0 ? (
                               <span key={i} className={`h-11 w-11 rounded-[10px] bg-linear-to-br lg:h-16 lg:w-16 ${i === 0 ? 'from-blue-700 to-blue-500' : 'from-slate-900 to-blue-700'}`} style={{ opacity: a, transform: `scale(${0.7 + a * 0.3})` }} />
                             ) : null
@@ -237,7 +238,7 @@ export function FeatureDemo() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-5 pb-5 lg:px-7 lg:pb-7" style={fly(r(2.48, 2.64), 'down')}>
+                  <div className="px-5 pb-5 lg:px-7 lg:pb-7" style={fly(r(2.5, 2.74), 'down')}>
                     <div
                       className="flex h-[50px] items-center justify-center rounded-xl bg-blue-600 text-base font-semibold text-white"
                       style={{ boxShadow: `0 0 0 ${pressSave * 4}px rgb(59 130 246 / ${pressSave * 0.35})`, transform: `scale(${1 - pressSave * 0.015})` }}
@@ -245,8 +246,8 @@ export function FeatureDemo() {
                       Salvar gasto
                     </div>
                   </div>
-                  <div className="demo-toast" style={{ ...show(r(2.8, 2.95), 14), top: -22, right: 24 }}>
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-600 text-[13px] font-bold text-white">✓</span>
+                  <div className="demo-toast" style={{ opacity: r(2.88, 2.98), transform: `translate(-50%, ${(1 - r(2.88, 2.98)) * -16}px)` }}>
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-[11px] font-bold text-white">✓</span>
                     Gasto salvo
                   </div>
                 </div>
@@ -264,19 +265,19 @@ export function FeatureDemo() {
                     {/* a) formulário de novo planejado */}
                     <div className="absolute inset-x-5 top-4 space-y-3.5 lg:inset-x-7 lg:top-5 lg:space-y-[18px]" style={{ opacity: 1 - createOut, transform: `translateY(${-createOut * 10}px)` }}>
                       <p className="text-sm font-semibold text-slate-500" style={show(r(3.3, 3.42))}>Novo planejado</p>
-                      <Field label="Descrição" focus={r(3.4, 3.42) > 0 && pos < 3.7} style={fly(r(3.3, 3.46), 'up')}>
-                        <span>{typedOf(PLANNED, r(3.46, 3.7))}</span>
-                        {r(3.42, 3.44) > 0 && pos < 3.72 && <Caret />}
+                      <Field label="Descrição" focus={r(3.5, 3.52) > 0 && pos < 3.74} style={fly(r(3.3, 3.5), 'up')}>
+                        <span>{typedOf(PLANNED, r(3.5, 3.72))}</span>
+                        {r(3.5, 3.52) > 0 && pos < 3.76 && <Caret />}
                       </Field>
                       <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                        <Field label="Valor estimado" style={fly(r(3.6, 3.74), 'right')}>
-                          <span style={show(r(3.66, 3.76), 6)}>R$ 400,00</span>
+                        <Field label="Valor estimado" style={fly(r(3.58, 3.76), 'right')}>
+                          <span style={show(r(3.76, 3.84), 6)}>R$ 400,00</span>
                         </Field>
-                        <div style={fly(r(3.66, 3.8), 'downright')}>
+                        <div style={fly(r(3.64, 3.82), 'downright')}>
                           <div className="mb-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300">Prioridade</div>
                           <div className="flex gap-2 text-sm font-medium">
                             {['Baixa', 'Média', 'Alta'].map((t, i) => {
-                              const on = i === 2 && r(3.74, 3.8) > 0.5
+                              const on = i === 2 && r(3.82, 3.86) > 0.5
                               return (
                                 <span key={t} className={`rounded-full px-3 py-1.5 ${on ? 'bg-red-100 text-red-800 ring-[1.5px] ring-red-400 dark:bg-red-950 dark:text-red-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>{t}</span>
                               )
@@ -284,10 +285,10 @@ export function FeatureDemo() {
                           </div>
                         </div>
                       </div>
-                      <div style={fly(r(3.76, 3.86), 'down')}>
+                      <div style={fly(r(3.7, 3.86), 'down')}>
                         <div
                           className="flex h-11 items-center justify-center rounded-xl bg-blue-600 text-[15px] font-semibold text-white"
-                          style={{ boxShadow: `0 0 0 ${r(3.84, 3.9) * 4}px rgb(59 130 246 / ${r(3.84, 3.9) * 0.35})`, transform: `scale(${1 - r(3.84, 3.9) * 0.015})` }}
+                          style={{ boxShadow: `0 0 0 ${r(3.86, 3.94) * 4}px rgb(59 130 246 / ${r(3.86, 3.94) * 0.35})`, transform: `scale(${1 - r(3.86, 3.94) * 0.015})` }}
                         >
                           Adicionar planejado
                         </div>
@@ -323,7 +324,7 @@ export function FeatureDemo() {
                             style={{
                               left: '58%',
                               top: '48%',
-                              opacity: r(4.08, 4.14) * (1 - r(4.62, 4.74)),
+                              opacity: r(4.2, 4.26) * (1 - r(4.62, 4.72)),
                               transform: `translate(${Math.pow(1 - moveCursor, 2) * 62}vw, ${Math.pow(1 - moveCursor, 2) * 58}vh) scale(${1 - clickReal * 0.12})`,
                             }}
                           />
@@ -332,19 +333,19 @@ export function FeatureDemo() {
                     </div>
 
                     {/* c) o formulário já vem preenchido; falta o valor real */}
-                    <div className="mt-4 space-y-3.5 lg:mt-5 lg:space-y-[18px]" style={fly(r(4.55, 4.72), 'down')}>
+                    <div className="mt-4 space-y-3.5 lg:mt-5 lg:space-y-[18px]" style={fly(r(4.6, 4.78), 'down')}>
                       <p className="text-sm font-medium text-blue-600 dark:text-blue-400">↓ O formulário já vem preenchido</p>
                       <Field label="Descrição">{PLANNED}</Field>
                       <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                        <Field label="Valor real" focus={r(4.68, 4.7) > 0 && pos < 4.92}>
+                        <Field label="Valor real" focus={r(4.78, 4.8) > 0 && pos < 4.92}>
                           <span>{typedReal}</span>
-                          {r(4.68, 4.7) > 0 && pos < 4.92 && <Caret />}
+                          {r(4.78, 4.8) > 0 && pos < 4.92 && <Caret />}
                         </Field>
                         <Field label="Data">{today}</Field>
                       </div>
                     </div>
                   </div>
-                  <div className="px-5 pb-5 lg:px-7 lg:pb-7" style={fly(r(4.58, 4.74), 'down')}>
+                  <div className="px-5 pb-5 lg:px-7 lg:pb-7" style={fly(r(4.64, 4.82), 'down')}>
                     <div
                       className="flex h-[50px] items-center justify-center rounded-xl bg-blue-600 text-base font-semibold text-white"
                       style={{ boxShadow: `0 0 0 ${pressReal * 4}px rgb(59 130 246 / ${pressReal * 0.35})`, transform: `scale(${1 - pressReal * 0.015})` }}
@@ -352,8 +353,8 @@ export function FeatureDemo() {
                       Salvar gasto
                     </div>
                   </div>
-                  <div className="demo-toast" style={{ ...show(r(4.94, 5), 14), top: -22, right: 24 }}>
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-600 text-[13px] font-bold text-white">✓</span>
+                  <div className="demo-toast" style={{ opacity: r(4.95, 5), transform: `translate(-50%, ${(1 - r(4.95, 5)) * -16}px)` }}>
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-[11px] font-bold text-white">✓</span>
                     Gasto salvo
                   </div>
                 </div>
