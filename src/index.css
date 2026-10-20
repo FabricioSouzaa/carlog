@@ -160,7 +160,9 @@ body {
 }
 .wheel-nav,
 .wheel-glow,
-.demo-track {
+.demo-track,
+.demo-legend,
+.demo-hint {
   display: none;
 }
 .wheel-item {
@@ -194,6 +196,30 @@ body {
     }
     .demo-track {
       display: flex;
+    }
+    .demo-legend {
+      display: block;
+    }
+    /* o convite entra no lugar da legenda quando a demonstração termina */
+    .demo-cta {
+      opacity: var(--cta, 0);
+      transform: translateY(calc((1 - var(--cta, 0)) * 18px));
+    }
+    /* dica de rolagem no espaço da legenda (vazio no começo); some quando a legenda do passo 1 entra */
+    .demo-hint {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      opacity: var(--hint, 1);
+      color: rgb(191 219 254);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    .demo-hint-arrow {
+      animation: hint-bounce 1.5s ease-in-out infinite;
     }
     .wheel-glow {
       display: block;
@@ -408,3 +434,13 @@ body {
   }
 }
 
+
+@keyframes hint-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
