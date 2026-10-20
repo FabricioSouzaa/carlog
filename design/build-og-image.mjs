@@ -1,4 +1,5 @@
-// Gera o HTML da imagem de prévia do link (public/og-image.png, 1200x630). Uso, na raiz do projeto:
+// Gera o HTML da imagem de prévia do link (public/og-image.png, 1200x630).
+// Requer Node 22.18+ (ele lê o gauge.ts direto, sem compilar). Uso, na raiz do projeto:
 //   node design/build-og-image.mjs /tmp/og.html
 //   chrome --headless=new --window-size=1200,630 --virtual-time-budget=3000 --screenshot=public/og-image.png file:///tmp/og.html
 import { writeFileSync } from 'node:fs'
