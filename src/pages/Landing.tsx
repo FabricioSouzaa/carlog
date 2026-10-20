@@ -1,8 +1,8 @@
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties } from 'react'
 import { FeatureDemo } from '../components/FeatureDemo'
+import { FeatureOverview } from '../components/FeatureOverview'
 import { FeatureWheel } from '../components/FeatureWheel'
 import { Logo } from '../components/Logo'
-import { CategoriesMock, MonthlyMock, OverviewStats, TypesMock } from '../components/LandingMocks'
 import { Reveal, RevealItem } from '../components/Reveal'
 import { Typewriter } from '../components/Typewriter'
 import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME, APP_SLOGAN, APP_TAGLINE } from '../config'
@@ -14,21 +14,6 @@ function RequestAccess({ className = '' }: { className?: string }) {
     <a href={whatsappLink(ACCESS_WHATSAPP, ACCESS_MESSAGE)} target="_blank" rel="noopener noreferrer" className={`btn-primary ${className}`}>
       Solicitar acesso pelo WhatsApp
     </a>
-  )
-}
-
-function Heading({ id, title, children }: { id: string; title: string; children?: ReactNode }) {
-  return (
-    <div className="mx-auto mb-8 max-w-xl text-center md:mb-10">
-      <Reveal>
-        <h2 id={id} className="text-2xl font-bold md:text-3xl">{title}</h2>
-      </Reveal>
-      {children && (
-        <Reveal delay={250}>
-          <p className="muted mt-3 !text-base">{children}</p>
-        </Reveal>
-      )}
-    </div>
   )
 }
 
@@ -90,25 +75,9 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
       <div aria-hidden="true" className="demo-fade" />
       <FeatureDemo />
       <div aria-hidden="true" className="demo-fade-out" />
+      <FeatureOverview />
 
       <main className="mx-auto max-w-5xl space-y-20 px-4 pt-12 pb-16 md:space-y-28 md:pt-16">
-        <section aria-labelledby="visao">
-          <Heading id="visao" title="Veja para onde vai o seu dinheiro">
-            Total gasto, gasto do mês e do ano, gráficos por categoria e por tipo, e o custo por km.
-          </Heading>
-          <div className="space-y-4">
-            <Reveal><OverviewStats /></Reveal>
-            <div className="grid items-start gap-4 lg:grid-cols-[1.4fr_1fr]">
-              <Reveal><MonthlyMock /></Reveal>
-              <div className="space-y-4">
-                <Reveal delay={150}><CategoriesMock /></Reveal>
-                <Reveal delay={300}><TypesMock /></Reveal>
-              </div>
-            </div>
-            <p className="muted text-center !text-xs">Dados de exemplo</p>
-          </div>
-        </section>
-
         <section aria-labelledby="usar">
           <Reveal className="card mx-auto max-w-3xl text-center !p-8 md:!p-10">
             <RevealItem i={0}><h2 id="usar" className="text-2xl font-bold md:text-3xl">Quer usar?</h2></RevealItem>

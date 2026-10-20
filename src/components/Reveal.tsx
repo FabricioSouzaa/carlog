@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 /**
  * Faz o conteúdo entrar (sobe e aparece) quando chega à tela ao rolar. Só anima uma vez.
  * Sem IntersectionObserver o conteúdo aparece direto, e `prefers-reduced-motion` desliga o movimento (ver index.css).
- * Dentro dele, `RevealItem` e as barras (`.bar-y` / `.bar-x`) entram em sequência, com atraso por `--i`.
+ * Dentro dele, os `RevealItem` entram em sequência, com atraso por `--i`.
  */
 export function Reveal({ children, delay = 0, className = '' }: { children: ReactNode; delay?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null)
