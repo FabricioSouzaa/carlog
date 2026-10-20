@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { memo, type ReactNode } from 'react'
 import { formatCurrency, formatDate, formatKm, todayISO } from '../lib/format'
 import { TypeBadge } from './ui'
 
@@ -20,7 +20,7 @@ const TABS = [
   { id: 'planejados', label: 'Planejados', icon: '🗓️' },
   { id: 'ajustes', label: 'Ajustes', icon: '⚙️' },
 ] as const
-export type ScreenId = (typeof TABS)[number]['id'] | 'galeria'
+type ScreenId = (typeof TABS)[number]['id'] | 'galeria'
 
 /** A "janela" do app: barra de abas (como a do app) e o conteúdo da tela. */
 function AppWindow({ active, children }: { active: ScreenId; children: ReactNode }) {
@@ -215,7 +215,7 @@ const SCREENS: Record<'visao' | 'gastos' | 'planejados' | 'galeria' | 'ajustes',
 export type ScreenKey = keyof typeof SCREENS
 
 /** Mostra a réplica reduzida (a janela tem 560x360; aqui ela é encolhida e ganha moldura). */
-export function ScaledScreen({ screen }: { screen: ScreenKey }) {
+export const ScaledScreen = memo(function ScaledScreen({ screen }: { screen: ScreenKey }) {
   const Screen = SCREENS[screen]
   return (
     <div aria-hidden="true" className="h-[180px] w-[280px] overflow-hidden rounded-xl border border-slate-200 shadow-[0_8px_24px_rgba(15,23,42,0.12)] lg:h-[245px] lg:w-[381px] dark:border-slate-700">
@@ -224,4 +224,4 @@ export function ScaledScreen({ screen }: { screen: ScreenKey }) {
       </div>
     </div>
   )
-}
+})
