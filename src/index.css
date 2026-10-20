@@ -149,156 +149,108 @@ body {
 }
 
 /*
- * "Seletor" das abas (FeatureWheel): --p (0 a 1) vem da rolagem; --d é a distância de cada card ao centro, em "linhas".
- * --f (1 no centro, 0 a uma linha ou mais) comanda o destaque: o card em foco cresce, ganha anel azul e brilho,
- * e a miniatura e o número se acendem; os vizinhos diminuem, giram um pouco e apagam.
+ * "Seletor" das abas (FeatureWheel). O padrão é uma lista comum de cards (serve a quem prefere menos movimento
+ * e a navegadores sem suporte). Só com movimento liberado e com `abs()` disponível ela vira o seletor:
+ * --p (0 a 1) vem da rolagem e --d é a distância de cada card ao centro, em "linhas"; --f (1 no centro, 0 a
+ * uma linha ou mais) comanda o destaque: o card em foco cresce, ganha anel azul e brilho, e a miniatura e o
+ * número se acendem; os vizinhos diminuem, giram um pouco e apagam.
  */
-.wheel-section {
-  --gap: 185px;
-  height: calc(100dvh + (var(--n) - 1) * 56dvh);
+.wheel-stage {
+  padding-block: 4rem;
 }
-@media (min-width: 1024px) {
-  .wheel-section {
-    --gap: 400px;
-  }
-}
-.wheel {
-  --pad: 12px;
-  perspective: 1200px;
-  /* os cards somem suavemente em cima e embaixo, como no seletor do iPhone; a folga lateral guarda sombras e a inclinação */
-  margin-inline: calc(var(--pad) * -1);
-  padding-inline: var(--pad);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
-  mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
-}
-@media (min-width: 1024px) {
-  .wheel {
-    --pad: 28px;
-  }
-}
+.wheel-nav,
 .wheel-glow {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  left: 0;
-  height: 190px;
-  transform: translateY(-50%);
-  border-radius: 32px;
-  background: linear-gradient(90deg, rgb(59 130 246 / 0.05), rgb(59 130 246 / 0.09), rgb(59 130 246 / 0.05));
-  box-shadow: inset 0 0 0 1px rgb(59 130 246 / 0.12);
-}
-@media (min-width: 1024px) {
-  .wheel-glow {
-    height: 380px;
-  }
+  display: none;
 }
 .wheel-item {
-  --grow: 0;
-  --d: calc(var(--i) - var(--p) * (var(--n) - 1));
-  --a: min(abs(var(--d)), 2);
-  --f: calc(1 - min(abs(var(--d)), 1));
-  position: absolute;
-  top: 50%;
-  right: var(--pad);
-  left: var(--pad);
-  transform: translateY(calc(-50% + var(--d) * var(--gap))) rotateX(calc(var(--d) * -12deg)) scale(calc(1 - var(--a) * 0.1 + var(--f) * var(--grow)));
-  opacity: calc(1 - var(--a) * 0.42);
-  z-index: calc(10 - var(--a) * 5); /* quem está mais perto do centro fica por cima */
-  will-change: transform, opacity;
-}
-@media (min-width: 1024px) {
-  .wheel-item {
-    --grow: 0.07;
-  }
+  margin-bottom: 1rem;
 }
 .wheel-card {
-  box-shadow:
-    0 0 0 calc(var(--f) * 2px) rgb(59 130 246 / calc(var(--f) * 0.85)),
-    0 calc(8px + var(--f) * 22px) calc(24px + var(--f) * 44px) rgb(37 99 235 / calc(var(--f) * 0.24));
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.06);
 }
 .wheel-num {
-  color: rgb(59 130 246 / calc(0.25 + var(--f) * 0.75));
+  color: rgb(59 130 246);
 }
-.wheel-mini {
-  opacity: var(--f);
-  transform: translateX(calc((1 - var(--f)) * 28px)) scale(calc(0.88 + var(--f) * 0.12));
-}
-.mini-bar {
-  transform-origin: bottom;
-  transform: scaleY(calc(0.2 + var(--f) * 0.8));
-}
-/* sem movimento (ou sem abs()): lista comum, nada fixo */
-@media (prefers-reduced-motion: reduce) {
-  .wheel-section {
-    height: auto;
-  }
-  .wheel-stage {
-    position: static;
-    min-height: 0;
-    padding-block: 4rem;
-  }
-  .wheel {
-    --pad: 0px;
-    height: auto;
-    perspective: none;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-  .wheel-glow {
-    display: none;
-  }
-  .wheel-item {
-    position: static;
-    margin-bottom: 1rem;
-    transform: none;
-    opacity: 1;
-  }
-  .wheel-card {
-    box-shadow: 0 8px 24px rgb(15 23 42 / 0.06);
-  }
-  .wheel-num {
-    color: rgb(59 130 246);
-  }
-  .wheel-mini,
-  .mini-bar {
-    opacity: 1;
-    transform: none;
-  }
-}
-@supports not (transform: translateY(calc(abs(1) * 1px))) {
-  .wheel-section {
-    height: auto;
-  }
-  .wheel-stage {
-    position: static;
-    min-height: 0;
-    padding-block: 4rem;
-  }
-  .wheel {
-    --pad: 0px;
-    height: auto;
-    perspective: none;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-  .wheel-glow {
-    display: none;
-  }
-  .wheel-item {
-    position: static;
-    margin-bottom: 1rem;
-    transform: none;
-    opacity: 1;
-  }
-  .wheel-card {
-    box-shadow: 0 8px 24px rgb(15 23 42 / 0.06);
-  }
-  .wheel-num {
-    color: rgb(59 130 246);
-  }
-  .wheel-mini,
-  .mini-bar {
-    opacity: 1;
-    transform: none;
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (transform: translateY(calc(abs(1) * 1px))) {
+    .wheel-section {
+      --gap: 185px;
+      height: calc(100dvh + (var(--n) - 1) * 56dvh);
+    }
+    .wheel-stage {
+      position: sticky;
+      top: 0;
+      min-height: 100dvh;
+      padding-block: 0;
+    }
+    .wheel-nav {
+      display: block;
+    }
+    .wheel-glow {
+      display: block;
+      position: absolute;
+      top: 50%;
+      right: 0;
+      left: 0;
+      height: 190px;
+      transform: translateY(-50%);
+      border-radius: 32px;
+      background: linear-gradient(90deg, rgb(59 130 246 / 0.05), rgb(59 130 246 / 0.09), rgb(59 130 246 / 0.05));
+      box-shadow: inset 0 0 0 1px rgb(59 130 246 / 0.12);
+    }
+    .wheel {
+      --pad: 12px;
+      /* no celular baixo (ex.: iPhone SE) a roda encolhe para caber ao lado do título dentro da tela */
+      height: clamp(320px, calc(100dvh - 230px), 560px);
+      perspective: 1200px;
+      /* os cards somem suavemente em cima e embaixo, como no seletor do iPhone; a folga lateral guarda sombras e a inclinação */
+      margin-inline: calc(var(--pad) * -1);
+      padding-inline: var(--pad);
+      -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+      mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 82%, transparent);
+    }
+    .wheel-item {
+      --grow: 0; /* no celular o card em foco não cresce: ficaria mais largo que o conteúdo da página */
+      --d: calc(var(--i) - var(--p) * (var(--n) - 1));
+      --a: min(abs(var(--d)), 2);
+      --f: calc(1 - min(abs(var(--d)), 1));
+      position: absolute;
+      top: 50%;
+      right: var(--pad);
+      left: var(--pad);
+      margin-bottom: 0;
+      transform: translateY(calc(-50% + var(--d) * var(--gap))) rotateX(calc(var(--d) * -12deg)) scale(calc(1 - var(--a) * 0.1 + var(--f) * var(--grow)));
+      opacity: calc(1 - var(--a) * 0.42);
+      z-index: calc(10 - var(--a) * 5); /* quem está mais perto do centro fica por cima */
+      will-change: transform, opacity;
+    }
+    .wheel-card {
+      box-shadow:
+        0 0 0 calc(var(--f) * 2px) rgb(59 130 246 / calc(var(--f) * 0.85)),
+        0 calc(8px + var(--f) * 22px) calc(24px + var(--f) * 44px) rgb(37 99 235 / calc(var(--f) * 0.24));
+    }
+    .wheel-num {
+      color: rgb(59 130 246 / calc(0.25 + var(--f) * 0.75));
+    }
+    .wheel-mini {
+      opacity: var(--f);
+      transform: translateX(calc((1 - var(--f)) * 28px)) scale(calc(0.88 + var(--f) * 0.12));
+    }
+    @media (min-width: 1024px) {
+      .wheel-section {
+        --gap: 400px;
+      }
+      .wheel-glow {
+        height: 380px;
+      }
+      .wheel {
+        --pad: 28px;
+        height: min(960px, 92dvh);
+      }
+      .wheel-item {
+        --grow: 0.07;
+      }
+    }
   }
 }
