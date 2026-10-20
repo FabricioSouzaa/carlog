@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { cameraAt, overview, union, zoomTo, type Rect } from '../lib/camera'
 import { formatCurrency } from '../lib/format'
 import { ramp } from '../lib/wheel'
 import { TypeBadge } from './ui'
+import { useMediaQuery } from './useMediaQuery'
 import { useWheel } from './useWheel'
 
 const TITLE = 'Raio-X do seu carro.'
 const SUBTITLE = 'Cada real, mês a mês e categoria por categoria, sem montar planilha.'
-const BEATS = ['Totais', 'Mês a mês', 'Para onde vai', 'Custo por km']
 const BEAT_TITLE = ['Os totais', 'Mês a mês', 'Para onde vai', 'Custo por km']
 const BEAT_TEXT = ['Geral, do mês e do ano.', 'Quanto você gastou em cada mês.', 'Por categoria e por tipo.', 'Quanto custa cada km rodado.']
 /** Peso de rolagem de cada trecho entre momentos: o do gráfico mensal, com 12 barras, ganha um pouco mais. */
@@ -19,7 +20,6 @@ const CATEGORIES = [
   { name: 'Combustível', total: 7980, pct: 1 },
   { name: 'Manutenção', total: 5210.4, pct: 0.65 },
   { name: 'Seguro', total: 3150, pct: 0.4 },
-  { name: 'Peças', total: 1640.9, pct: 0.2 },
 ]
 const TYPES = [
   { name: 'Manutenção', pct: 46, color: 'var(--series-1)' },
@@ -29,91 +29,130 @@ const TYPES = [
 const TABS = ['📊 Visão geral', '🧾 Gastos', '🗓️ Planejados', '⚙️ Ajustes']
 
 const ease = (x: number) => 1 - Math.pow(1 - x, 3)
+/** Quanto a câmera dá de folga em volta da parte em foco, e o zoom máximo. */
+const FILL = 0.88
+const MAX_ZOOM = 1.8
 
-/** Anel azul de destaque que acende em volta de uma parte do painel. */
+/** Anel azul de destaque que acende em volta da parte em foco. */
 const ring = (on: number): CSSProperties => ({ boxShadow: `0 0 0 ${on * 2.5}px rgb(59 130 246 / ${on * 0.9}), 0 ${on * 14}px ${on * 34}px rgb(37 99 235 / ${on * 0.22})` })
 
-function Stat({ label, hint, value, on, big = false }: { label: string; hint: string; value: string; on: number; big?: boolean }) {
+type Reg = Record<'stat1' | 'stat2' | 'stat3' | 'stat4' | 'chart' | 'cats' | 'km', HTMLElement | null>
+
+/** Posição e tamanho de um elemento dentro do quadro (somando os deslocamentos até chegar nele). */
+function rectIn(el: HTMLElement, board: HTMLElement): Rect {
+  let x = 0
+  let y = 0
+  for (let e: HTMLElement | null = el; e && e !== board; e = e.offsetParent as HTMLElement | null) {
+    x += e.offsetLeft
+    y += e.offsetTop
+  }
+  return { x, y, w: el.offsetWidth, h: el.offsetHeight }
+}
+
+function Stat({ label, hint, value, on, dim, big = false, reg }: { label: string; hint: string; value: string; on: number; dim: number; big?: boolean; reg: (el: HTMLElement | null) => void }) {
   return (
-    <div className="card !p-3 lg:!p-3.5" style={ring(on)}>
-      <p className="muted !text-[11px] lg:!text-xs">{label}</p>
-      <p className={`font-bold tabular-nums ${big ? 'text-blue-600 dark:text-blue-400' : ''} text-base lg:text-xl`}>{value}</p>
-      <p className="text-[10px] text-slate-400 lg:text-[11px] dark:text-slate-500">{hint}</p>
+    <div ref={reg} className="card !p-3.5" style={{ ...ring(on), opacity: dim }}>
+      <p className="muted !text-xs">{label}</p>
+      <p className={`text-xl font-bold tabular-nums ${big ? 'text-blue-600 dark:text-blue-400' : ''}`}>{value}</p>
+      <p className="text-[11px] text-slate-400 dark:text-slate-500">{hint}</p>
     </div>
   )
 }
 
-function Panel({ title, on = 0, className = '', children }: { title: string; on?: number; className?: string; children: ReactNode }) {
+function Panel({ title, on, dim, className = '', children }: { title: string; on: number; dim: number; className?: string; children: ReactNode }) {
   return (
-    <section className={`card !p-3 lg:!p-4 ${className}`} style={ring(on)}>
-      <h3 className="mb-2 text-[13px] font-semibold lg:text-sm">{title}</h3>
+    <section className={`card !p-4 ${className}`} style={{ ...ring(on), opacity: dim }}>
+      <h3 className="mb-2 text-sm font-semibold">{title}</h3>
       {children}
     </section>
   )
 }
 
 /**
- * Seção "Raio-X do seu carro": a tela de Visão geral do app fica fixa e, conforme você rola, se monta sozinha em quatro
- * momentos: os números contam, as barras do ano crescem, as categorias e os tipos se enchem e o custo por km acende.
- * Mesma conta de rolagem do seletor e da demonstração (`useWheel`). Sem movimento, mostra o painel completo.
+ * Seção "Raio-X do seu carro": a tela de Visão geral aparece inteira, como um quadro, e uma câmera dá zoom em cada
+ * parte (totais, gráfico do ano, categorias e tipos, custo por km). Quando a câmera chega, a parte carrega: números
+ * contam, barras crescem. As outras partes ficam apagadas enquanto isso. A conta da câmera está em `lib/camera.ts` e a da
+ * rolagem em `useWheel`. Sem movimento (ou sem `abs()`), mostra o quadro completo, sem zoom.
  */
 export function FeatureOverview() {
   const [pos, setPos] = useState(0)
-  const { ref, goTo } = useWheel(WEIGHTS.length + 1, { tau: 170, dwell: 0.2, weights: WEIGHTS, staticPosition: WEIGHTS.length, onPosition: (p) => setPos(Math.round(p * 100) / 100) })
-  // momento atual (0 a 3); -1 antes de começar
-  const step = pos < 0.06 ? -1 : Math.max(0, Math.min(BEATS.length - 1, Math.round(pos) - 1))
-  const r = (from: number, to: number) => ramp(pos, from, to)
-  // destaque de uma parte: acende ao chegar no momento e apaga ao sair
-  const hl = (beat: number) => Math.min(r(beat - 0.25, beat), 1 - r(beat + 0.55, beat + 0.9))
+  const { ref } = useWheel(WEIGHTS.length + 1, { tau: 170, dwell: 0.2, weights: WEIGHTS, staticPosition: WEIGHTS.length, onPosition: (p) => setPos(Math.round(p * 100) / 100) })
+  const wide = useMediaQuery('(min-width: 1024px)')
+  const boardW = wide ? 980 : 760
 
-  const win = useRef<HTMLDivElement>(null)
+  const view = useRef<HTMLDivElement>(null)
+  const board = useRef<HTMLDivElement>(null)
   const copy = useRef<HTMLDivElement>(null)
-  const track = useRef<HTMLOListElement>(null)
-  const [scale, setScale] = useState(1)
-  const [naturalH, setNaturalH] = useState(0)
-  // o painel tem a altura do seu conteúdo; se a tela for baixa (ou o texto estiver em cima, no celular) ele encolhe para caber
+  const reg = useRef<Reg>({ stat1: null, stat2: null, stat3: null, stat4: null, chart: null, cats: null, km: null })
+  const at = (k: keyof Reg) => (el: HTMLElement | null) => {
+    reg.current[k] = el
+  }
+  const [layout, setLayout] = useState<{ pinned: boolean; view: { w: number; h: number }; board: { w: number; h: number }; parts: Rect[] } | null>(null)
+
+  // mede o quadro e a posição de cada parte; refaz quando algo muda de tamanho (fontes, giro da tela, texto em cima no celular)
   useEffect(() => {
     const measure = () => {
-      const inner = win.current
+      const b = board.current
+      const v = view.current
       const stage = ref.current?.firstElementChild as HTMLElement | null
-      if (!inner || !stage) return
-      setNaturalH(inner.offsetHeight)
-      if (getComputedStyle(stage).position !== 'sticky') return setScale(1)
-      const stacked = !window.matchMedia('(min-width: 1024px)').matches // no celular o texto fica acima do painel
-      const above = (stacked && copy.current ? copy.current.offsetHeight + 12 : 0) + (track.current ? track.current.offsetHeight + parseFloat(getComputedStyle(track.current).marginBottom) : 0)
-      setScale(Math.max(0.55, Math.min(1, (stage.clientHeight - above - 56) / inner.offsetHeight)))
+      if (!b || !v || !stage) return
+      const r = reg.current
+      if (!r.stat1 || !r.stat2 || !r.stat3 || !r.stat4 || !r.chart || !r.cats) return
+      const pinned = getComputedStyle(stage).position === 'sticky'
+      const parts: Rect[] = [
+        union([rectIn(r.stat1, b), rectIn(r.stat2, b), rectIn(r.stat3, b)]),
+        rectIn(r.chart, b),
+        rectIn(r.cats, b),
+        rectIn(r.km ?? r.stat4, b),
+      ]
+      const above = wide ? 0 : (copy.current?.offsetHeight ?? 0) + 12
+      const h = Math.max(260, Math.min(wide ? 640 : 520, stage.clientHeight - above - 56))
+      setLayout({ pinned, view: { w: v.clientWidth, h }, board: { w: b.offsetWidth, h: b.offsetHeight }, parts })
     }
     measure()
     window.addEventListener('resize', measure)
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
-    const stage = ref.current?.firstElementChild
-    if (stage) observer?.observe(stage)
-    if (track.current) observer?.observe(track.current)
-    if (copy.current) observer?.observe(copy.current)
-    if (win.current) observer?.observe(win.current)
+    for (const el of [ref.current?.firstElementChild, view.current, board.current, copy.current]) if (el) observer?.observe(el)
     return () => {
       window.removeEventListener('resize', measure)
       observer?.disconnect()
     }
-  }, [ref])
+  }, [ref, wide, boardW])
 
+  const shots = useMemo(() => {
+    if (!layout) return null
+    const first = overview(layout.board, layout.view)
+    return [first, ...layout.parts.map((p) => zoomTo(p, layout.view, first.scale, MAX_ZOOM, FILL))]
+  }, [layout])
+
+  const pinned = !!layout?.pinned && !!shots
+  const cam = pinned && shots ? cameraAt(pos, shots) : null
+  const focus = cam?.focus ?? [0, 0, 0, 0]
+  const zoom = cam?.zoom ?? 0
+  // partes fora de foco ficam apagadas só enquanto a câmera está de perto
+  const dim = (k: number) => 1 - 0.62 * zoom * (1 - focus[k])
+  const r = (from: number, to: number) => ramp(pos, from, to)
   const count = (target: number, from: number, to: number) => formatCurrency(target * ease(r(from, to)))
-  const kmShown = r(3.1, 3.9)
+  const kmShown = r(3.5, 3.95)
+
+  const camStyle: CSSProperties = cam
+    ? { position: 'absolute', top: 0, left: 0, width: boardW, transformOrigin: '0 0', transform: `translate(${cam.shot.x}px, ${cam.shot.y}px) scale(${cam.shot.scale})` }
+    : {}
 
   return (
     <section ref={ref} aria-labelledby="visao-titulo" className="wheel-section over-section relative" style={{ '--p': 0, '--n': WEIGHTS.length + 1, '--len': LEN } as CSSProperties}>
       <div className="wheel-stage flex items-center">
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-3 px-4 lg:grid-cols-[380px_1fr] lg:gap-16">
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-3 px-4 lg:grid-cols-[340px_1fr] lg:gap-12">
           <div ref={copy}>
             <p className="text-[13px] font-semibold tracking-[0.18em] text-blue-600 uppercase dark:text-blue-400">Visão geral</p>
             <h2 id="visao-titulo" className="font-display mt-1.5 text-[28px] leading-[1.1] font-bold tracking-tight lg:mt-2 lg:text-5xl">{TITLE}</h2>
             <p className="muted mt-3 hidden !text-base sm:block lg:!text-[17px]">{SUBTITLE}</p>
-            {/* o momento em foco: número, nome e uma frase */}
+            {/* a parte em foco: número, nome e uma frase; cada uma aparece quando a câmera chega nela */}
             <div className="relative mt-3 h-[60px] lg:mt-9 lg:h-24">
               {BEAT_TITLE.map((label, i) => {
-                const d = pos - (i + 1)
+                const d = pos - (i + 0.72)
                 return (
-                  <div key={label} className="demo-legend absolute inset-x-0 top-0" style={{ opacity: Math.max(0, 1 - Math.abs(d) * 1.7), transform: `translateY(${-d * 22}px)` }}>
+                  <div key={label} className="demo-legend absolute inset-x-0 top-0" style={{ opacity: Math.max(0, 1 - Math.abs(d) * 2.2), transform: `translateY(${-d * 22}px)` }}>
                     <p className="font-display text-sm font-bold text-blue-600 dark:text-blue-400">0{i + 1} / 04</p>
                     <p className="font-display mt-0.5 text-xl font-bold lg:mt-1 lg:text-[28px]">{label}</p>
                     <p className="muted mt-0.5 lg:mt-1 lg:!text-[15px]">{BEAT_TEXT[i]}</p>
@@ -123,122 +162,99 @@ export function FeatureOverview() {
             </div>
           </div>
 
-          <div className="mx-auto w-full max-w-[720px]">
-            {/* trilha de 4 momentos */}
-            <ol ref={track} className="demo-track relative mb-3 justify-between lg:mb-6" aria-label="Momentos">
-              <span aria-hidden="true" className="absolute top-3.5 right-3.5 left-3.5 h-0.5 rounded-full bg-slate-300 dark:bg-white/15" />
-              <span aria-hidden="true" className="absolute top-3.5 left-3.5 h-0.5 rounded-full bg-linear-to-r from-blue-600 to-blue-400" style={{ width: `calc((100% - 28px) * ${r(1, 4)})` }} />
-              {BEATS.map((label, i) => {
-                const done = i < step
-                const now = i === step
-                return (
-                  <li key={label} className="relative z-10 flex w-16 flex-col items-center">
-                    <button
-                      type="button"
-                      onClick={() => goTo(i + 1)}
-                      aria-label={label}
-                      aria-current={now ? 'step' : undefined}
-                      className={`flex size-7 items-center justify-center rounded-full border text-xs font-bold transition-all ${now ? 'scale-125 border-blue-300 bg-blue-500 text-white shadow-[0_0_0_5px_rgb(59_130_246_/_0.25)]' : done ? 'border-blue-500 bg-blue-600 text-white' : 'border-slate-300 bg-white text-slate-500 hover:text-slate-700 dark:border-white/25 dark:bg-slate-900/70 dark:text-slate-400'}`}
-                    >
-                      {done ? '✓' : i + 1}
-                    </button>
-                    <span className={`mt-2.5 hidden text-center text-xs font-medium sm:block ${now ? 'text-slate-900 dark:text-white' : 'text-slate-500'}`}>{label}</span>
-                  </li>
-                )
-              })}
-            </ol>
+          {/* o "visor": mostra um pedaço do quadro; a câmera move e aproxima o quadro dentro dele */}
+          <div
+            ref={view}
+            aria-hidden="true"
+            className={`relative w-full ${pinned ? 'overflow-hidden rounded-[26px] border border-slate-200 bg-slate-100/60 dark:border-slate-800 dark:bg-slate-900/50' : ''}`}
+            style={pinned && layout ? { height: layout.view.h } : undefined}
+          >
+            <div ref={board} className="rounded-[22px] border border-slate-200 bg-slate-50 shadow-[0_30px_80px_rgba(15,23,42,0.16)] dark:border-slate-800 dark:bg-slate-950" style={camStyle}>
+              <div className="flex h-12 items-center gap-1 border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900">
+                <span className="font-display mr-3 text-base font-bold">Carlog</span>
+                {TABS.map((t, i) => (
+                  <span key={t} className={`px-2 text-[13px] font-medium ${i === 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'}`}>{t}</span>
+                ))}
+              </div>
+              <div className="space-y-3 p-4">
+                <div className="grid grid-cols-4 gap-3">
+                  <Stat reg={at('stat1')} label="Total gasto" hint="desde o 1º gasto" value={count(18742.3, 0.5, 0.95)} on={focus[0]} dim={dim(0)} />
+                  <Stat reg={at('stat2')} label="Este mês" hint="outubro de 2026" value={count(1230, 0.5, 0.95)} on={focus[0]} dim={dim(0)} />
+                  <Stat reg={at('stat3')} label="Este ano" hint="2026" value={count(9860.45, 0.5, 0.95)} on={focus[0]} dim={dim(0)} />
+                  <Stat reg={at('stat4')} label="Custo por km" hint="com a km" value={kmShown > 0 ? formatCurrency(0.38 * ease(kmShown)) : '—'} on={focus[3]} dim={dim(3)} big={focus[3] > 0.5} />
+                </div>
 
-            <div className="relative w-full" style={{ height: naturalH ? naturalH * scale : undefined }}>
-              <div ref={win} className="absolute top-0 left-0 origin-top-left" style={{ width: `${100 / scale}%`, transform: `scale(${scale})` }}>
-                <div aria-hidden="true" className="relative w-full overflow-hidden rounded-[22px] border border-slate-200 bg-slate-50 shadow-[0_30px_80px_rgba(15,23,42,0.16)] dark:border-slate-800 dark:bg-slate-950">
-                  <div className="flex h-12 items-center gap-1 border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900">
-                    <span className="font-display mr-3 text-base font-bold">Carlog</span>
-                    {TABS.map((t, i) => (
-                      <span key={t} className={`hidden px-2 text-[13px] font-medium sm:block ${i === 0 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500'}`}>{t}</span>
-                    ))}
-                  </div>
-                  <div className="space-y-2.5 p-3 lg:space-y-3 lg:p-4">
-                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 lg:gap-3">
-                      <Stat label="Total gasto" hint="desde o 1º gasto" value={count(18742.3, 0.1, 0.9)} on={hl(1)} />
-                      <Stat label="Este mês" hint="outubro de 2026" value={count(1230, 0.1, 0.9)} on={hl(1)} />
-                      <Stat label="Este ano" hint="2026" value={count(9860.45, 0.1, 0.9)} on={hl(1)} />
-                      <Stat label="Custo por km" hint="com a km" value={kmShown > 0 ? formatCurrency(0.38 * ease(kmShown)) : '—'} on={hl(4)} big={hl(4) > 0.5} />
-                    </div>
-
-                    <div className="grid gap-2.5 lg:grid-cols-[1.45fr_1fr] lg:gap-3">
-                      <Panel title="Gasto por mês (últimos 12 meses)" on={hl(2)} className="flex flex-col">
-                        <div className="relative min-h-24 flex-1 lg:min-h-40">
-                          <div className="flex h-full items-end gap-1.5 lg:gap-2">
-                            {MONTHS.map((h, i) => {
-                              const a = ease(r(1.1 + i * 0.06, 1.3 + i * 0.06))
-                              return <div key={i} className="flex-1 rounded-t" style={{ height: `${Math.max(2, h * a)}%`, background: i === 11 && r(1.9, 2) > 0 ? '#2563eb' : 'var(--series-1)' }} />
-                            })}
-                          </div>
-                          <div
-                            className="absolute -top-3 right-0 rounded-lg bg-slate-900 px-2.5 py-1.5 text-white shadow-lg"
-                            style={{ opacity: r(1.9, 2), transform: `translateY(${(1 - r(1.9, 2)) * 8}px)` }}
-                          >
-                            <p className="text-[10px] text-slate-300">out/26</p>
-                            <p className="text-sm font-bold tabular-nums">R$ 1.230,00</p>
-                          </div>
-                        </div>
-                        <div className="mt-1.5 flex justify-between text-[10px] text-slate-400">
-                          {MONTH_LABELS.filter((_, i) => i % 3 === 0 || i === 11).map((m) => (
-                            <span key={m}>{m}</span>
-                          ))}
-                        </div>
-                      </Panel>
-
-                      <div className="space-y-2.5 lg:space-y-3">
-                        <Panel title="Gasto por categoria" on={hl(3)}>
-                          {CATEGORIES.slice(0, 3).map((c, i) => {
-                            const a = ease(r(2.1 + i * 0.1, 2.5 + i * 0.1))
-                            return (
-                              <div key={c.name} className="mb-1.5 last:mb-0">
-                                <div className="mb-1 flex justify-between text-[11px] lg:text-xs">
-                                  <span>{c.name}</span>
-                                  <span className="font-medium tabular-nums" style={{ opacity: a }}>{formatCurrency(c.total)}</span>
-                                </div>
-                                <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                                  <div className="h-full rounded-full" style={{ width: `${c.pct * a * 100}%`, background: 'var(--series-1)' }} />
-                                </div>
-                              </div>
-                            )
+                <div className="grid grid-cols-[1.45fr_1fr] gap-3">
+                  <div ref={at('chart')} className="flex">
+                    <Panel title="Gasto por mês (últimos 12 meses)" on={focus[1]} dim={dim(1)} className="flex w-full flex-col">
+                      <div className="relative min-h-40 flex-1">
+                        <div className="flex h-full items-end gap-2">
+                          {MONTHS.map((h, i) => {
+                            const a = ease(r(1.5 + i * 0.025, 1.7 + i * 0.025))
+                            return <div key={i} className="flex-1 rounded-t" style={{ height: `${Math.max(2, h * a)}%`, background: i === 11 && r(1.9, 1.98) > 0 ? '#2563eb' : 'var(--series-1)' }} />
                           })}
-                        </Panel>
-                        <Panel title="Gasto por tipo" on={hl(3)} className="hidden sm:block">
-                          <div className="flex h-3 gap-0.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-                            {TYPES.map((t) => (
-                              <div key={t.name} style={{ flex: `${t.pct * ease(r(2.5, 2.9))} 1 0`, background: t.color }} />
-                            ))}
-                          </div>
-                          <ul className="mt-2 space-y-1 text-[11px] lg:text-xs">
-                            {TYPES.map((t) => (
-                              <li key={t.name} className="flex items-center justify-between" style={{ opacity: r(2.6, 2.95) }}>
-                                <span className="flex items-center gap-2">
-                                  <span className="inline-block size-2.5 rounded-sm" style={{ background: t.color }} />
-                                  {t.name}
-                                </span>
-                                <span className="font-medium tabular-nums">{t.pct}%</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </Panel>
+                        </div>
+                        <div className="absolute -top-3 right-9 z-10 rounded-lg bg-slate-900 px-2.5 py-1.5 text-white shadow-lg" style={{ opacity: r(1.9, 1.98), transform: `translateY(${(1 - r(1.9, 1.98)) * 8}px)` }}>
+                          <p className="text-[10px] text-slate-300">out/26</p>
+                          <p className="text-sm font-bold tabular-nums">R$ 1.230,00</p>
+                        </div>
                       </div>
-                    </div>
+                      <div className="mt-1.5 flex justify-between text-[10px] text-slate-400">
+                        {MONTH_LABELS.filter((_, i) => i % 3 === 0 || i === 11).map((m) => (
+                          <span key={m}>{m}</span>
+                        ))}
+                      </div>
+                    </Panel>
+                  </div>
 
-                    <div className="card hidden items-center justify-between !p-3 lg:flex lg:!p-4" style={ring(hl(4))}>
-                      <div>
-                        <p className="muted !text-[11px] lg:!text-xs">Custo por km</p>
-                        <p className="font-display text-base font-bold text-blue-600 lg:text-xl dark:text-blue-400" style={{ opacity: 0.35 + 0.65 * r(3.2, 3.9) }}>
-                          R$ 0,38 por quilômetro rodado
-                        </p>
+                  <div ref={at('cats')} className="space-y-3">
+                    <Panel title="Gasto por categoria" on={focus[2]} dim={dim(2)}>
+                      {CATEGORIES.map((c, i) => {
+                        const a = ease(r(2.5 + i * 0.07, 2.75 + i * 0.07))
+                        return (
+                          <div key={c.name} className="mb-1.5 last:mb-0">
+                            <div className="mb-1 flex justify-between text-xs">
+                              <span>{c.name}</span>
+                              <span className="font-medium tabular-nums" style={{ opacity: a }}>{formatCurrency(c.total)}</span>
+                            </div>
+                            <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                              <div className="h-full rounded-full" style={{ width: `${c.pct * a * 100}%`, background: 'var(--series-1)' }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </Panel>
+                    <Panel title="Gasto por tipo" on={focus[2]} dim={dim(2)}>
+                      <div className="flex h-3 gap-0.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                        {TYPES.map((t) => (
+                          <div key={t.name} style={{ flex: `${t.pct * ease(r(2.7, 2.95))} 1 0`, background: t.color }} />
+                        ))}
                       </div>
-                      <div className="text-right text-[11px] text-slate-500 lg:text-xs">
-                        <p>48.200 km</p>
-                        <TypeBadge type="maintenance" />
-                      </div>
-                    </div>
+                      <ul className="mt-2 space-y-1 text-xs">
+                        {TYPES.map((t) => (
+                          <li key={t.name} className="flex items-center justify-between" style={{ opacity: r(2.75, 2.97) }}>
+                            <span className="flex items-center gap-2">
+                              <span className="inline-block size-2.5 rounded-sm" style={{ background: t.color }} />
+                              {t.name}
+                            </span>
+                            <span className="font-medium tabular-nums">{t.pct}%</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </Panel>
+                  </div>
+                </div>
+
+                <div className="card flex items-center justify-between !p-4" style={{ ...ring(focus[3]), opacity: dim(3) }}>
+                  <div ref={at('km')}>
+                    <p className="muted !text-xs">Custo por km</p>
+                    <p className="font-display text-xl font-bold text-blue-600 dark:text-blue-400" style={{ opacity: 0.35 + 0.65 * kmShown }}>
+                      R$ 0,38 por quilômetro rodado
+                    </p>
+                  </div>
+                  <div className="text-right text-xs text-slate-500">
+                    <p>48.200 km</p>
+                    <TypeBadge type="maintenance" />
                   </div>
                 </div>
               </div>
