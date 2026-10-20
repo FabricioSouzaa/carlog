@@ -28,8 +28,9 @@ export function Typewriter({ text, speed = 48, startDelay = 500 }: { text: strin
       <span aria-hidden="true">
         {text.slice(0, count)}
         {caret && (
-          <span className="relative inline-block w-0">
-            <span className="caret absolute top-[0.12em] left-[0.04em] h-[0.82em] w-[0.07em] bg-current" />
+          // caixa sem largura, com altura de uma linha de letras, descendo um pouco abaixo da linha de base (como o texto)
+          <span className="relative inline-block h-[0.9em] w-0 align-[-0.08em]">
+            <span className="caret absolute inset-y-0 left-[0.04em] w-[0.07em] bg-current" />
           </span>
         )}
         <span className="invisible">{text.slice(count)}</span>
