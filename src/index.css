@@ -205,6 +205,10 @@ body {
       opacity: var(--cta, 0);
       transform: translateY(calc((1 - var(--cta, 0)) * 18px));
     }
+    /* invisível = fora do teclado, do leitor de tela e do mouse */
+    .demo-cta[data-on='false'] {
+      visibility: hidden;
+    }
     /* dica de rolagem no espaço da legenda (vazio no começo); some quando a legenda do passo 1 entra */
     .demo-hint {
       display: flex;

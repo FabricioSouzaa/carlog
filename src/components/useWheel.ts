@@ -36,7 +36,7 @@ export function useWheel(
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const last = Math.max(1, count - 1)
+    const last = Math.max(1, weights ? weights.length : count - 1) // posição final: com pesos, a de `weightedPosition`
     let target = 0 // posição pedida pela rolagem (em itens)
     let current = 0 // posição desenhada: vai atrás da pedida, para o movimento deslizar
     let raf = 0

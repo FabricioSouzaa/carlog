@@ -80,7 +80,8 @@ export function FeatureDemo() {
   const [pos, setPos] = useState(0)
   // a cena só precisa de ~1 mudança por centésimo; evita renderizar a cada pixel de rolagem
   const { ref, goTo } = useWheel(SCENE, { tau: 200, dwell: 0.2, weights: WEIGHTS, staticPosition: 3, onPosition: (p) => setPos(Math.round(p * 100) / 100) })
-  const step = Math.max(0, Math.min(STEPS.length - 1, Math.round(pos) - 1))
+  // -1 antes de a demonstração começar: nenhum passo marcado ainda
+  const step = pos < 0.06 ? -1 : Math.max(0, Math.min(STEPS.length - 1, Math.round(pos) - 1))
 
   const fit = useRef<HTMLDivElement>(null)
   const win = useRef<HTMLDivElement>(null)
@@ -98,7 +99,15 @@ export function FeatureDemo() {
     }
     measure()
     window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+    // fontes que chegam depois, quebras de linha e giro da tela mudam as alturas sem disparar 'resize'
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    const stage = ref.current?.firstElementChild
+    if (stage) observer?.observe(stage)
+    if (track.current) observer?.observe(track.current)
+    return () => {
+      window.removeEventListener('resize', measure)
+      observer?.disconnect()
+    }
   }, [ref])
 
   const r = (from: number, to: number) => ramp(pos, from, to)
@@ -145,7 +154,7 @@ export function FeatureDemo() {
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </div>
-              <div className="demo-cta absolute inset-x-0 top-0" style={{ '--cta': r(5.35, 5.8), pointerEvents: r(5.35, 5.8) > 0.6 ? 'auto' : 'none' } as CSSProperties}>
+              <div className="demo-cta absolute inset-x-0 top-0" data-on={r(5.35, 5.8) > 0.05} style={{ '--cta': r(5.35, 5.8) } as CSSProperties}>
                 <p className="text-sm text-slate-300 lg:text-[15px]">Pronto para testar?</p>
                 <a
                   href={whatsappLink(ACCESS_WHATSAPP, ACCESS_MESSAGE)}
@@ -344,7 +353,7 @@ export function FeatureDemo() {
                               left: '58%',
                               top: '48%',
                               opacity: r(4.2, 4.26) * (1 - r(4.62, 4.72)),
-                              transform: `translate(${Math.pow(1 - moveCursor, 2) * 62}vw, ${Math.pow(1 - moveCursor, 2) * 58}vh) scale(${1 - clickReal * 0.12})`,
+                              transform: `translate(${Math.pow(1 - moveCursor, 2) * 420}px, ${Math.pow(1 - moveCursor, 2) * 300}px) scale(${1 - clickReal * 0.12})`,
                             }}
                           />
                         </span>
