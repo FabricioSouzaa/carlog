@@ -3,7 +3,7 @@ import { Logo } from '../components/Logo'
 import { CategoriesMock, ExpenseFormMock, MonthlyMock, OverviewStats, PlannedMock, TypesMock } from '../components/LandingMocks'
 import { Reveal, RevealItem } from '../components/Reveal'
 import { Typewriter } from '../components/Typewriter'
-import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME, APP_TAGLINE } from '../config'
+import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME, APP_SLOGAN, APP_TAGLINE } from '../config'
 import { typingDuration } from '../lib/typing'
 import { whatsappLink } from '../lib/whatsapp'
 
@@ -44,7 +44,7 @@ function Heading({ id, title, children }: { id: string; title: string; children?
   )
 }
 
-const HERO_TITLE = 'Cada real do seu carro, no lugar certo.'
+const HERO_TITLE = APP_SLOGAN
 // o que vem depois do título só entra quando ele termina de ser digitado
 const TYPED_MS = typingDuration(HERO_TITLE)
 

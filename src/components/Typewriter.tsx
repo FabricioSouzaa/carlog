@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { delayAfter } from '../lib/typing'
+import { delayAfter, TYPING_SPEED, TYPING_START } from '../lib/typing'
 
 const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
@@ -8,9 +8,10 @@ const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.
  * O texto inteiro já ocupa o lugar desde o início (a parte ainda não digitada fica invisível), então nada pula de lugar.
  * Leitores de tela leem o texto completo; com `prefers-reduced-motion` ele aparece pronto.
  */
-export function Typewriter({ text, speed = 48, startDelay = 500 }: { text: string; speed?: number; startDelay?: number }) {
-  const [count, setCount] = useState(() => (reducedMotion() ? text.length : 0))
-  const [caret, setCaret] = useState(() => !reducedMotion())
+export function Typewriter({ text, speed = TYPING_SPEED, startDelay = TYPING_START }: { text: string; speed?: number; startDelay?: number }) {
+  const [reduced] = useState(reducedMotion) // lida uma vez, ao montar
+  const [count, setCount] = useState(() => (reduced ? text.length : 0))
+  const [caret, setCaret] = useState(!reduced)
 
   useEffect(() => {
     if (count >= text.length) {
@@ -24,7 +25,8 @@ export function Typewriter({ text, speed = 48, startDelay = 500 }: { text: strin
   }, [count, text, speed, startDelay])
 
   return (
-    <span aria-label={text}>
+    <span>
+      <span className="sr-only">{text}</span>
       <span aria-hidden="true">
         {text.slice(0, count)}
         {caret && (

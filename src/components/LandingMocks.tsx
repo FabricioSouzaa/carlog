@@ -2,7 +2,10 @@ import type { ReactNode } from 'react'
 import { formatCurrency, formatDate, formatMonth, todayISO } from '../lib/format'
 import { RevealItem } from './Reveal'
 
-/* Telas de exemplo da landing, desenhadas em código com dados fictícios (nada aqui vem da conta de ninguém). */
+/*
+ * Telas de exemplo da landing, desenhadas em código com dados fictícios (nada aqui vem da conta de ninguém).
+ * Os `RevealItem` e as barras (`.bar-y`/`.bar-x`) só aparecem dentro de um `Reveal` (ver Reveal.tsx): use sempre dentro de um.
+ */
 
 const TODAY = todayISO()
 const THIS_MONTH = TODAY.slice(0, 7)

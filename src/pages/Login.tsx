@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Logo } from '../components/Logo'
-import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME } from '../config'
+import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME, APP_SLOGAN } from '../config'
 import { loginErrorMessage } from '../lib/authErrors'
 import { whatsappLink } from '../lib/whatsapp'
 import { supabase } from '../supabase'
@@ -33,7 +33,7 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
       <aside className="flex flex-col items-center justify-center gap-10 bg-linear-to-b from-slate-900 to-blue-700 px-8 py-6 text-center text-white md:min-h-dvh md:px-16">
         <Logo tile={false} size={288} className="h-24 w-24 md:h-72 md:w-72" />
         <div className="hidden max-w-md md:block">
-          <p className="font-display text-4xl leading-tight font-bold tracking-tight">Cada real do seu carro, no lugar certo.</p>
+          <p className="font-display text-4xl leading-tight font-bold tracking-tight">{APP_SLOGAN}</p>
           <p className="mt-3 text-slate-300">Registre cada gasto, planeje o que vem pela frente e veja para onde vai o seu dinheiro.</p>
         </div>
       </aside>
@@ -54,7 +54,7 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
                 <button
                   type="button"
                   className="absolute inset-y-0 right-0 px-3.5 text-[13px] font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                  aria-pressed={showPassword}
+                  aria-controls="password"
                   onClick={() => setShowPassword((v) => !v)}
                 >
                   {showPassword ? 'Ocultar' : 'Mostrar'}
