@@ -4,8 +4,8 @@ import { ramp } from '../lib/wheel'
 import { TypeBadge } from './ui'
 import { useWheel } from './useWheel'
 
-const TITLE = 'Em segundos, no histórico.'
-const SUBTITLE = 'Lance o gasto logo depois de pagar. O Carlog organiza o resto.'
+const TITLE = 'Menos de um minuto por gasto.'
+const SUBTITLE = 'Lance logo depois de pagar: cada gasto, no lugar certo.'
 const DESCRIPTION = 'Troca de óleo e filtro'
 const STEPS = ['Descreva o gasto', 'Escolha o tipo', 'Anexe a nota', 'Ou marque um planejado']
 
@@ -34,7 +34,7 @@ function Field({ label, focus = false, className = '', children }: { label: stri
 const Placeholder = ({ children }: { children: ReactNode }) => <span className="text-slate-400">{children}</span>
 
 /**
- * Seção "Em segundos, no histórico": um formulário "Novo gasto" fica fixo na tela e, conforme você rola, se preenche
+ * Seção "Menos de um minuto por gasto": um formulário "Novo gasto" fica fixo na tela e, conforme você rola, se preenche
  * sozinho (descrição digitada, valor, tipo, fotos, salvar) e, no fim, mostra um gasto planejado virando gasto real.
  * Usa a mesma conta de rolagem do seletor da seção 2 (`useWheel`), só que mais lenta. Sem movimento, mostra a cena pronta.
  */
