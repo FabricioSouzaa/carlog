@@ -1,5 +1,5 @@
 // Gera design/icon-source.svg (tela cheia, também usado como maskable) e public/favicon.svg
-// a partir da mesma geometria do logo (src/lib/gauge.ts). Rode na raiz do projeto:
+// a partir da mesma geometria do logo (src/lib/gauge.ts). Requer Node 22.18+ (lê o .ts direto). Rode na raiz do projeto:
 //   node design/build-icons.mjs
 // Depois renderize os PNGs a partir de icon-source.svg (Chrome sem interface + sips):
 //   - 512 px: abra o SVG inline numa página de 512x512 e use `chrome --headless=new --window-size=512,512 --screenshot=...`

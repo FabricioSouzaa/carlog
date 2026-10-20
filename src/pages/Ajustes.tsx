@@ -49,7 +49,7 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `historico-carro-${todayISO()}.json`
+    a.download = `carlog-${todayISO()}.json`
     a.click()
     URL.revokeObjectURL(url)
   }
