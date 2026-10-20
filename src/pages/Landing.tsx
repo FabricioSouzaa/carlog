@@ -1,18 +1,13 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { FeatureDemo } from '../components/FeatureDemo'
 import { FeatureWheel } from '../components/FeatureWheel'
 import { Logo } from '../components/Logo'
-import { CategoriesMock, ExpenseFormMock, MonthlyMock, OverviewStats, PlannedMock, TypesMock } from '../components/LandingMocks'
+import { CategoriesMock, MonthlyMock, OverviewStats, TypesMock } from '../components/LandingMocks'
 import { Reveal, RevealItem } from '../components/Reveal'
 import { Typewriter } from '../components/Typewriter'
 import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME, APP_SLOGAN, APP_TAGLINE } from '../config'
 import { typingDuration } from '../lib/typing'
 import { whatsappLink } from '../lib/whatsapp'
-
-const STEPS = [
-  { title: 'Descreva o gasto', text: 'Valor, data e categoria. Se quiser, anote o km do carro naquele momento.' },
-  { title: 'Escolha o tipo', text: 'Manutenção, valorização ou rotina: você vê para onde o dinheiro vai.' },
-  { title: 'Anexe a nota', text: 'Até 5 fotos da nota fiscal ou da peça, guardadas com segurança.' },
-] as const
 
 function RequestAccess({ className = '' }: { className?: string }) {
   return (
@@ -91,37 +86,12 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
       {/* o azul do hero se desfaz num degradê até o fundo claro; o título do seletor só fixa depois dele */}
       <div aria-hidden="true" className="h-[20dvh] bg-linear-to-b from-blue-700 to-slate-50 dark:to-slate-950" />
       <FeatureWheel />
+      {/* o claro da seção 2 se desfaz no céu da seção 3, e o céu volta ao claro depois */}
+      <div aria-hidden="true" className="demo-fade" />
+      <FeatureDemo />
+      <div aria-hidden="true" className="demo-fade-out" />
 
       <main className="mx-auto max-w-5xl space-y-20 px-4 pt-12 pb-16 md:space-y-28 md:pt-16">
-        <section aria-labelledby="cadastrar">
-          <Heading id="cadastrar" title="Registrou, pagou, anotou">
-            Cadastre o gasto em segundos, logo depois de pagar. Tudo pensado para o celular.
-          </Heading>
-          <div className="grid items-start gap-8 lg:grid-cols-2 lg:gap-10">
-            <Reveal><ExpenseFormMock /></Reveal>
-            <div className="space-y-7">
-              <ol className="space-y-4">
-                {STEPS.map((s, i) => (
-                  <li key={s.title}>
-                    <Reveal delay={i * 200} className="flex gap-3">
-                      <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">{i + 1}</span>
-                      <div>
-                        <h3 className="font-semibold">{s.title}</h3>
-                        <p className="muted">{s.text}</p>
-                      </div>
-                    </Reveal>
-                  </li>
-                ))}
-              </ol>
-              <Reveal className="space-y-3">
-                <h3 className="font-semibold">Planejou antes? É só marcar como realizado.</h3>
-                <p className="muted">O gasto planejado vira gasto real: o formulário já vem preenchido, você só informa o valor final e a data.</p>
-                <PlannedMock />
-              </Reveal>
-            </div>
-          </div>
-        </section>
-
         <section aria-labelledby="visao">
           <Heading id="visao" title="Veja para onde vai o seu dinheiro">
             Total gasto, gasto do mês e do ano, gráficos por categoria e por tipo, e o custo por km.
