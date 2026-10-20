@@ -3,7 +3,7 @@ import { activeIndex, scrollTargetFor, wheelProgress } from '../lib/wheel'
 
 /* Miniaturas simples (sem dados reais) que mostram como é cada tela. */
 const Mini = ({ children }: { children: ReactNode }) => (
-  <div aria-hidden="true" className="h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+  <div aria-hidden="true" className="h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 lg:h-36 lg:p-4 dark:border-slate-700 dark:bg-slate-800/60">
     {children}
   </div>
 )
@@ -19,7 +19,7 @@ const ITEMS: { title: string; text: string; mini: ReactNode }[] = [
       <Mini>
         <div className="flex h-full items-end gap-1.5">
           {[30, 48, 38, 64, 52, 84].map((h, i) => (
-            <span key={i} className="flex-1 rounded-t bg-blue-500" style={{ height: `${h}%` }} />
+            <span key={i} className="mini-bar flex-1 rounded-t bg-blue-500" style={{ height: `${h}%` }} />
           ))}
         </div>
       </Mini>
@@ -134,7 +134,7 @@ export function FeatureWheel() {
   return (
     <section ref={ref} aria-labelledby="abas" className="wheel-section relative bg-slate-50 dark:bg-slate-950" style={{ '--p': 0, '--n': ITEMS.length } as CSSProperties}>
       <div className="wheel-stage sticky top-0 flex min-h-dvh items-center">
-        <div className="mx-auto grid w-full max-w-5xl items-center gap-4 px-4 lg:grid-cols-[360px_1fr] lg:gap-16">
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-4 px-4 lg:grid-cols-[340px_1fr] lg:gap-14">
           <div>
             <p className="text-[13px] font-semibold tracking-[0.18em] text-blue-600 uppercase dark:text-blue-400">O sistema</p>
             <h2 id="abas" className="font-display mt-2 text-4xl leading-[1.08] font-bold tracking-tight lg:text-5xl">Tudo em um só lugar</h2>
@@ -155,20 +155,24 @@ export function FeatureWheel() {
               ))}
             </ul>
           </div>
-          <ol className="wheel relative h-[430px] lg:h-[560px]">
-            {ITEMS.map((it, i) => (
-              <li key={it.title} className="wheel-item" style={{ '--i': i } as CSSProperties} aria-current={i === active ? 'true' : undefined}>
-                <div className="card flex items-center justify-between gap-5 !p-5 shadow-[0_12px_32px_rgba(15,23,42,0.08)] lg:!p-7">
-                  <div className="min-w-0">
-                    <span className="font-display text-sm font-bold text-slate-300 dark:text-slate-600">0{i + 1}</span>
-                    <h3 className="font-display text-2xl leading-tight font-bold tracking-tight lg:text-3xl">{it.title}</h3>
-                    <p className="muted mt-1 lg:!text-base">{it.text}</p>
+          <div className="relative">
+            {/* faixa de seleção no centro, como no seletor do iPhone */}
+            <div aria-hidden="true" className="wheel-glow" />
+            <ol className="wheel relative h-[500px] lg:h-[680px]">
+              {ITEMS.map((it, i) => (
+                <li key={it.title} className="wheel-item" style={{ '--i': i } as CSSProperties} aria-current={i === active ? 'true' : undefined}>
+                  <div className="wheel-card card flex items-center justify-between gap-5 !p-6 lg:gap-8 lg:!p-10">
+                    <div className="min-w-0">
+                      <span className="wheel-num font-display text-sm font-bold lg:text-base">0{i + 1}</span>
+                      <h3 className="font-display text-3xl leading-tight font-bold tracking-tight lg:text-5xl">{it.title}</h3>
+                      <p className="muted mt-2 lg:!text-xl">{it.text}</p>
+                    </div>
+                    <div className="wheel-mini hidden w-40 shrink-0 sm:block lg:w-72">{it.mini}</div>
                   </div>
-                  <div className="wheel-mini hidden w-36 shrink-0 sm:block lg:w-52">{it.mini}</div>
-                </div>
-              </li>
-            ))}
-          </ol>
+                </li>
+              ))}
+            </ol>
+          </div>
         </div>
       </div>
     </section>
