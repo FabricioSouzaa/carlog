@@ -1,6 +1,6 @@
 # Carlog
 
-**Carlog** ("o histórico do seu carro") é um app pessoal para registrar e acompanhar todas as despesas do carro (combustível, manutenção, melhorias etc.), ver quanto já foi gasto e planejar gastos futuros. O nome e o descritivo ficam em `src/config.ts` (`APP_NAME`, `APP_TAGLINE`); o repositório e a pasta ainda se chamam `historico-carro`. Endereço de produção: https://usecarlog.vercel.app.
+**Carlog** ("o histórico do seu carro") é um app pessoal para registrar e acompanhar todas as despesas do carro (combustível, manutenção, melhorias etc.), ver quanto já foi gasto e planejar gastos futuros. O nome e o descritivo ficam em `src/config.ts` (`APP_NAME`, `APP_TAGLINE`); o repositório se chama `carlog` e a pasta local ainda `histórico-carro`. Endereço de produção: https://usecarlog.vercel.app.
 
 Idioma: interface, textos e mensagens em **português (pt-BR)**. Valores em **R$** (BRL), datas no formato `dd/mm/aaaa`. Código (nomes de variáveis, funções, tipos) em inglês.
 
@@ -66,9 +66,9 @@ Campos: descrição, categoria, tipo, **valor estimado** (ou faixa mín–máx),
 
 ### 7. Landing e login (antes de entrar)
 Quem não tem sessão vê a **landing** (`src/pages/Landing.tsx`) e, ao clicar em "Entrar", o **login** (`src/pages/Login.tsx`).
-- **Landing, 5 seções:** (1) hero escuro em tela cheia com título, 3 checks e botões; (2) as abas do sistema; (3) como cadastrar um gasto, com o "marcar como realizado"; (4) visão geral, com indicadores e gráficos de exemplo; (5) "Quer usar?". As telas de exemplo são desenhadas em código com dados fictícios (`LandingMocks.tsx`), sem Recharts.
+- **Landing, 5 seções:** (1) hero escuro em tela cheia com título, 3 checks e botões; (2) "Tudo em um só lugar": as abas num seletor ao estilo do iPhone, com o título fixo, cards que giram conforme a rolagem e a réplica da tela do app no card em foco (`FeatureWheel`, `useWheel`, `AppScreens`); (3) como cadastrar um gasto, com o "marcar como realizado"; (4) visão geral, com indicadores e gráficos de exemplo; (5) "Quer usar?". As telas de exemplo são desenhadas em código com dados fictícios (`LandingMocks.tsx`), sem Recharts.
 - **Pedir acesso:** o cadastro público fica desativado no Supabase; o botão "Solicitar acesso pelo WhatsApp" abre `wa.me` com mensagem pronta (número e texto em `src/config.ts`, público de propósito). A liberação do acesso é manual no Supabase.
-- **Animações ao rolar:** `Reveal`/`RevealItem` (IntersectionObserver, sem dependência) fazem os blocos entrarem em sequência; a saída do hero é ligada à rolagem em CSS (`animation-timeline: view()`, só onde há suporte). Sempre respeitar `prefers-reduced-motion`.
+- **Animações ao rolar:** `Reveal`/`RevealItem` (IntersectionObserver, sem dependência) fazem os blocos entrarem em sequência; o título do hero é digitado (`Typewriter`); a saída do hero e o seletor da seção 2 são ligados à rolagem (a conta fica em `lib/wheel.ts`; a do hero é CSS puro, com `animation-timeline: view()`, só onde há suporte). Sempre respeitar `prefers-reduced-motion`.
 - **Login:** tela dividida (marca em gradiente + formulário); no celular a marca vira uma faixa no topo.
 
 ## Modelo de dados
