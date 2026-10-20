@@ -1,101 +1,20 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { activeIndex, scrollTargetFor, wheelProgress } from '../lib/wheel'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { ScaledScreen, type ScreenKey } from './AppScreens'
+import { activeIndex, scrollTargetFor, wheelPosition, wheelProgress } from '../lib/wheel'
 
-/* Miniaturas simples (sem dados reais) que mostram como é cada tela. */
-const Mini = ({ children }: { children: ReactNode }) => (
-  <div aria-hidden="true" className="h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 lg:h-36 lg:p-4 dark:border-slate-700 dark:bg-slate-800/60">
-    {children}
-  </div>
-)
-const Line = ({ w, className = 'bg-slate-300 dark:bg-slate-600' }: { w: string; className?: string }) => (
-  <span className={`h-2 rounded-full ${className}`} style={{ width: w }} />
-)
-
-const ITEMS: { title: string; text: string; mini: ReactNode }[] = [
-  {
-    title: 'Visão geral',
-    text: 'Seus totais e gráficos, num olhar.',
-    mini: (
-      <Mini>
-        <div className="flex h-full items-end gap-1.5">
-          {[30, 48, 38, 64, 52, 84].map((h, i) => (
-            <span key={i} className="mini-bar flex-1 rounded-t bg-blue-500" style={{ height: `${h}%` }} />
-          ))}
-        </div>
-      </Mini>
-    ),
-  },
-  {
-    title: 'Gastos',
-    text: 'Cada gasto com valor, data, km e foto da nota.',
-    mini: (
-      <Mini>
-        <div className="flex h-full flex-col justify-between">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-full bg-blue-100 dark:bg-blue-900" />
-              <Line w="45%" />
-              <span className="ml-auto h-2 w-8 rounded-full bg-blue-500" />
-            </div>
-          ))}
-        </div>
-      </Mini>
-    ),
-  },
-  {
-    title: 'Planejados',
-    text: 'O que vem pela frente, com valor e prioridade.',
-    mini: (
-      <Mini>
-        <div className="flex h-full flex-col justify-between">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className={`h-4 w-4 rounded ${i === 0 ? 'bg-green-500' : 'border border-slate-300 dark:border-slate-600'}`} />
-              <Line w="55%" />
-            </div>
-          ))}
-        </div>
-      </Mini>
-    ),
-  },
-  {
-    title: 'Meu carro',
-    text: 'A galeria de fotos do seu carro.',
-    mini: (
-      <Mini>
-        <div className="grid h-full grid-cols-2 gap-2">
-          {['from-blue-700 to-blue-500', 'from-slate-900 to-blue-700', 'from-blue-500 to-blue-300', 'from-blue-700 to-slate-900'].map((g) => (
-            <span key={g} className={`rounded-lg bg-linear-to-br ${g}`} />
-          ))}
-        </div>
-      </Mini>
-    ),
-  },
-  {
-    title: 'Ajustes',
-    text: 'Categorias, backup e segurança da conta.',
-    mini: (
-      <Mini>
-        <div className="flex h-full flex-col justify-between">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="flex items-center gap-2">
-              <Line w="40%" />
-              <span className={`relative ml-auto h-4 w-8 rounded-full ${i === 0 ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-600'}`}>
-                <span className={`absolute top-0.5 h-3 w-3 rounded-full bg-white ${i === 0 ? 'right-0.5' : 'left-0.5'}`} />
-              </span>
-            </div>
-          ))}
-        </div>
-      </Mini>
-    ),
-  },
+const ITEMS: { title: string; text: string; screen: ScreenKey }[] = [
+  { title: 'Visão geral', text: 'Seus totais e gráficos, num olhar.', screen: 'visao' },
+  { title: 'Gastos', text: 'Cada gasto com valor, data, km e foto da nota.', screen: 'gastos' },
+  { title: 'Planejados', text: 'O que vem pela frente, com valor e prioridade.', screen: 'planejados' },
+  { title: 'Meu carro', text: 'A galeria de fotos do seu carro.', screen: 'galeria' },
+  { title: 'Ajustes', text: 'Categorias, backup e segurança da conta.', screen: 'ajustes' },
 ]
 
 /**
  * "Tudo em um só lugar": o título fica fixo e os cards giram como o seletor de horário do iPhone:
  * o card em foco fica grande no centro e os vizinhos, menores e mais apagados, sobem e descem com a rolagem.
  * A posição vem de `--p` (0 a 1), atualizado a cada frame; o desenho de cada card é CSS (ver `.wheel-*` em index.css).
- * Com `prefers-reduced-motion` (ou sem suporte a `abs()`) vira uma lista comum, sem fixar nada.
+ * Cada card para um instante no centro (`wheelPosition`) e o movimento desliza atrás da rolagem. Com `prefers-reduced-motion` (ou sem suporte a `abs()`) vira uma lista comum, sem fixar nada.
  */
 export function FeatureWheel() {
   const ref = useRef<HTMLElement>(null)
@@ -104,17 +23,28 @@ export function FeatureWheel() {
   useEffect(() => {
     const el = ref.current
     if (!el) return
+    const last = ITEMS.length - 1
+    let target = 0 // posição pedida pela rolagem (em itens)
+    let current = 0 // posição desenhada: vai atrás da pedida, para o movimento deslizar
     let raf = 0
-    const update = () => {
+    const draw = () => {
+      el.style.setProperty('--p', (current / last).toFixed(4))
+      setActive(activeIndex(current, ITEMS.length))
+    }
+    const frame = () => {
       raf = 0
-      const p = wheelProgress(el.getBoundingClientRect().top, el.offsetHeight, window.innerHeight)
-      el.style.setProperty('--p', p.toFixed(4))
-      setActive(activeIndex(p, ITEMS.length))
+      current += (target - current) * 0.14
+      if (Math.abs(target - current) < 0.0005) current = target
+      draw()
+      if (current !== target) raf = requestAnimationFrame(frame)
     }
+    const read = () => wheelPosition(wheelProgress(el.getBoundingClientRect().top, el.offsetHeight, window.innerHeight), ITEMS.length)
     const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update)
+      target = read()
+      if (!raf) raf = requestAnimationFrame(frame)
     }
-    update()
+    target = current = read() // ao carregar, já na posição certa (sem deslizar)
+    draw()
     window.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', onScroll)
     return () => {
@@ -158,16 +88,16 @@ export function FeatureWheel() {
           <div className="relative">
             {/* faixa de seleção no centro, como no seletor do iPhone */}
             <div aria-hidden="true" className="wheel-glow" />
-            <ol className="wheel relative h-[500px] lg:h-[680px]">
+            <ol className="wheel relative h-[560px] lg:h-[min(960px,92dvh)]">
               {ITEMS.map((it, i) => (
                 <li key={it.title} className="wheel-item" style={{ '--i': i } as CSSProperties} aria-current={i === active ? 'true' : undefined}>
                   <div className="wheel-card card flex items-center justify-between gap-5 !p-6 lg:gap-8 lg:!p-10">
                     <div className="min-w-0">
                       <span className="wheel-num font-display text-sm font-bold lg:text-base">0{i + 1}</span>
-                      <h3 className="font-display text-3xl leading-tight font-bold tracking-tight lg:text-5xl">{it.title}</h3>
+                      <h3 className="font-display text-3xl leading-tight font-bold tracking-tight whitespace-nowrap lg:text-5xl">{it.title}</h3>
                       <p className="muted mt-2 lg:!text-xl">{it.text}</p>
                     </div>
-                    <div className="wheel-mini hidden w-40 shrink-0 sm:block lg:w-72">{it.mini}</div>
+                    <div className="wheel-mini hidden shrink-0 sm:block"><ScaledScreen screen={it.screen} /></div>
                   </div>
                 </li>
               ))}

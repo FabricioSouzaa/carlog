@@ -154,12 +154,12 @@ body {
  * e a miniatura e o número se acendem; os vizinhos diminuem, giram um pouco e apagam.
  */
 .wheel-section {
-  --gap: 140px;
-  height: calc(100dvh + (var(--n) - 1) * 60dvh);
+  --gap: 185px;
+  height: calc(100dvh + (var(--n) - 1) * 70dvh);
 }
 @media (min-width: 1024px) {
   .wheel-section {
-    --gap: 205px;
+    --gap: 400px;
   }
 }
 .wheel {
@@ -189,7 +189,7 @@ body {
 }
 @media (min-width: 1024px) {
   .wheel-glow {
-    height: 290px;
+    height: 380px;
   }
 }
 .wheel-item {

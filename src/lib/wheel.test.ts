@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeIndex, scrollTargetFor, wheelProgress } from './wheel'
+import { activeIndex, scrollTargetFor, wheelPosition, wheelProgress } from './wheel'
 
 describe('wheelProgress', () => {
   it('é 0 antes e no começo, 1 no fim e passa de 1 para 1', () => {
@@ -14,13 +14,37 @@ describe('wheelProgress', () => {
   })
 })
 
+describe('wheelPosition', () => {
+  it('começa em 0, termina no último item e para exatamente em cada item', () => {
+    expect(wheelPosition(0, 5)).toBe(0)
+    expect(wheelPosition(1, 5)).toBe(4)
+    expect(wheelPosition(0.25, 5)).toBe(1)
+    expect(wheelPosition(0.5, 5)).toBe(2)
+  })
+  it('fica parado perto de cada item e troca no meio do trecho', () => {
+    expect(wheelPosition(0.04, 5)).toBe(0) // dentro da pausa do item 0
+    expect(wheelPosition(0.125, 5)).toBeCloseTo(0.5, 5) // meio do caminho entre 0 e 1
+  })
+  it('nunca anda para trás ao rolar para frente', () => {
+    let prev = -1
+    for (let p = 0; p <= 1.0001; p += 0.01) {
+      const pos = wheelPosition(p, 5)
+      expect(pos).toBeGreaterThanOrEqual(prev)
+      prev = pos
+    }
+  })
+  it('um item só fica sempre no zero', () => {
+    expect(wheelPosition(0.6, 1)).toBe(0)
+  })
+})
+
 describe('activeIndex', () => {
-  it('arredonda para o item mais próximo', () => {
+  it('arredonda a posição para o item mais próximo', () => {
     expect(activeIndex(0, 5)).toBe(0)
-    expect(activeIndex(0.12, 5)).toBe(0)
-    expect(activeIndex(0.13, 5)).toBe(1)
-    expect(activeIndex(0.5, 5)).toBe(2)
-    expect(activeIndex(1, 5)).toBe(4)
+    expect(activeIndex(0.49, 5)).toBe(0)
+    expect(activeIndex(0.51, 5)).toBe(1)
+    expect(activeIndex(4, 5)).toBe(4)
+    expect(activeIndex(9, 5)).toBe(4)
   })
   it('um item só fica sempre no zero', () => {
     expect(activeIndex(0.7, 1)).toBe(0)
