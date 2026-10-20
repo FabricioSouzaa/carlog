@@ -34,7 +34,12 @@ export function useWheel(count: number) {
       if (current !== target) raf = requestAnimationFrame(frame)
       else lastFrame = 0
     }
-    const read = () => wheelPosition(wheelProgress(el.getBoundingClientRect().top, el.offsetHeight, window.innerHeight), count)
+    // a "janela" é a altura do conteúdo fixo (100dvh), não window.innerHeight: nos celulares os dois mudam em
+    // momentos diferentes quando a barra de endereço some, e a conta desencontrava nas pontas
+    const stage = el.firstElementChild as HTMLElement | null
+    // sem o seletor (movimento reduzido ou sem suporte) a seção é uma lista comum e não há o que acompanhar
+    const pinned = () => !!stage && getComputedStyle(stage).position === 'sticky'
+    const read = () => (pinned() ? wheelPosition(wheelProgress(el.getBoundingClientRect().top, el.offsetHeight, stage!.offsetHeight), count) : 0)
     const onScroll = () => {
       target = read()
       if (!raf) raf = requestAnimationFrame(frame)
@@ -54,8 +59,9 @@ export function useWheel(count: number) {
   const goTo = useCallback(
     (index: number) => {
       const el = ref.current
-      if (!el) return
-      const top = scrollTargetFor(index, count, el.getBoundingClientRect().top + window.scrollY, el.offsetHeight, window.innerHeight)
+      const stage = el?.firstElementChild as HTMLElement | null
+      if (!el || !stage) return
+      const top = scrollTargetFor(index, count, el.getBoundingClientRect().top + window.scrollY, el.offsetHeight, stage.offsetHeight)
       window.scrollTo({ top, behavior: 'smooth' })
     },
     [count],
