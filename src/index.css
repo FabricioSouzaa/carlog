@@ -179,7 +179,7 @@ body {
       height: calc(100dvh + (var(--n) - 1) * 56dvh);
     }
     .demo-section {
-      height: calc(100dvh + (var(--n) - 1) * 80dvh);
+      height: calc(100dvh + (var(--n) - 1) * 76dvh);
     }
     .wheel-stage {
       position: sticky;
@@ -258,16 +258,93 @@ body {
   }
 }
 
-/* Seção da demonstração (FeatureDemo): fundo azul bem claro com pontinhos, janela branca com sombra e brilho azul por trás */
+/*
+ * Seção da demonstração (FeatureDemo): céu noturno estrelado, no azul da marca. As estrelas são camadas de pontinhos de
+ * tamanhos de repetição diferentes (por isso não parece um padrão). `.demo-fade` e `.demo-fade-out` fazem o claro das
+ * seções vizinhas se desfazer no céu e o céu voltar ao claro; as estrelas aparecem e somem junto.
+ */
+:root {
+  --sky-top: #040a1c;
+  --sky-mid: #0a1a45;
+  --sky-low: #12307a;
+  --stars:
+    radial-gradient(1.0px 1.0px at 49px 27px, rgb(255 255 255 / 0.78), transparent),
+    radial-gradient(1.2px 1.2px at 32px 101px, rgb(255 255 255 / 0.48), transparent),
+    radial-gradient(1.0px 1.0px at 17px 30px, rgb(255 255 255 / 0.66), transparent),
+    radial-gradient(1.0px 1.0px at 31px 149px, rgb(255 255 255 / 0.48), transparent),
+    radial-gradient(1.5px 1.5px at 65px 169px, rgb(255 255 255 / 0.74), transparent),
+    radial-gradient(1.0px 1.0px at 155px 157px, rgb(255 255 255 / 0.47), transparent),
+    radial-gradient(1.8px 1.8px at 19px 150px, rgb(147 197 253 / 0.52), transparent),
+    radial-gradient(0.7px 0.7px at 44px 146px, rgb(255 255 255 / 0.74), transparent),
+    radial-gradient(0.9px 0.9px at 60px 104px, rgb(255 255 255 / 0.5), transparent),
+    radial-gradient(1.0px 1.0px at 38px 113px, rgb(147 197 253 / 0.79), transparent),
+    radial-gradient(1.2px 1.2px at 168px 246px, rgb(191 219 254 / 0.91), transparent),
+    radial-gradient(1.8px 1.8px at 161px 135px, rgb(255 255 255 / 0.54), transparent),
+    radial-gradient(0.9px 0.9px at 49px 302px, rgb(191 219 254 / 0.71), transparent),
+    radial-gradient(1.2px 1.2px at 237px 155px, rgb(255 255 255 / 0.94), transparent),
+    radial-gradient(0.8px 0.8px at 270px 222px, rgb(255 255 255 / 0.83), transparent),
+    radial-gradient(0.7px 0.7px at 258px 223px, rgb(255 255 255 / 0.93), transparent),
+    radial-gradient(1.2px 1.2px at 399px 293px, rgb(191 219 254 / 0.84), transparent),
+    radial-gradient(0.9px 0.9px at 182px 363px, rgb(147 197 253 / 0.75), transparent),
+    radial-gradient(0.7px 0.7px at 43px 438px, rgb(147 197 253 / 0.92), transparent),
+    radial-gradient(1.5px 1.5px at 74px 70px, rgb(147 197 253 / 0.8), transparent);
+  --stars-size: 131px 131px, 149px 149px, 167px 167px, 181px 181px, 197px 197px, 211px 211px, 229px 229px, 251px 251px, 271px 271px, 293px 293px, 311px 311px, 337px 337px, 359px 359px, 383px 383px, 409px 409px, 433px 433px, 457px 457px, 487px 487px, 509px 509px, 541px 541px;
+}
 .demo-bg {
-  background-color: rgb(239 246 255);
-  background-image: radial-gradient(rgb(59 130 246 / 0.16) 1px, transparent 1px);
-  background-size: 22px 22px;
+  isolation: isolate;
+  background:
+    linear-gradient(180deg, var(--sky-top), transparent 16%),
+    radial-gradient(60% 35% at 82% 12%, rgb(37 99 235 / 0.32), transparent),
+    radial-gradient(50% 40% at 8% 70%, rgb(29 78 216 / 0.24), transparent),
+    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-low) 100%);
+}
+.demo-bg::before,
+.demo-fade::after,
+.demo-fade-out::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--stars);
+  background-size: var(--stars-size);
+  pointer-events: none;
+}
+.demo-fade,
+.demo-fade-out {
+  position: relative;
+  isolation: isolate;
+  height: 26dvh;
+}
+.demo-fade {
+  background: linear-gradient(180deg, var(--page-bg, #f8fafc), var(--sky-top));
+}
+.demo-fade-out {
+  background: linear-gradient(180deg, var(--sky-low), var(--page-bg, #f8fafc));
+}
+.demo-fade::after {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 15%, #000);
+  mask-image: linear-gradient(to bottom, transparent 15%, #000);
+}
+.demo-fade-out::after {
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 85%);
+  mask-image: linear-gradient(to bottom, #000, transparent 85%);
 }
 @media (prefers-color-scheme: dark) {
-  .demo-bg {
-    background-color: rgb(15 23 42);
-    background-image: radial-gradient(rgb(96 165 250 / 0.14) 1px, transparent 1px);
+  :root {
+    --page-bg: #020617;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .demo-bg::before {
+    animation: twinkle 7s ease-in-out infinite alternate;
+  }
+}
+@keyframes twinkle {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
   }
 }
 .demo-section {
@@ -280,9 +357,11 @@ body {
 }
 .demo-card {
   border-radius: 22px;
-  border: 1px solid rgb(226 232 240);
+  border: 1px solid rgb(226 232 240 / 0.9);
   background: #fff;
-  box-shadow: 0 30px 70px rgb(15 23 42 / 0.14);
+  box-shadow:
+    0 0 0 1px rgb(147 197 253 / 0.25),
+    0 30px 90px rgb(2 6 23 / 0.55);
   will-change: transform, opacity;
 }
 @media (prefers-color-scheme: dark) {
@@ -295,8 +374,8 @@ body {
   position: absolute;
   inset: 4% -10%;
   border-radius: 9999px;
-  background: radial-gradient(closest-side, rgb(59 130 246 / 0.22), transparent);
-  filter: blur(30px);
+  background: radial-gradient(closest-side, rgb(96 165 250 / 0.38), transparent);
+  filter: blur(34px);
 }
 .demo-toast {
   position: absolute;

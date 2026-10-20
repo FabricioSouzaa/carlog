@@ -86,7 +86,10 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
       {/* o azul do hero se desfaz num degradê até o fundo claro; o título do seletor só fixa depois dele */}
       <div aria-hidden="true" className="h-[20dvh] bg-linear-to-b from-blue-700 to-slate-50 dark:to-slate-950" />
       <FeatureWheel />
+      {/* o claro da seção 2 se desfaz no céu da seção 3, e o céu volta ao claro depois */}
+      <div aria-hidden="true" className="demo-fade" />
       <FeatureDemo />
+      <div aria-hidden="true" className="demo-fade-out" />
 
       <main className="mx-auto max-w-5xl space-y-20 px-4 pt-12 pb-16 md:space-y-28 md:pt-16">
         <section aria-labelledby="visao">
