@@ -1,6 +1,6 @@
 # Carlog
 
-**Carlog** ("o histórico do seu carro") é um app pessoal para registrar e acompanhar todas as despesas do carro (combustível, manutenção, melhorias etc.), ver quanto já foi gasto e planejar gastos futuros. O nome e o descritivo ficam em `src/config.ts` (`APP_NAME`, `APP_TAGLINE`); o repositório e a pasta ainda se chamam `historico-carro`.
+**Carlog** ("o histórico do seu carro") é um app pessoal para registrar e acompanhar todas as despesas do carro (combustível, manutenção, melhorias etc.), ver quanto já foi gasto e planejar gastos futuros. O nome e o descritivo ficam em `src/config.ts` (`APP_NAME`, `APP_TAGLINE`); o repositório e a pasta ainda se chamam `historico-carro`. Endereço de produção: https://usecarlog.vercel.app.
 
 Idioma: interface, textos e mensagens em **português (pt-BR)**. Valores em **R$** (BRL), datas no formato `dd/mm/aaaa`. Código (nomes de variáveis, funções, tipos) em inglês.
 
@@ -17,7 +17,7 @@ Idioma: interface, textos e mensagens em **português (pt-BR)**. Valores em **R$
 - Fotos: Supabase Storage, bucket privado `receipts`, caminho `<user_id>/<image_id>.jpg`.
 - Testes: Vitest (focar em cálculos de totais/filtros)
 - Marca: logo "velocímetro" desenhado em código (`src/lib/gauge.ts` + `src/components/Logo.tsx`, versão grossa para tamanhos pequenos e fina para fundos grandes). Ícones do PWA/favicon saem de `design/build-icons.mjs` (ver o cabeçalho do script). Fonte de destaque Space Grotesk 700, hospedada em `public/fonts/` (SIL OFL), usada nos títulos da landing e do login.
-- Design no Figma (arquivo "Histórico do Carro: landing e login"): landing e login desenhados lá antes de implementar.
+- Design no Figma (arquivo do Carlog, "landing e login"): landing e login desenhados lá antes de implementar. A imagem de prévia do link (`public/og-image.png`) sai de `design/build-og-image.mjs`.
 
 ## Funcionalidades
 

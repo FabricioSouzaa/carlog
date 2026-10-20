@@ -1,6 +1,6 @@
 # Carlog
 
-**Carlog** ("o histórico do seu carro") é um app pessoal para registrar as despesas e manutenções do carro, ver quanto já foi gasto e planejar gastos futuros. Funciona no celular e no computador (PWA) e guarda tudo na nuvem. Em produção: <https://historico-carro.vercel.app>.
+**Carlog** ("o histórico do seu carro") é um app pessoal para registrar as despesas e manutenções do carro, ver quanto já foi gasto e planejar gastos futuros. Funciona no celular e no computador (PWA) e guarda tudo na nuvem. Em produção: <https://usecarlog.vercel.app>.
 
 ## Funcionalidades
 
