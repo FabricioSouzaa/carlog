@@ -159,7 +159,8 @@ body {
   padding-block: 4rem;
 }
 .wheel-nav,
-.wheel-glow {
+.wheel-glow,
+.demo-track {
   display: none;
 }
 .wheel-item {
@@ -179,7 +180,8 @@ body {
       height: calc(100dvh + (var(--n) - 1) * 56dvh);
     }
     .demo-section {
-      height: calc(100dvh + (var(--n) - 1) * 76dvh);
+      height: calc(100dvh + var(--len, 5) * 68dvh);
+      overflow-x: clip; /* os pedaços chegam de fora da tela sem criar rolagem lateral */
     }
     .wheel-stage {
       position: sticky;
@@ -189,6 +191,9 @@ body {
     }
     .wheel-nav {
       display: block;
+    }
+    .demo-track {
+      display: flex;
     }
     .wheel-glow {
       display: block;

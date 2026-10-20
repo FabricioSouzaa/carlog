@@ -11,6 +11,17 @@ const AMOUNT = 'R$ 389,90'
 const PLANNED = 'Trocar farol para LED'
 const REAL_AMOUNT = 'R$ 380,00'
 const STEPS = ['Descreva o gasto', 'Escolha o tipo', 'Anexe a nota', 'Planeje o próximo', 'Marque como realizado']
+const SHORT = ['Descreva', 'Tipo', 'Nota', 'Planeje', 'Realize']
+const STEP_TEXT = [
+  'O que foi, quanto custou e quando.',
+  'Manutenção, valorização ou rotina.',
+  'Fotos da nota fiscal e da peça.',
+  'Registre o que ainda vai gastar.',
+  'Um clique e o gasto real é salvo.',
+]
+/** Quanta rolagem cada trecho entre dois momentos ganha: os de planejar e realizar têm mais coisa acontecendo e ganham mais. */
+const WEIGHTS = [1.3, 1.1, 1.1, 1.8, 2]
+const LEN = WEIGHTS.reduce((a, b) => a + b, 0)
 
 /**
  * Posições da cena, em itens (0 a 5). Cada número é um momento em que a cena "para":
@@ -20,7 +31,15 @@ const STEPS = ['Descreva o gasto', 'Escolha o tipo', 'Anexe a nota', 'Planeje o 
  */
 const SCENE = 6
 
-/** Entrada de um pedaço da cena: sobe um pouco e aparece. */
+/** Chegada "de fora da tela": o pedaço vem de além da borda (cima, direita ou baixo) e desacelera ao chegar no card. */
+type From = 'up' | 'down' | 'right' | 'downright'
+const fly = (r: number, from: From): CSSProperties => {
+  const k = Math.pow(1 - r, 3) // 1 longe, 0 no lugar (desacelera no fim)
+  const x = from === 'right' || from === 'downright' ? k * 60 : 0 // vw
+  const y = from === 'up' ? -k * 70 : from === 'down' || from === 'downright' ? k * 60 : 0 // vh
+  return { opacity: Math.min(1, r * 2.4), transform: `translate(${x}vw, ${y}vh)` }
+}
+/** Entrada de um pedaço pequeno da cena: sobe um pouco e aparece. */
 const show = (r: number, px = 10): CSSProperties => ({ opacity: r, transform: `translateY(${(1 - r) * px}px)` })
 /** Quantos caracteres de `text` já foram "digitados" com o progresso `r` (0 a 1). */
 const typedOf = (text: string, r: number) => text.slice(0, Math.round(r * text.length))
@@ -58,7 +77,7 @@ function Cursor({ style }: { style: CSSProperties }) {
 export function FeatureDemo() {
   const [pos, setPos] = useState(0)
   // a cena só precisa de ~1 mudança por centésimo; evita renderizar a cada pixel de rolagem
-  const { ref, goTo } = useWheel(SCENE, { tau: 110, dwell: 0.2, staticPosition: 3, onPosition: (p) => setPos(Math.round(p * 100) / 100) })
+  const { ref, goTo } = useWheel(SCENE, { tau: 110, dwell: 0.2, weights: WEIGHTS, staticPosition: 3, onPosition: (p) => setPos(Math.round(p * 100) / 100) })
   const step = Math.max(0, Math.min(STEPS.length - 1, Math.round(pos) - 1))
 
   const fit = useRef<HTMLDivElement>(null)
@@ -97,39 +116,66 @@ export function FeatureDemo() {
   const pressReal = r(4.9, 4.96)
 
   return (
-    <section ref={ref} id="cadastrar" aria-labelledby="cadastrar-titulo" className="wheel-section demo-section demo-bg relative" style={{ '--p': 0, '--n': SCENE } as CSSProperties}>
+    <section ref={ref} id="cadastrar" aria-labelledby="cadastrar-titulo" className="wheel-section demo-section demo-bg relative" style={{ '--p': 0, '--n': SCENE, '--len': LEN } as CSSProperties}>
       <div className="wheel-stage flex items-center">
         <div className="mx-auto grid w-full max-w-6xl items-center gap-4 px-4 lg:grid-cols-[380px_1fr] lg:gap-16">
           <div>
             <p className="text-[13px] font-semibold tracking-[0.18em] text-blue-300 uppercase">Como funciona</p>
-            <h2 id="cadastrar-titulo" className="font-display mt-2 text-4xl leading-[1.08] font-bold tracking-tight text-white lg:text-5xl">{TITLE}</h2>
-            <p className="mt-3 text-base text-slate-300 lg:text-[17px]">{SUBTITLE}</p>
+            <h2 id="cadastrar-titulo" className="font-display mt-1.5 text-[28px] leading-[1.1] font-bold tracking-tight text-white lg:mt-2 lg:text-5xl">{TITLE}</h2>
+            <p className="mt-3 hidden text-base text-slate-300 sm:block lg:text-[17px]">{SUBTITLE}</p>
 
-            <ol className="wheel-nav mt-8 space-y-1 max-lg:sr-only max-lg:focus-within:not-sr-only">
-              {STEPS.map((label, i) => (
-                <li key={label}>
-                  <button
-                    type="button"
-                    onClick={() => goTo(i + 1)}
-                    className={`flex items-center gap-3 rounded-lg py-2 pr-3 text-left text-[17px] transition-colors ${i === step ? 'font-semibold text-white' : 'text-slate-500 hover:text-slate-300'}`}
-                  >
-                    <span className={`h-2 w-2 rounded-full transition-colors ${i <= step ? 'bg-blue-400' : 'bg-slate-600'}`} />
-                    <span className={`font-display text-[13px] font-bold ${i <= step ? 'text-blue-300' : ''}`}>0{i + 1}</span>
-                    {label}
-                  </button>
-                </li>
-              ))}
-            </ol>
-            {/* no celular, a lista vira uma barra de passos */}
-            <div aria-hidden="true" className="mt-4 flex gap-1.5 lg:hidden">
-              {STEPS.map((label, i) => (
-                <span key={label} className={`h-1 flex-1 rounded-full transition-colors ${i <= step ? 'bg-blue-400' : 'bg-white/15'}`} />
-              ))}
+            {/* o passo em foco: número, nome e uma frase; cada um aparece quando chega a sua vez */}
+            <div className="relative mt-3 h-[72px] lg:mt-9 lg:h-28" aria-live="off">
+              {STEPS.map((label, i) => {
+                const d = pos - (i + 1)
+                return (
+                  <div key={label} className="absolute inset-x-0 top-0" style={{ opacity: Math.max(0, 1 - Math.abs(d) * 1.7), transform: `translateY(${-d * 22}px)` }}>
+                    <p className="font-display text-sm font-bold text-blue-300">0{i + 1} / 05</p>
+                    <p className="font-display mt-0.5 text-xl font-bold text-white lg:mt-1 lg:text-[28px]">{label}</p>
+                    <p className="mt-0.5 text-sm text-slate-300 lg:mt-1 lg:text-[15px]">{STEP_TEXT[i]}</p>
+                  </div>
+                )
+              })}
             </div>
-            <p aria-hidden="true" className="font-display mt-2 text-[15px] font-bold text-blue-300 lg:hidden">0{step + 1}  {STEPS[step]}</p>
           </div>
 
-          <div ref={fit} className="relative mx-auto w-full max-w-[680px]" style={{ height: `calc(var(--demo-h, 0px) * ${scale})` }}>
+          <div className="mx-auto w-full max-w-[680px]">
+            {/* a trilha: os 5 passos lado a lado; o rastro azul cresce com a rolagem */}
+            <ol className="demo-track relative mb-3 justify-between lg:mb-7" aria-label="Passos">
+              <span aria-hidden="true" className="absolute top-3.5 right-3.5 left-3.5 h-0.5 rounded-full bg-white/15" />
+              <span
+                aria-hidden="true"
+                className="absolute top-3.5 left-3.5 h-0.5 rounded-full bg-linear-to-r from-blue-600 to-blue-300"
+                style={{ width: `calc((100% - 28px) * ${r(1, 5)})` }}
+              />
+              {r(1, 5) > 0 && r(1, 5) < 1 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute top-[9px] size-3 -translate-x-1/2 rounded-full bg-blue-200 shadow-[0_0_14px_4px_rgb(96_165_250_/_0.9)]"
+                  style={{ left: `calc(14px + (100% - 28px) * ${r(1, 5)})` }}
+                />
+              )}
+              {STEPS.map((label, i) => {
+                const done = i < step || (i === step && pos >= i + 1.95)
+                const now = i === step
+                return (
+                  <li key={label} className="relative z-10 flex w-14 flex-col items-center">
+                    <button
+                      type="button"
+                      onClick={() => goTo(i + 1)}
+                      aria-label={label}
+                      aria-current={now ? 'step' : undefined}
+                      className={`flex size-7 items-center justify-center rounded-full border text-xs font-bold transition-all ${now ? 'scale-125 border-blue-300 bg-blue-500 text-white shadow-[0_0_0_5px_rgb(59_130_246_/_0.28)]' : done ? 'border-blue-500 bg-blue-600 text-white' : 'border-white/25 bg-slate-900/70 text-slate-400 hover:text-slate-200'}`}
+                    >
+                      {done ? '✓' : i + 1}
+                    </button>
+                    <span className={`mt-2.5 hidden text-center text-xs font-medium sm:block ${now ? 'text-white' : 'text-slate-500'}`}>{SHORT[i]}</span>
+                  </li>
+                )
+              })}
+            </ol>
+
+          <div ref={fit} className="relative w-full" style={{ height: `calc(var(--demo-h, 0px) * ${scale})` }}>
             <div className="demo-glow" aria-hidden="true" />
             {/* a janela ocupa a largura disponível (até 680 px); só encolhe se a tela for baixa demais */}
             <div ref={win} className="demo-window absolute top-0 left-0 origin-top-left" style={{ width: `${100 / scale}%`, transform: `scale(${scale})` }}>
@@ -145,24 +191,24 @@ export function FeatureDemo() {
                     <span className="text-slate-400">✕</span>
                   </div>
                   <div className="flex-1 space-y-3.5 px-5 pt-4 lg:space-y-[18px] lg:px-7 lg:pt-5">
-                    <Field label="Descrição" focus={r(0.2, 0.22) > 0 && pos < 1.1} style={show(r(0.05, 0.2))}>
+                    <Field label="Descrição" focus={r(0.2, 0.22) > 0 && pos < 1.1} style={fly(r(0.04, 0.2), 'up')}>
                       <span>{typedDesc}</span>
                       {r(0.2, 0.22) > 0 && pos < 1.15 && <Caret />}
                     </Field>
                     <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                      <Field label="Valor" focus={r(0.78, 0.8) > 0 && pos < 0.97} style={show(r(0.7, 0.8))}>
+                      <Field label="Valor" focus={r(0.78, 0.8) > 0 && pos < 0.97} style={fly(r(0.66, 0.8), 'right')}>
                         <span>{typedAmount}</span>
                         {r(0.78, 0.8) > 0 && pos < 0.97 && <Caret />}
                       </Field>
-                      <Field label="Data" style={show(r(0.88, 1))}>
+                      <Field label="Data" style={fly(r(0.84, 0.98), 'downright')}>
                         {today}
                       </Field>
                     </div>
-                    <Field label="Categoria" style={show(r(1, 1.2))}>
+                    <Field label="Categoria" style={fly(r(1, 1.22), 'right')}>
                       <span style={show(r(1.1, 1.3), 6)}>Manutenção</span>
                       <span className="ml-auto text-slate-400">⌄</span>
                     </Field>
-                    <div style={show(r(1.3, 1.45))}>
+                    <div style={fly(r(1.28, 1.46), 'down')}>
                       <div className="mb-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300">Tipo</div>
                       <div className="flex gap-2 text-sm font-medium">
                         {['Manutenção', 'Valorização', 'Rotina'].map((t, i) => {
@@ -174,10 +220,10 @@ export function FeatureDemo() {
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                      <Field label="Km (opcional)" style={show(r(1.65, 1.8))}>
+                      <Field label="Km (opcional)" style={fly(r(1.62, 1.8), 'right')}>
                         <span style={show(r(1.75, 1.95), 6)}>48.200 km</span>
                       </Field>
-                      <div style={show(r(2, 2.12))}>
+                      <div style={fly(r(1.98, 2.16), 'down')}>
                         <div className="mb-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300">Fotos (até 5)</div>
                         <div className="flex gap-1.5 lg:gap-2">
                           {[0, 1].map((i) => {
@@ -191,7 +237,7 @@ export function FeatureDemo() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-5 pb-5 lg:px-7 lg:pb-7" style={show(r(2.5, 2.62))}>
+                  <div className="px-5 pb-5 lg:px-7 lg:pb-7" style={fly(r(2.48, 2.64), 'down')}>
                     <div
                       className="flex h-[50px] items-center justify-center rounded-xl bg-blue-600 text-base font-semibold text-white"
                       style={{ boxShadow: `0 0 0 ${pressSave * 4}px rgb(59 130 246 / ${pressSave * 0.35})`, transform: `scale(${1 - pressSave * 0.015})` }}
@@ -218,15 +264,15 @@ export function FeatureDemo() {
                     {/* a) formulário de novo planejado */}
                     <div className="absolute inset-x-5 top-4 space-y-3.5 lg:inset-x-7 lg:top-5 lg:space-y-[18px]" style={{ opacity: 1 - createOut, transform: `translateY(${-createOut * 10}px)` }}>
                       <p className="text-sm font-semibold text-slate-500" style={show(r(3.3, 3.42))}>Novo planejado</p>
-                      <Field label="Descrição" focus={r(3.4, 3.42) > 0 && pos < 3.7} style={show(r(3.32, 3.44))}>
-                        <span>{typedOf(PLANNED, r(3.42, 3.7))}</span>
+                      <Field label="Descrição" focus={r(3.4, 3.42) > 0 && pos < 3.7} style={fly(r(3.3, 3.46), 'up')}>
+                        <span>{typedOf(PLANNED, r(3.46, 3.7))}</span>
                         {r(3.42, 3.44) > 0 && pos < 3.72 && <Caret />}
                       </Field>
                       <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                        <Field label="Valor estimado" style={show(r(3.62, 3.72))}>
+                        <Field label="Valor estimado" style={fly(r(3.6, 3.74), 'right')}>
                           <span style={show(r(3.66, 3.76), 6)}>R$ 400,00</span>
                         </Field>
-                        <div style={show(r(3.68, 3.78))}>
+                        <div style={fly(r(3.66, 3.8), 'downright')}>
                           <div className="mb-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300">Prioridade</div>
                           <div className="flex gap-2 text-sm font-medium">
                             {['Baixa', 'Média', 'Alta'].map((t, i) => {
@@ -238,7 +284,7 @@ export function FeatureDemo() {
                           </div>
                         </div>
                       </div>
-                      <div style={show(r(3.78, 3.84))}>
+                      <div style={fly(r(3.76, 3.86), 'down')}>
                         <div
                           className="flex h-11 items-center justify-center rounded-xl bg-blue-600 text-[15px] font-semibold text-white"
                           style={{ boxShadow: `0 0 0 ${r(3.84, 3.9) * 4}px rgb(59 130 246 / ${r(3.84, 3.9) * 0.35})`, transform: `scale(${1 - r(3.84, 3.9) * 0.015})` }}
@@ -249,7 +295,7 @@ export function FeatureDemo() {
                     </div>
 
                     {/* b) o card do planejado, com o botão que o cursor vai clicar */}
-                    <div className="card !p-4 lg:!p-5" style={{ ...show(cardIn, 12) }}>
+                    <div className="card !p-4 lg:!p-5" style={fly(cardIn, 'right')}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <h3 className="text-base font-semibold lg:text-lg">{PLANNED}</h3>
@@ -277,8 +323,8 @@ export function FeatureDemo() {
                             style={{
                               left: '58%',
                               top: '48%',
-                              opacity: r(4.1, 4.2) * (1 - r(4.58, 4.7)),
-                              transform: `translate(${(1 - moveCursor) * 150}px, ${(1 - moveCursor) * 110}px) scale(${1 - clickReal * 0.12})`,
+                              opacity: r(4.08, 4.14) * (1 - r(4.62, 4.74)),
+                              transform: `translate(${Math.pow(1 - moveCursor, 2) * 62}vw, ${Math.pow(1 - moveCursor, 2) * 58}vh) scale(${1 - clickReal * 0.12})`,
                             }}
                           />
                         </span>
@@ -286,7 +332,7 @@ export function FeatureDemo() {
                     </div>
 
                     {/* c) o formulário já vem preenchido; falta o valor real */}
-                    <div className="mt-4 space-y-3.5 lg:mt-5 lg:space-y-[18px]" style={show(r(4.55, 4.68), 8)}>
+                    <div className="mt-4 space-y-3.5 lg:mt-5 lg:space-y-[18px]" style={fly(r(4.55, 4.72), 'down')}>
                       <p className="text-sm font-medium text-blue-600 dark:text-blue-400">↓ O formulário já vem preenchido</p>
                       <Field label="Descrição">{PLANNED}</Field>
                       <div className="grid grid-cols-2 gap-3 lg:gap-4">
@@ -298,7 +344,7 @@ export function FeatureDemo() {
                       </div>
                     </div>
                   </div>
-                  <div className="px-5 pb-5 lg:px-7 lg:pb-7" style={show(r(4.55, 4.68))}>
+                  <div className="px-5 pb-5 lg:px-7 lg:pb-7" style={fly(r(4.58, 4.74), 'down')}>
                     <div
                       className="flex h-[50px] items-center justify-center rounded-xl bg-blue-600 text-base font-semibold text-white"
                       style={{ boxShadow: `0 0 0 ${pressReal * 4}px rgb(59 130 246 / ${pressReal * 0.35})`, transform: `scale(${1 - pressReal * 0.015})` }}
@@ -313,6 +359,7 @@ export function FeatureDemo() {
                 </div>
               </div>
             </div>
+          </div>
           </div>
         </div>
       </div>

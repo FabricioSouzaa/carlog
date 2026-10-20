@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeIndex, ramp, scrollTargetFor, wheelPosition, wheelProgress } from './wheel'
+import { activeIndex, ramp, scrollTargetFor, weightedPosition, wheelPosition, wheelProgress } from './wheel'
 
 describe('wheelProgress', () => {
   it('é 0 antes e no começo, 1 no fim e passa de 1 para 1', () => {
@@ -73,5 +73,40 @@ describe('ramp', () => {
   it('trecho de tamanho zero vira um degrau', () => {
     expect(ramp(0.9, 1, 1)).toBe(0)
     expect(ramp(1, 1, 1)).toBe(1)
+  })
+})
+
+describe('weightedPosition', () => {
+  it('trechos mais pesados ocupam mais rolagem', () => {
+    // pesos 1 e 3: o primeiro trecho vai de 0 a 0,25 da rolagem
+    expect(weightedPosition(0.25, [1, 3])).toBe(1)
+    expect(weightedPosition(0.125, [1, 3])).toBeCloseTo(0.5, 5)
+    expect(weightedPosition(0.625, [1, 3])).toBeCloseTo(1.5, 5)
+  })
+  it('começa em 0 e termina no último item', () => {
+    expect(weightedPosition(0, [2, 1, 1])).toBe(0)
+    expect(weightedPosition(1, [2, 1, 1])).toBe(3)
+  })
+  it('com pesos iguais é o mesmo que wheelPosition', () => {
+    for (const p of [0, 0.1, 0.33, 0.5, 0.77, 1]) {
+      expect(weightedPosition(p, [1, 1, 1, 1])).toBeCloseTo(wheelPosition(p, 5), 10)
+    }
+  })
+  it('não anda para trás', () => {
+    let prev = -1
+    for (let p = 0; p <= 1.0001; p += 0.01) {
+      const pos = weightedPosition(p, [1.3, 1.1, 1.1, 1.8, 2])
+      expect(pos).toBeGreaterThanOrEqual(prev)
+      prev = pos
+    }
+  })
+})
+
+describe('scrollTargetFor com pesos', () => {
+  it('leva o item ao fim dos trechos anteriores', () => {
+    // seção de 3000 com janela de 1000: 2000 de rolagem; pesos 1 e 3
+    expect(scrollTargetFor(0, 3, 500, 3000, 1000, [1, 3])).toBe(500)
+    expect(scrollTargetFor(1, 3, 500, 3000, 1000, [1, 3])).toBe(1000)
+    expect(scrollTargetFor(2, 3, 500, 3000, 1000, [1, 3])).toBe(2500)
   })
 })

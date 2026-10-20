@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { activeIndex, scrollTargetFor, wheelPosition, wheelProgress } from '../lib/wheel'
+import { activeIndex, scrollTargetFor, weightedPosition, wheelPosition, wheelProgress } from '../lib/wheel'
 
 /**
  * Liga uma seção alta (com conteúdo "sticky" dentro) à rolagem. Escreve `--p` (0 a 1) na seção a cada frame e
@@ -10,6 +10,7 @@ export function useWheel(
   {
     tau = 70,
     dwell,
+    weights,
     staticPosition = 0,
     onPosition,
   }: {
@@ -17,6 +18,8 @@ export function useWheel(
     tau?: number
     /** Fração do trecho em que cada item fica parado (ver `wheelPosition`). */
     dwell?: number
+    /** Peso de cada trecho entre itens (trechos mais pesados ganham mais rolagem). Padrão: todos iguais. Use uma constante: muda o efeito se trocar a cada render. */
+    weights?: number[]
     /** Posição usada quando a seção é só uma lista comum (movimento reduzido ou sem suporte). */
     staticPosition?: number
     /** Chamado a cada frame com a posição desenhada (em itens), para cenas que dependem dela. */
@@ -58,7 +61,11 @@ export function useWheel(
     const stage = el.firstElementChild as HTMLElement | null
     // sem o seletor (movimento reduzido ou sem suporte) a seção é uma lista comum e não há o que acompanhar
     const pinned = () => !!stage && getComputedStyle(stage).position === 'sticky'
-    const read = () => (pinned() ? wheelPosition(wheelProgress(el.getBoundingClientRect().top, el.offsetHeight, stage!.offsetHeight), count, dwell) : staticPosition)
+    const read = () => {
+      if (!pinned()) return staticPosition
+      const p = wheelProgress(el.getBoundingClientRect().top, el.offsetHeight, stage!.offsetHeight)
+      return weights ? weightedPosition(p, weights, dwell) : wheelPosition(p, count, dwell)
+    }
     const onScroll = () => {
       target = read()
       if (!raf) raf = requestAnimationFrame(frame)
@@ -72,7 +79,7 @@ export function useWheel(
       window.removeEventListener('resize', onScroll)
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [count, tau, dwell, staticPosition])
+  }, [count, tau, dwell, weights, staticPosition])
 
   /** Rola a página até o ponto em que o item `index` fica em foco. */
   const goTo = useCallback(
@@ -80,10 +87,10 @@ export function useWheel(
       const el = ref.current
       const stage = el?.firstElementChild as HTMLElement | null
       if (!el || !stage) return
-      const top = scrollTargetFor(index, count, el.getBoundingClientRect().top + window.scrollY, el.offsetHeight, stage.offsetHeight)
+      const top = scrollTargetFor(index, count, el.getBoundingClientRect().top + window.scrollY, el.offsetHeight, stage.offsetHeight, weights)
       window.scrollTo({ top, behavior: 'smooth' })
     },
-    [count],
+    [count, weights],
   )
 
   return { ref, active, goTo }
