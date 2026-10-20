@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
+import { FeatureWheel } from '../components/FeatureWheel'
 import { Logo } from '../components/Logo'
 import { CategoriesMock, ExpenseFormMock, MonthlyMock, OverviewStats, PlannedMock, TypesMock } from '../components/LandingMocks'
 import { Reveal, RevealItem } from '../components/Reveal'
@@ -6,14 +7,6 @@ import { Typewriter } from '../components/Typewriter'
 import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME, APP_SLOGAN, APP_TAGLINE } from '../config'
 import { typingDuration } from '../lib/typing'
 import { whatsappLink } from '../lib/whatsapp'
-
-const FEATURES = [
-  { icon: '📊', title: 'Visão geral', text: 'Quanto você já gastou no total, no mês e no ano, com gráficos por categoria, por tipo e por mês.' },
-  { icon: '🧾', title: 'Gastos', text: 'Registre cada gasto com valor, data, categoria, km e fotos da nota. Filtre por período, categoria e tipo.' },
-  { icon: '🗓️', title: 'Planejados', text: 'Anote o que ainda vai gastar, com valor estimado e prioridade, e transforme em gasto real quando acontecer.' },
-  { icon: '🚗', title: 'Meu carro', text: 'Uma galeria com as fotos do seu carro, para guardar a história dele.' },
-  { icon: '⚙️', title: 'Ajustes', text: 'Suas categorias, backup dos dados em arquivo e a segurança da sua conta.' },
-] as const
 
 const STEPS = [
   { title: 'Descreva o gasto', text: 'Valor, data e categoria. Se quiser, anote o km do carro naquele momento.' },
@@ -95,22 +88,11 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
         </section>
       </div>
 
-      <main className="mx-auto max-w-5xl space-y-20 px-4 pt-20 pb-16 md:space-y-28 md:pt-28">
-        <section aria-labelledby="abas">
-          <Heading id="abas" title="Tudo em um só lugar" />
-          <ul className="flex flex-wrap justify-center gap-4">
-            {FEATURES.map((f, i) => (
-              <li key={f.title} className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc((100%-2rem)/3)]">
-                <Reveal delay={(i % 3) * 450} className="card h-full">
-                  <RevealItem i={0}><div aria-hidden="true" className="mb-2 text-3xl">{f.icon}</div></RevealItem>
-                  <RevealItem i={1}><h3 className="font-semibold">{f.title}</h3></RevealItem>
-                  <RevealItem i={2}><p className="muted mt-1">{f.text}</p></RevealItem>
-                </Reveal>
-              </li>
-            ))}
-          </ul>
-        </section>
+      {/* o azul do hero se desfaz num degradê até o fundo claro; o título do seletor só fixa depois dele */}
+      <div aria-hidden="true" className="h-[20dvh] bg-linear-to-b from-blue-700 to-slate-50 dark:to-slate-950" />
+      <FeatureWheel />
 
+      <main className="mx-auto max-w-5xl space-y-20 px-4 pt-12 pb-16 md:space-y-28 md:pt-16">
         <section aria-labelledby="cadastrar">
           <Heading id="cadastrar" title="Registrou, pagou, anotou">
             Cadastre o gasto em segundos, logo depois de pagar. Tudo pensado para o celular.

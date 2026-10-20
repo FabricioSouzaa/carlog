@@ -147,3 +147,99 @@ body {
     opacity: 0;
   }
 }
+
+/*
+ * "Seletor" das abas (FeatureWheel): --p (0 a 1) vem da rolagem; --d é a distância de cada card ao centro, em "linhas".
+ * O card em foco (d = 0) fica grande e nítido; os vizinhos diminuem, giram um pouco e apagam.
+ */
+.wheel-section {
+  --gap: 112px;
+  height: calc(100dvh + (var(--n) - 1) * 55dvh);
+}
+@media (min-width: 1024px) {
+  .wheel-section {
+    --gap: 150px;
+  }
+}
+.wheel {
+  perspective: 1100px;
+  /* os cards somem suavemente em cima e embaixo, como no seletor do iPhone; a folga lateral guarda sombras e a inclinação */
+  --pad: 12px;
+  margin-inline: calc(var(--pad) * -1);
+  padding-inline: var(--pad);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20%, #000 80%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 20%, #000 80%, transparent);
+}
+@media (min-width: 1024px) {
+  .wheel {
+    --pad: 24px;
+  }
+}
+.wheel-item {
+  --d: calc(var(--i) - var(--p) * (var(--n) - 1));
+  --a: min(abs(var(--d)), 2);
+  position: absolute;
+  top: 50%;
+  right: var(--pad);
+  left: var(--pad);
+  transform: translateY(calc(-50% + var(--d) * var(--gap))) rotateX(calc(var(--d) * -12deg)) scale(calc(1 - var(--a) * 0.09));
+  opacity: calc(1 - var(--a) * 0.42);
+  z-index: calc(10 - var(--a) * 5); /* quem está mais perto do centro fica por cima */
+  will-change: transform, opacity;
+}
+.wheel-mini {
+  opacity: calc(1 - min(abs(var(--d)), 1));
+}
+/* sem movimento (ou sem abs()): lista comum, nada fixo */
+@media (prefers-reduced-motion: reduce) {
+  .wheel-section {
+    height: auto;
+  }
+  .wheel-stage {
+    position: static;
+    min-height: 0;
+    padding-block: 4rem;
+  }
+  .wheel {
+    height: auto;
+    perspective: none;
+    --pad: 0px;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .wheel-item {
+    position: static;
+    margin-bottom: 1rem;
+    transform: none;
+    opacity: 1;
+  }
+  .wheel-mini {
+    opacity: 1;
+  }
+}
+@supports not (transform: translateY(calc(abs(1) * 1px))) {
+  .wheel-section {
+    height: auto;
+  }
+  .wheel-stage {
+    position: static;
+    min-height: 0;
+    padding-block: 4rem;
+  }
+  .wheel {
+    height: auto;
+    perspective: none;
+    --pad: 0px;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .wheel-item {
+    position: static;
+    margin-bottom: 1rem;
+    transform: none;
+    opacity: 1;
+  }
+  .wheel-mini {
+    opacity: 1;
+  }
+}
