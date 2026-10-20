@@ -10,6 +10,11 @@ export function wheelProgress(top: number, sectionHeight: number, viewportHeight
   return total > 0 ? clamp(-top / total, 0, 1) : 0
 }
 
+/** Quanto de um trecho já passou: 0 até `from`, 1 a partir de `to`, e linear no meio. Serve para animar partes da cena. */
+export function ramp(value: number, from: number, to: number): number {
+  return to === from ? (value >= to ? 1 : 0) : clamp((value - from) / (to - from), 0, 1)
+}
+
 /**
  * Posição do seletor, em "itens" (0 a count-1), para um progresso `p` da rolagem.
  * Em vez de seguir a rolagem em linha reta, cada card "para" um pouco no centro (`dwell` = fração do trecho

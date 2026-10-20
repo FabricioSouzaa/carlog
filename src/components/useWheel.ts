@@ -1,16 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { activeIndex, scrollTargetFor, wheelPosition, wheelProgress } from '../lib/wheel'
 
-/** Quanto o desenho demora para alcançar a rolagem (constante de tempo, ms): menor = mais colado ao dedo. */
-const TAU_MS = 70
-
 /**
  * Liga uma seção alta (com conteúdo "sticky" dentro) à rolagem. Escreve `--p` (0 a 1) na seção a cada frame e
  * devolve o item em foco. Cada item para um instante no centro (`wheelPosition`) e o movimento desliza atrás da rolagem.
  */
-export function useWheel(count: number) {
+export function useWheel(
+  count: number,
+  {
+    tau = 70,
+    dwell,
+    staticPosition = 0,
+    onPosition,
+  }: {
+    /** Quanto o desenho demora para alcançar a rolagem (constante de tempo, ms): menor = mais colado ao dedo. */
+    tau?: number
+    /** Fração do trecho em que cada item fica parado (ver `wheelPosition`). */
+    dwell?: number
+    /** Posição usada quando a seção é só uma lista comum (movimento reduzido ou sem suporte). */
+    staticPosition?: number
+    /** Chamado a cada frame com a posição desenhada (em itens), para cenas que dependem dela. */
+    onPosition?: (position: number) => void
+  } = {},
+) {
   const ref = useRef<HTMLElement>(null)
   const [active, setActive] = useState(0)
+  const onPositionRef = useRef(onPosition)
+  useEffect(() => {
+    onPositionRef.current = onPosition
+  })
 
   useEffect(() => {
     const el = ref.current
@@ -22,13 +40,14 @@ export function useWheel(count: number) {
     const draw = () => {
       el.style.setProperty('--p', (current / last).toFixed(4))
       setActive(activeIndex(current, count))
+      onPositionRef.current?.(current)
     }
     let lastFrame = 0 // instante do frame anterior, para o amortecimento depender do tempo e não da taxa de quadros
     const frame = (now: number) => {
       raf = 0
       const dt = lastFrame ? Math.min(now - lastFrame, 64) : 16
       lastFrame = now
-      current += (target - current) * (1 - Math.exp(-dt / TAU_MS))
+      current += (target - current) * (1 - Math.exp(-dt / tau))
       if (Math.abs(target - current) < 0.0005) current = target
       draw()
       if (current !== target) raf = requestAnimationFrame(frame)
@@ -39,7 +58,7 @@ export function useWheel(count: number) {
     const stage = el.firstElementChild as HTMLElement | null
     // sem o seletor (movimento reduzido ou sem suporte) a seção é uma lista comum e não há o que acompanhar
     const pinned = () => !!stage && getComputedStyle(stage).position === 'sticky'
-    const read = () => (pinned() ? wheelPosition(wheelProgress(el.getBoundingClientRect().top, el.offsetHeight, stage!.offsetHeight), count) : 0)
+    const read = () => (pinned() ? wheelPosition(wheelProgress(el.getBoundingClientRect().top, el.offsetHeight, stage!.offsetHeight), count, dwell) : staticPosition)
     const onScroll = () => {
       target = read()
       if (!raf) raf = requestAnimationFrame(frame)
@@ -53,7 +72,7 @@ export function useWheel(count: number) {
       window.removeEventListener('resize', onScroll)
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [count])
+  }, [count, tau, dwell, staticPosition])
 
   /** Rola a página até o ponto em que o item `index` fica em foco. */
   const goTo = useCallback(

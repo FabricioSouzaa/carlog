@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activeIndex, scrollTargetFor, wheelPosition, wheelProgress } from './wheel'
+import { activeIndex, ramp, scrollTargetFor, wheelPosition, wheelProgress } from './wheel'
 
 describe('wheelProgress', () => {
   it('é 0 antes e no começo, 1 no fim e passa de 1 para 1', () => {
@@ -59,5 +59,19 @@ describe('scrollTargetFor', () => {
   })
   it('índice fora do intervalo é limitado', () => {
     expect(scrollTargetFor(9, 5, 0, 3200, 1000)).toBe(2200)
+  })
+})
+
+describe('ramp', () => {
+  it('vai de 0 a 1 entre os dois pontos e fica nas pontas fora deles', () => {
+    expect(ramp(0, 1, 2)).toBe(0)
+    expect(ramp(1, 1, 2)).toBe(0)
+    expect(ramp(1.25, 1, 2)).toBe(0.25)
+    expect(ramp(2, 1, 2)).toBe(1)
+    expect(ramp(9, 1, 2)).toBe(1)
+  })
+  it('trecho de tamanho zero vira um degrau', () => {
+    expect(ramp(0.9, 1, 1)).toBe(0)
+    expect(ramp(1, 1, 1)).toBe(1)
   })
 })
