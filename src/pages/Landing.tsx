@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { FeaturePhone } from '../components/FeaturePhone'
 import { FeatureWheel } from '../components/FeatureWheel'
 import { Logo } from '../components/Logo'
 import { CategoriesMock, ExpenseFormMock, MonthlyMock, OverviewStats, PlannedMock, TypesMock } from '../components/LandingMocks'
@@ -37,9 +36,6 @@ function Heading({ id, title, children }: { id: string; title: string; children?
     </div>
   )
 }
-
-// Duas versões da seção 2 para comparar na prévia: a normal (seletor) e `?secao2=celular` (mockup de celular).
-const SECTION2_PHONE = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('secao2') === 'celular'
 
 const HERO_TITLE = APP_SLOGAN
 // o que vem depois do título só entra quando ele termina de ser digitado
@@ -94,7 +90,7 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
 
       {/* o azul do hero se desfaz num degradê até o fundo claro; o título do seletor só fixa depois dele */}
       <div aria-hidden="true" className="h-[20dvh] bg-linear-to-b from-blue-700 to-slate-50 dark:to-slate-950" />
-      {SECTION2_PHONE ? <FeaturePhone /> : <FeatureWheel />}
+      <FeatureWheel />
 
       <main className="mx-auto max-w-5xl space-y-20 px-4 pt-12 pb-16 md:space-y-28 md:pt-16">
         <section aria-labelledby="cadastrar">

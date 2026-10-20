@@ -15,7 +15,7 @@ export function wheelProgress(top: number, sectionHeight: number, viewportHeight
  * Em vez de seguir a rolagem em linha reta, cada card "para" um pouco no centro (`dwell` = fração do trecho
  * em que ele fica parado) e a troca acontece no meio do caminho, com partida e chegada suaves: dá a sensação de carrossel.
  */
-export function wheelPosition(p: number, count: number, dwell = 0.22): number {
+export function wheelPosition(p: number, count: number, dwell = 0.16): number {
   if (count <= 1) return 0
   const u = clamp(p, 0, 1) * (count - 1)
   if (u >= count - 1) return count - 1

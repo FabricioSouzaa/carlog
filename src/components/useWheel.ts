@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { activeIndex, scrollTargetFor, wheelPosition, wheelProgress } from '../lib/wheel'
 
+/** Quanto o desenho demora para alcançar a rolagem (constante de tempo, ms): menor = mais colado ao dedo. */
+const TAU_MS = 70
+
 /**
  * Liga uma seção alta (com conteúdo "sticky" dentro) à rolagem. Escreve `--p` (0 a 1) na seção a cada frame e
  * devolve o item em foco. Cada item para um instante no centro (`wheelPosition`) e o movimento desliza atrás da rolagem.
@@ -20,12 +23,16 @@ export function useWheel(count: number) {
       el.style.setProperty('--p', (current / last).toFixed(4))
       setActive(activeIndex(current, count))
     }
-    const frame = () => {
+    let lastFrame = 0 // instante do frame anterior, para o amortecimento depender do tempo e não da taxa de quadros
+    const frame = (now: number) => {
       raf = 0
-      current += (target - current) * 0.14
+      const dt = lastFrame ? Math.min(now - lastFrame, 64) : 16
+      lastFrame = now
+      current += (target - current) * (1 - Math.exp(-dt / TAU_MS))
       if (Math.abs(target - current) < 0.0005) current = target
       draw()
       if (current !== target) raf = requestAnimationFrame(frame)
+      else lastFrame = 0
     }
     const read = () => wheelPosition(wheelProgress(el.getBoundingClientRect().top, el.offsetHeight, window.innerHeight), count)
     const onScroll = () => {

@@ -155,7 +155,7 @@ body {
  */
 .wheel-section {
   --gap: 185px;
-  height: calc(100dvh + (var(--n) - 1) * 70dvh);
+  height: calc(100dvh + (var(--n) - 1) * 56dvh);
 }
 @media (min-width: 1024px) {
   .wheel-section {
@@ -300,61 +300,5 @@ body {
   .mini-bar {
     opacity: 1;
     transform: none;
-  }
-}
-
-/*
- * Versão com celular (FeaturePhone): mesma conta do seletor (--p, --n). Cada tela entra por baixo e sai por cima,
- * e o texto ao lado troca junto; --d é a distância da tela ao centro, em "telas".
- */
-.phone-screen,
-.phone-copy {
-  --d: calc(var(--i) - var(--p) * (var(--n) - 1));
-  --o: min(abs(var(--d)), 1);
-  position: absolute;
-  inset: 0;
-  opacity: calc(1 - var(--o));
-  will-change: transform, opacity;
-}
-.phone-screen {
-  transform: translateY(calc(var(--d) * 100%)) scale(calc(1 - var(--o) * 0.05));
-}
-.phone-copy {
-  bottom: auto;
-  transform: translateY(calc(var(--d) * 48px));
-}
-.phone-glow {
-  position: absolute;
-  inset: 8% -18%;
-  border-radius: 9999px;
-  background: radial-gradient(closest-side, rgb(59 130 246 / 0.28), transparent);
-  filter: blur(24px);
-}
-@media (prefers-reduced-motion: reduce) {
-  .phone-section .phone-wrap {
-    display: none;
-  }
-  .phone-copies {
-    height: auto;
-  }
-  .phone-copy {
-    position: static;
-    margin-bottom: 1.5rem;
-    transform: none;
-    opacity: 1;
-  }
-}
-@supports not (transform: translateY(calc(abs(1) * 1px))) {
-  .phone-section .phone-wrap {
-    display: none;
-  }
-  .phone-copies {
-    height: auto;
-  }
-  .phone-copy {
-    position: static;
-    margin-bottom: 1.5rem;
-    transform: none;
-    opacity: 1;
   }
 }
