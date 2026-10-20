@@ -2,7 +2,9 @@ import type { CSSProperties, ReactNode } from 'react'
 import { Logo } from '../components/Logo'
 import { CategoriesMock, ExpenseFormMock, MonthlyMock, OverviewStats, PlannedMock, TypesMock } from '../components/LandingMocks'
 import { Reveal, RevealItem } from '../components/Reveal'
+import { Typewriter } from '../components/Typewriter'
 import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME, APP_TAGLINE } from '../config'
+import { typingDuration } from '../lib/typing'
 import { whatsappLink } from '../lib/whatsapp'
 
 const FEATURES = [
@@ -42,6 +44,10 @@ function Heading({ id, title, children }: { id: string; title: string; children?
   )
 }
 
+const HERO_TITLE = 'Cada real do seu carro, no lugar certo.'
+// o que vem depois do título só entra quando ele termina de ser digitado
+const TYPED_MS = typingDuration(HERO_TITLE)
+
 const CHECKS = ['Registre cada gasto em segundos', 'Planeje o que ainda vem pela frente', 'Veja para onde vai o seu dinheiro'] as const
 
 export function Landing({ onLogin }: { onLogin: () => void }) {
@@ -62,12 +68,12 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
         <section aria-labelledby="pitch" className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 pb-20 md:pl-40">
           {/* entrada ao carregar (Reveal) e, ao rolar, cada parte sai subindo em ritmos diferentes (scrub-exit) */}
           <div className="scrub-exit" style={{ '--shift': '-28px' } as CSSProperties}>
-            <Reveal>
-              <h1 id="pitch" className="font-display max-w-3xl text-5xl leading-[1.06] font-bold tracking-tight md:text-7xl">Cada real do seu carro, no lugar certo.</h1>
-            </Reveal>
+            <h1 id="pitch" className="font-display max-w-3xl text-5xl leading-[1.06] font-bold tracking-tight md:text-7xl">
+              <Typewriter text={HERO_TITLE} />
+            </h1>
           </div>
           <div className="scrub-exit" style={{ '--shift': '-56px' } as CSSProperties}>
-            <Reveal delay={350}>
+            <Reveal delay={TYPED_MS - 200}>
               <ul className="mt-8 space-y-3.5 text-lg md:text-xl">
                 {CHECKS.map((c) => (
                   <li key={c} className="flex items-center gap-3 font-medium">
@@ -79,7 +85,7 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
             </Reveal>
           </div>
           <div className="scrub-exit" style={{ '--shift': '-84px' } as CSSProperties}>
-            <Reveal delay={700} className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <Reveal delay={TYPED_MS + 250} className="mt-9 flex flex-col gap-3 sm:flex-row">
               <a href={whatsappLink(ACCESS_WHATSAPP, ACCESS_MESSAGE)} target="_blank" rel="noopener noreferrer" className="btn !bg-white !px-6 !py-3.5 !text-[15px] !font-semibold !text-slate-900 hover:!bg-slate-100">
                 Solicitar acesso pelo WhatsApp
               </a>

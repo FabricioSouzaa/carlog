@@ -137,3 +137,13 @@ body {
     }
   }
 }
+
+/* cursor do Typewriter */
+.caret {
+  animation: caret-blink 1s steps(1) infinite;
+}
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
