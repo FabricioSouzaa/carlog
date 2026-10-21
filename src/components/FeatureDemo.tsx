@@ -20,7 +20,7 @@ const STEP_TEXT = [
   'Um clique e o gasto real é salvo.',
 ]
 /** Quanta rolagem cada trecho entre dois momentos ganha: os de planejar e realizar têm mais coisa acontecendo e ganham mais. */
-const WEIGHTS = [1.3, 1.1, 1.1, 1.8, 2, 0.6] // o último trecho é só uma pausa para o resultado do passo 5 ficar na tela // o último trecho é a pausa final, em que entra o convite para usar
+const WEIGHTS = [1.3, 1.1, 1.1, 1.8, 2, 0.6] // o último trecho é só uma pausa para o resultado do passo 5 ficar na tela
 const LEN = WEIGHTS.reduce((a, b) => a + b, 0)
 
 /**

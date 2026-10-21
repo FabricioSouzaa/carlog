@@ -32,6 +32,9 @@ export function addDaysISO(iso: string, days: number): string {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
 }
 
+/** Data de `days` dias atrás (yyyy-mm-dd), a partir de hoje. */
+export const daysAgoISO = (days: number): string => addDaysISO(todayISO(), -days)
+
 /** Soma `months` meses (pode ser negativo) a um mês yyyy-mm. */
 export function addMonthsISO(ym: string, months: number): string {
   const [y, m] = ym.split('-').map(Number)

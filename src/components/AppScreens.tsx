@@ -1,5 +1,5 @@
 import { memo, type ReactNode } from 'react'
-import { addDaysISO, formatCurrency, formatDate, formatKm, todayISO } from '../lib/format'
+import { daysAgoISO, formatCurrency, formatDate, formatKm } from '../lib/format'
 import { TypeBadge } from './ui'
 
 /*
@@ -8,7 +8,6 @@ import { TypeBadge } from './ui'
  * Desenhadas num quadro fixo de 560x360 px e reduzidas por `ScaledScreen`.
  */
 
-const daysAgo = (n: number) => addDaysISO(todayISO(), -n)
 
 const TABS = [
   { id: 'visao', label: 'Visão geral', icon: '📊' },
@@ -114,8 +113,8 @@ function Expenses() {
           </span>
         ))}
       </div>
-      <ExpenseRow title="Troca de óleo e filtro" meta={`${formatDate(daysAgo(1))} · Manutenção · ${formatKm(48200)}`} amount={389.9} type="maintenance" />
-      <ExpenseRow title="Polimento técnico" meta={`${formatDate(daysAgo(9))} · Lavagem/Estética`} amount={450} type="upgrade" />
+      <ExpenseRow title="Troca de óleo e filtro" meta={`${formatDate(daysAgoISO(1))} · Manutenção · ${formatKm(48200)}`} amount={389.9} type="maintenance" />
+      <ExpenseRow title="Polimento técnico" meta={`${formatDate(daysAgoISO(9))} · Lavagem/Estética`} amount={450} type="upgrade" />
     </AppWindow>
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { cameraAt, overview, union, zoomTo, type Rect } from '../lib/camera'
-import { addDaysISO, addMonthsISO, formatCurrency, formatDate, formatMonth, todayISO } from '../lib/format'
+import { addMonthsISO, daysAgoISO, formatCurrency, formatDate, formatMonth, todayISO } from '../lib/format'
 import { ramp } from '../lib/wheel'
 import { TypeBadge } from './ui'
 import { useMediaQuery } from './useMediaQuery'
@@ -9,7 +9,7 @@ import { useWheel } from './useWheel'
 const TITLE = 'Raio-X do seu carro.'
 const SUBTITLE = 'Cada real, mês a mês e categoria por categoria, sem montar planilha.'
 const BEAT_TITLE = ['Os totais', 'Mês a mês', 'Para onde vai', 'Últimos gastos']
-const BEAT_TEXT = ['Geral, do mês, do ano e o que ainda vem.', 'Quanto você gastou em cada mês.', 'Por categoria e por tipo.', 'Cada lançamento, com data e tipo.']
+const BEAT_TEXT = ['Geral, do mês e do ano.', 'Quanto você gastou em cada mês.', 'Por categoria e por tipo.', 'Cada lançamento, com data e tipo.']
 /** Peso de rolagem de cada trecho entre momentos: o do gráfico mensal, com 12 barras, ganha um pouco mais. */
 const WEIGHTS = [1, 1.3, 1.1, 1]
 const LEN = WEIGHTS.reduce((a, b) => a + b, 0)
@@ -27,7 +27,6 @@ const TYPES = [
 ]
 const TODAY = todayISO()
 const THIS_MONTH = TODAY.slice(0, 7)
-const daysAgo = (n: number) => addDaysISO(TODAY, -n)
 const longMonth = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${THIS_MONTH}-01T00:00:00Z`))
 // os 12 últimos meses terminando no atual: rótulos curtos (nov, dez...) e o do balão (out/26)
 const shortMonth = (ym: string) => formatMonth(ym).replace('.', '') // 'out./26' -> 'out/26'
@@ -36,19 +35,19 @@ const THIS_MONTH_LABEL = shortMonth(THIS_MONTH)
 const LAST = [
   {
     title: 'Troca de óleo e filtro',
-    meta: `${formatDate(daysAgo(1))} · Manutenção`,
+    meta: `${formatDate(daysAgoISO(1))} · Manutenção`,
     amount: 389.9,
     type: 'maintenance' as const,
   },
   {
     title: 'Polimento técnico',
-    meta: `${formatDate(daysAgo(9))} · Estética`,
+    meta: `${formatDate(daysAgoISO(9))} · Estética`,
     amount: 450,
     type: 'upgrade' as const,
   },
   {
     title: 'Abastecimento',
-    meta: `${formatDate(daysAgo(12))} · Combustível`,
+    meta: `${formatDate(daysAgoISO(12))} · Combustível`,
     amount: 248.5,
     type: 'routine' as const,
   },
@@ -113,7 +112,7 @@ function Panel({ title, on, dim, className = '', children }: { title: string; on
 
 /**
  * Seção "Raio-X do seu carro": a tela de Visão geral aparece inteira, como um quadro, e uma câmera dá zoom em cada
- * parte (totais, gráfico do ano, categorias e tipos, custo por km). Quando a câmera chega, a parte carrega: números
+ * parte (totais, gráfico do ano, categorias e tipos, últimos gastos). Quando a câmera chega, a parte carrega: números
  * contam, barras crescem. As outras partes ficam apagadas enquanto isso. A conta da câmera está em `lib/camera.ts` e a da
  * rolagem em `useWheel`. Sem movimento (ou sem `abs()`), mostra o quadro completo, sem zoom.
  */
@@ -273,7 +272,7 @@ export function FeatureOverview() {
                   <Stat reg={at('stat1')} label="Total gasto" hint="desde o 1º gasto" value={count(18742.3, 0.5, 0.95)} on={focus[0]} dim={dim(0)} />
                   <Stat reg={at('stat2')} label="Este mês" hint={longMonth} value={count(1230, 0.5, 0.95)} on={focus[0]} dim={dim(0)} />
                   <Stat reg={at('stat3')} label="Este ano" hint={TODAY.slice(0, 4)} value={count(9860.45, 0.5, 0.95)} on={focus[0]} dim={dim(0)} />
-                  <Stat reg={at('stat4')} label="Planejado pendente" hint={`${PLANNED.length} itens`} value={count(1350, 0.5, 0.95)} on={focus[0]} dim={dim(0)} />
+                  <Stat reg={at('stat4')} label="Planejado pendente" hint={`${PLANNED.length} itens`} value={formatCurrency(1350)} on={0} dim={other} />
                 </div>
 
                 <div className="grid grid-cols-[1.45fr_1fr] gap-3">
@@ -306,9 +305,11 @@ export function FeatureOverview() {
                           <p className="text-sm font-bold tabular-nums">R$ 1.230,00</p>
                         </div>
                       </div>
-                      <div className="mt-1.5 flex justify-between text-[10px] text-slate-400">
-                        {MONTH_LABELS.filter((_, i) => i % 3 === 0 || i === 11).map((m) => (
-                          <span key={m}>{m}</span>
+                      <div className="mt-1.5 flex gap-2 text-[10px] text-slate-400">
+                        {MONTH_LABELS.map((m, i) => (
+                          <span key={i} className="flex-1 text-center">
+                            {i % 3 === 2 ? m : ''}
+                          </span>
                         ))}
                       </div>
                     </Panel>

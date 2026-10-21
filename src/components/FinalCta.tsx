@@ -9,7 +9,7 @@ import { Reveal } from './Reveal'
  */
 export function FinalCta({ onLogin }: { onLogin: () => void }) {
   return (
-    <footer className="demo-bg relative overflow-hidden text-white">
+    <section aria-labelledby="pronto" className="demo-bg relative overflow-hidden text-white">
       <Logo
         tile={false}
         size={900}
@@ -43,7 +43,7 @@ export function FinalCta({ onLogin }: { onLogin: () => void }) {
         </Reveal>
       </div>
 
-      <div className="relative border-t border-white/10">
+      <footer className="relative border-t border-white/10">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-4 py-6 text-sm text-slate-400 sm:flex-row">
           <span className="flex items-center gap-2.5">
             <Logo size={22} />
@@ -54,7 +54,7 @@ export function FinalCta({ onLogin }: { onLogin: () => void }) {
             Voltar ao topo ↑
           </button>
         </div>
-      </div>
-    </footer>
+      </footer>
+    </section>
   )
 }
