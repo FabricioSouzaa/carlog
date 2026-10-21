@@ -76,7 +76,10 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
       const r = await api.importData(legacy, { withLegacyImages: true })
       markLegacyMigrated()
       setLegacy(null)
-      setMessage(`Enviado para sua conta: ${r.expenses} gastos, ${r.planned} planejados e ${r.photos} fotos.`)
+      setMessage(
+        `Enviado para sua conta: ${r.expenses} gastos, ${r.planned} planejados e ${r.photos} fotos.` +
+          (r.photosSkipped ? ` ${r.photosSkipped} foto(s) não puderam ser enviadas (acima de 3 MB ou fora do formato JPEG).` : ''),
+      )
     } catch {
       setMessage('Não foi possível enviar os dados. Nada foi apagado deste navegador; tente de novo.')
     } finally {

@@ -1,0 +1,17 @@
+# O Dependabot abre PRs sozinho quando uma dependência tem versão nova ou falha de segurança.
+# Agrupa as atualizações pequenas (minor/patch) em um PR só por semana, para não encher a caixa de entrada.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+  # as ações do próprio CI também são dependências (e já foram alvo de ataques de cadeia de suprimentos)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
