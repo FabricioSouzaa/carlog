@@ -143,8 +143,7 @@ body {
 .wheel-glow,
 .demo-track,
 .demo-legend,
-.demo-hint,
-.demo-final {
+.demo-hint {
   display: none;
 }
 .wheel-item {
@@ -185,33 +184,6 @@ body {
     }
     .demo-legend {
       display: block;
-    }
-    /* o convite entra no lugar da legenda quando a demonstração termina */
-    .demo-cta {
-      opacity: var(--cta, 0);
-      transform: translateY(calc((1 - var(--cta, 0)) * 18px));
-    }
-    /* com o seletor fixo o convite é o fechamento em tela cheia (.demo-final); o pequeno da legenda só serve de reserva */
-    .demo-cta {
-      display: none;
-    }
-    .demo-final {
-      position: absolute;
-      inset: 0;
-      z-index: 20;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
-      text-align: center;
-    }
-    /* invisível = fora do teclado, do leitor de tela e do mouse */
-    .demo-final[data-on='false'] {
-      visibility: hidden;
-    }
-    .cta-big {
-      animation: cta-pulse 2.2s ease-out infinite;
     }
     /* dica de rolagem no espaço da legenda (vazio no começo); some quando a legenda do passo 1 entra */
     .demo-hint {
@@ -535,8 +507,9 @@ body {
     box-shadow: 0 0 0 22px rgb(255 255 255 / 0), 0 20px 50px rgb(37 99 235 / 0.45);
   }
 }
-@media (prefers-reduced-motion: reduce) {
+/* botão grande do convite final: respira com um anel que se abre; parado para quem prefere menos movimento */
+@media (prefers-reduced-motion: no-preference) {
   .cta-big {
-    animation: none;
+    animation: cta-pulse 2.2s ease-out infinite;
   }
 }

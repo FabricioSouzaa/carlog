@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { formatCurrency, formatDate, todayISO } from '../lib/format'
-import { ACCESS_MESSAGE, ACCESS_WHATSAPP } from '../config'
 import { ramp } from '../lib/wheel'
-import { whatsappLink } from '../lib/whatsapp'
 import { TypeBadge } from './ui'
 import { useWheel } from './useWheel'
 
@@ -22,7 +20,7 @@ const STEP_TEXT = [
   'Um clique e o gasto real é salvo.',
 ]
 /** Quanta rolagem cada trecho entre dois momentos ganha: os de planejar e realizar têm mais coisa acontecendo e ganham mais. */
-const WEIGHTS = [1.3, 1.1, 1.1, 1.8, 2, 1.3] // o último trecho é a pausa final, em que entra o convite para usar
+const WEIGHTS = [1.3, 1.1, 1.1, 1.8, 2, 0.6] // o último trecho é só uma pausa para o resultado do passo 5 ficar na tela // o último trecho é a pausa final, em que entra o convite para usar
 const LEN = WEIGHTS.reduce((a, b) => a + b, 0)
 
 /**
@@ -31,7 +29,7 @@ const LEN = WEIGHTS.reduce((a, b) => a + b, 0)
  * 4 planejado criado · 5 cursor clica em "Marcar como realizado" e o gasto é salvo.
  * Entre dois números, cada pedaço se anima por `ramp` (ver `lib/wheel.ts`); nada aparece antes da sua vez.
  */
-const SCENE = 6 // momentos 0 a 5; a pausa final (5 a 6) só mostra o convite
+const SCENE = 6 // momentos 0 a 5; depois do 5 há só uma pausa
 
 /** Chegada "de fora da tela": o pedaço vem de além da borda (cima, direita ou baixo) e desacelera ao chegar no card. */
 type From = 'up' | 'down' | 'right' | 'downright'
@@ -76,7 +74,7 @@ function Cursor({ style }: { style: CSSProperties }) {
  * planejado é criado e, com um clique, vira gasto real. Mesma conta de rolagem do seletor da seção 2 (`useWheel`), só que mais lenta.
  * Sem movimento, mostra a cena pronta.
  */
-export function FeatureDemo({ onLogin }: { onLogin: () => void }) {
+export function FeatureDemo() {
   const [pos, setPos] = useState(0)
   // a cena só precisa de ~1 mudança por centésimo; evita renderizar a cada pixel de rolagem
   const { ref, goTo } = useWheel(SCENE, { tau: 200, dwell: 0.2, weights: WEIGHTS, staticPosition: 3, onPosition: (p) => setPos(Math.round(p * 100) / 100) })
@@ -112,9 +110,6 @@ export function FeatureDemo({ onLogin }: { onLogin: () => void }) {
 
   const r = (from: number, to: number) => ramp(pos, from, to)
   const today = formatDate(todayISO())
-  // fechamento: depois do passo 5 a cena se afasta e entra o convite em tela cheia
-  const closing = r(5.25, 5.65)
-  const invite = r(5.45, 5.85)
 
   // cena 1: Novo gasto
   const formOut = r(3.05, 3.4)
@@ -133,10 +128,7 @@ export function FeatureDemo({ onLogin }: { onLogin: () => void }) {
   return (
     <section ref={ref} id="cadastrar" aria-labelledby="cadastrar-titulo" className="wheel-section demo-section demo-bg relative" style={{ '--p': 0, '--n': SCENE, '--len': LEN } as CSSProperties}>
       <div className="wheel-stage flex items-center">
-        <div
-          className="mx-auto grid w-full max-w-6xl items-center gap-4 px-4 lg:grid-cols-[380px_1fr] lg:gap-16"
-          style={{ opacity: 1 - closing, transform: `scale(${1 - closing * 0.06})`, pointerEvents: closing > 0.02 ? 'none' : undefined }}
-        >
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-4 px-4 lg:grid-cols-[380px_1fr] lg:gap-16">
           <div>
             <p className="text-[13px] font-semibold tracking-[0.18em] text-blue-300 uppercase">Como funciona</p>
             <h2 id="cadastrar-titulo" className="font-display mt-1.5 text-[28px] leading-[1.1] font-bold tracking-tight text-white lg:mt-2 lg:text-5xl">{TITLE}</h2>
@@ -146,8 +138,9 @@ export function FeatureDemo({ onLogin }: { onLogin: () => void }) {
             <div className="relative mt-3 h-[72px] lg:mt-9 lg:h-28">
               {STEPS.map((label, i) => {
                 const d = pos - (i + 1)
+                const o = i === STEPS.length - 1 && d > 0 ? 1 : Math.max(0, 1 - Math.abs(d) * 1.7) // a do último passo fica até o fim
                 return (
-                  <div key={label} className="demo-legend absolute inset-x-0 top-0" style={{ opacity: Math.max(0, 1 - Math.abs(d) * 1.7), transform: `translateY(${-d * 22}px)` }}>
+                  <div key={label} className="demo-legend absolute inset-x-0 top-0" style={{ opacity: o, transform: `translateY(${-d * 22}px)` }}>
                     <p className="font-display text-sm font-bold text-blue-300">0{i + 1} / 05</p>
                     <p className="font-display mt-0.5 text-xl font-bold text-white lg:mt-1 lg:text-[28px]">{label}</p>
                     <p className="mt-0.5 text-sm text-slate-300 lg:mt-1 lg:text-[15px]">{STEP_TEXT[i]}</p>
@@ -159,17 +152,6 @@ export function FeatureDemo({ onLogin }: { onLogin: () => void }) {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="demo-hint-arrow">
                   <path d="M6 9l6 6 6-6" />
                 </svg>
-              </div>
-              <div className="demo-cta absolute inset-x-0 top-0" data-on={r(5.35, 5.8) > 0.05} style={{ '--cta': r(5.35, 5.8) } as CSSProperties}>
-                <p className="text-sm text-slate-300 lg:text-[15px]">Pronto para testar?</p>
-                <a
-                  href={whatsappLink(ACCESS_WHATSAPP, ACCESS_MESSAGE)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn mt-2 !bg-white !px-5 !py-3 !text-[15px] !font-semibold !text-slate-900 hover:!bg-slate-100"
-                >
-                  Quero usar o Carlog
-                </a>
               </div>
             </div>
           </div>
@@ -398,26 +380,6 @@ export function FeatureDemo({ onLogin }: { onLogin: () => void }) {
           </div>
         </div>
 
-        {/* fechamento em tela cheia: a cena se afasta e o convite ocupa o palco (só com o seletor fixo; sem animação fica o convite pequeno da legenda) */}
-        <div className="demo-final" data-on={invite > 0.05} style={{ opacity: invite, transform: `translateY(${(1 - invite) * 28}px) scale(${0.94 + 0.06 * invite})` }}>
-          <p className="text-[13px] font-semibold tracking-[0.18em] text-blue-300 uppercase">Menos de um minuto, de verdade</p>
-          <h3 className="font-display mt-3 max-w-3xl text-4xl leading-[1.05] font-bold tracking-tight text-white lg:text-7xl">Pronto para testar o Carlog?</h3>
-          <p className="mt-4 max-w-xl text-base text-slate-300 lg:text-xl">O acesso é liberado manualmente. Mande uma mensagem pelo WhatsApp e você recebe o seu.</p>
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
-            <a
-              href={whatsappLink(ACCESS_WHATSAPP, ACCESS_MESSAGE)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="cta-big btn !gap-2.5 !rounded-2xl !bg-white !px-8 !py-4 !text-lg !font-bold !text-slate-900 hover:!bg-blue-50"
-            >
-              Quero usar o Carlog
-              <span aria-hidden="true">→</span>
-            </a>
-            <button type="button" onClick={onLogin} className="btn !rounded-2xl border border-white/40 !px-6 !py-4 !text-base !font-semibold text-white hover:bg-white/10">
-              Já tenho conta
-            </button>
-          </div>
-        </div>
       </div>
     </section>
   )

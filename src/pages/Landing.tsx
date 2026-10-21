@@ -1,21 +1,14 @@
 import type { CSSProperties } from 'react'
 import { FeatureDemo } from '../components/FeatureDemo'
+import { FinalCta } from '../components/FinalCta'
 import { FeatureOverview } from '../components/FeatureOverview'
 import { FeatureWheel } from '../components/FeatureWheel'
 import { Logo } from '../components/Logo'
-import { Reveal, RevealItem } from '../components/Reveal'
+import { Reveal } from '../components/Reveal'
 import { Typewriter } from '../components/Typewriter'
 import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME, APP_SLOGAN, APP_TAGLINE } from '../config'
 import { typingDuration } from '../lib/typing'
 import { whatsappLink } from '../lib/whatsapp'
-
-function RequestAccess({ className = '' }: { className?: string }) {
-  return (
-    <a href={whatsappLink(ACCESS_WHATSAPP, ACCESS_MESSAGE)} target="_blank" rel="noopener noreferrer" className={`btn-primary ${className}`}>
-      Solicitar acesso pelo WhatsApp
-    </a>
-  )
-}
 
 const HERO_TITLE = APP_SLOGAN
 // o que vem depois do título só entra quando ele termina de ser digitado
@@ -28,6 +21,7 @@ const CHECKS = ['Registre cada gasto em segundos', 'Planeje o que ainda vem pela
 export function Landing({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="min-h-dvh">
+      <main>
       {/* hero escuro em tela cheia: o velocímetro grande ao fundo é a imagem; o cabeçalho é só o nome e o descritivo */}
       <div className="relative flex min-h-dvh flex-col overflow-hidden bg-linear-to-b from-slate-900 to-blue-700 text-white">
         <Logo tile={false} size={900} className="pointer-events-none absolute top-[8%] -right-[35%] h-[110vw] w-[110vw] opacity-20 md:-top-[2%] md:-right-[12%] md:h-[900px] md:w-[900px]" />
@@ -78,26 +72,13 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
       <FeatureWheel />
       {/* o claro da seção 2 se desfaz no céu da seção 3, e o céu volta ao claro depois */}
       <div aria-hidden="true" className="demo-fade" />
-      <FeatureDemo onLogin={onLogin} />
+      <FeatureDemo />
       <div aria-hidden="true" className="demo-fade-out" />
       <FeatureOverview />
-
-      <main className="mx-auto max-w-5xl space-y-20 px-4 pt-12 pb-16 md:space-y-28 md:pt-16">
-        <section aria-labelledby="usar">
-          <Reveal className="card mx-auto max-w-3xl text-center !p-8 md:!p-10">
-            <RevealItem i={0}><h2 id="usar" className="text-2xl font-bold md:text-3xl">Quer usar?</h2></RevealItem>
-            <RevealItem i={1}>
-              <p className="muted mx-auto mt-3 max-w-md !text-base">
-                O acesso é liberado manualmente. Mande uma mensagem pelo WhatsApp com o seu e-mail e você recebe o acesso.
-              </p>
-            </RevealItem>
-            <RevealItem i={2} className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <RequestAccess className="w-full sm:w-auto" />
-              <button type="button" className="btn-ghost w-full sm:w-auto" onClick={onLogin}>Já tenho conta</button>
-            </RevealItem>
-          </Reveal>
-        </section>
       </main>
+      {/* o claro do raio-X volta ao céu do começo para o fim da página */}
+      <div aria-hidden="true" className="demo-fade" />
+      <FinalCta onLogin={onLogin} />
     </div>
   )
 }
