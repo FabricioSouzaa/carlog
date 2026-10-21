@@ -1,0 +1,35 @@
+# Roda a cada PR e a cada push na main: lint, testes e build.
+# Serve de "segunda opinião" automática: se algo quebra em outra máquina (e não só na sua), o PR fica vermelho.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Permissão mínima: o CI só precisa LER o código (princípio do menor privilégio).
+permissions:
+  contents: read
+
+# Se chegar um push novo no mesmo PR, cancela a execução antiga em vez de acumular fila.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # `npm ci` instala exatamente o que está no package-lock.json (e falha se ele estiver fora de sincronia);
+      # `npm install` poderia mudar versões sem avisar.
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      # Sem as variáveis do Supabase o build funciona (o app mostra a tela de configuração): não precisa de segredo aqui.
+      - run: npm run build

@@ -87,8 +87,9 @@ create trigger on_auth_user_created
 
 -- ============ Fotos (notas fiscais): bucket privado, uma pasta por usuário ============
 
-insert into storage.buckets (id, name, public)
-values ('receipts', 'receipts', false)
+-- Limites impostos pelo servidor (o app já reduz as fotos, mas o navegador não é confiável): 3 MB e só JPEG.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('receipts', 'receipts', false, 3145728, array['image/jpeg'])
 on conflict (id) do nothing;
 
 create policy "receipts select own" on storage.objects for select to authenticated

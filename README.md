@@ -32,6 +32,13 @@ Requer Node.js 20+ e um projeto no [Supabase](https://supabase.com) (plano gratu
    npm run dev
    ```
 
+## Segurança e automação
+
+- **Os dados são protegidos no banco, não no front-end** (o código do site é público): cada tabela tem RLS ligada e cada usuário só enxerga as próprias linhas; as fotos ficam num bucket privado, em uma pasta por usuário. Veja `supabase/schema.sql`.
+- O bucket de fotos aceita só JPEG de até 3 MB. Em projetos criados antes dessa regra, rode `supabase/migrations/2026-10-21_limites-do-bucket.sql` no SQL Editor.
+- **CI** (`.github/workflows/ci.yml`): a cada PR roda lint, testes e build no GitHub. **Dependabot** (`.github/dependabot.yml`) abre PRs semanais de atualização.
+- Mudanças no banco depois da primeira instalação entram como arquivos novos em `supabase/migrations/` (o `schema.sql` só é rodado uma vez, no começo).
+
 ## Comandos
 
 | Comando | O que faz |

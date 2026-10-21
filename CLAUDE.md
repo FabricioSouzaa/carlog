@@ -13,7 +13,8 @@ Idioma: interface, textos e mensagens em **português (pt-BR)**. Valores em **R$
 - Persistência e sincronização: **Supabase** (Postgres + login por e-mail, plano gratuito atende). Os dados ficam na nuvem e aparecem igual nos dois dispositivos. Login simples (e-mail + link mágico ou senha) só para proteger os dados, uso individual. Regras de acesso (RLS) garantem que cada usuário só vê os próprios dados.
 - Acesso aos dados isolado em uma camada (`src/storage/`) para poder trocar o provedor (ex.: Firebase) sem mexer nas telas.
 - Sem cache local por enquanto: o app carrega tudo do Supabase ao abrir (precisa de internet). Modo offline fica como melhoria futura.
-- Esquema do banco, regras de acesso (RLS), categorias padrão e bucket de fotos: `supabase/schema.sql` (rodar uma vez no SQL Editor).
+- Esquema do banco, regras de acesso (RLS), categorias padrão e bucket de fotos: `supabase/schema.sql` (rodar uma vez no SQL Editor). Mudanças depois disso vão em `supabase/migrations/AAAA-MM-DD_nome.sql` (o usuário roda no SQL Editor) e também são refletidas no `schema.sql`, para instalações novas.
+- Automação: CI no GitHub Actions (lint, testes, build) e Dependabot semanal; ver `.github/`.
 - Fotos: Supabase Storage, bucket privado `receipts`, caminho `<user_id>/<image_id>.jpg`.
 - Testes: Vitest (focar em cálculos de totais/filtros)
 - Marca: logo "velocímetro" desenhado em código (`src/lib/gauge.ts` + `src/components/Logo.tsx`, versão grossa para tamanhos pequenos e fina para fundos grandes). Ícones do PWA/favicon saem de `design/build-icons.mjs` (ver o cabeçalho do script). Fonte de destaque Space Grotesk 700, hospedada em `public/fonts/` (SIL OFL), usada nos títulos da landing e do login.
