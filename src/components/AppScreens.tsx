@@ -1,5 +1,5 @@
 import { memo, type ReactNode } from 'react'
-import { formatCurrency, formatDate, formatKm, todayISO } from '../lib/format'
+import { daysAgoISO, formatCurrency, formatDate, formatKm } from '../lib/format'
 import { TypeBadge } from './ui'
 
 /*
@@ -8,11 +8,6 @@ import { TypeBadge } from './ui'
  * Desenhadas num quadro fixo de 560x360 px e reduzidas por `ScaledScreen`.
  */
 
-const daysAgo = (n: number) => {
-  const [y, m, d] = todayISO().split('-').map(Number)
-  const date = new Date(Date.UTC(y, m - 1, d - n))
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
-}
 
 const TABS = [
   { id: 'visao', label: 'Visão geral', icon: '📊' },
@@ -118,8 +113,8 @@ function Expenses() {
           </span>
         ))}
       </div>
-      <ExpenseRow title="Troca de óleo e filtro" meta={`${formatDate(daysAgo(1))} · Manutenção · ${formatKm(48200)}`} amount={389.9} type="maintenance" />
-      <ExpenseRow title="Polimento técnico" meta={`${formatDate(daysAgo(9))} · Lavagem/Estética`} amount={450} type="upgrade" />
+      <ExpenseRow title="Troca de óleo e filtro" meta={`${formatDate(daysAgoISO(1))} · Manutenção · ${formatKm(48200)}`} amount={389.9} type="maintenance" />
+      <ExpenseRow title="Polimento técnico" meta={`${formatDate(daysAgoISO(9))} · Lavagem/Estética`} amount={450} type="upgrade" />
     </AppWindow>
   )
 }

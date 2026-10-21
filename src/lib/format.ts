@@ -25,6 +25,23 @@ export function todayISO(): string {
   return `${now.getFullYear()}-${mm}-${dd}`
 }
 
+/** Soma `days` dias (pode ser negativo) a uma data yyyy-mm-dd, sem passar por fuso. */
+export function addDaysISO(iso: string, days: number): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  const date = new Date(Date.UTC(y, m - 1, d + days))
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+}
+
+/** Data de `days` dias atrás (yyyy-mm-dd), a partir de hoje. */
+export const daysAgoISO = (days: number): string => addDaysISO(todayISO(), -days)
+
+/** Soma `months` meses (pode ser negativo) a um mês yyyy-mm. */
+export function addMonthsISO(ym: string, months: number): string {
+  const [y, m] = ym.split('-').map(Number)
+  const date = new Date(Date.UTC(y, m - 1 + months, 1))
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
 /** Aceita "1.234,56", "12,5" ou "12.5". Devolve null se inválido. */
 export function parseMoney(text: string): number | null {
   const t = text.trim().replace(/^R\$\s*/, '')
