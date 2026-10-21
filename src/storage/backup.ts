@@ -13,6 +13,8 @@ export interface ImportResult {
   expenses: number
   planned: number
   photos: number
+  /** fotos que o servidor recusou (acima de 3 MB ou fora do JPEG): não impedem a migração */
+  photosSkipped: number
 }
 
 /**
@@ -41,6 +43,7 @@ export async function importInto(source: AppData, opts: { withLegacyImages?: boo
   const mapCategory = (old: string) => categoryMap.get(old) ?? fallback.id
 
   let photos = 0
+  let photosSkipped = 0
   const expenseMap = new Map<string, string>()
   const expenses: Expense[] = []
   for (const e of source.expenses) {
@@ -52,7 +55,13 @@ export async function importInto(source: AppData, opts: { withLegacyImages?: boo
         const blob = await getLegacyImage(oldId)
         if (!blob) continue
         const imgId = newId()
-        await saveImage(imgId, blob)
+        try {
+          await saveImage(imgId, blob)
+        } catch {
+          // o servidor recusa fotos fora do limite (3 MB, JPEG): pula só essa foto, em vez de abortar a migração inteira
+          photosSkipped++
+          continue
+        }
         attachments.push(imgId)
         photos++
       }
@@ -70,5 +79,5 @@ export async function importInto(source: AppData, opts: { withLegacyImages?: boo
   }))
   await remote.insertPlanned(planned)
 
-  return { expenses: expenses.length, planned: planned.length, photos }
+  return { expenses: expenses.length, planned: planned.length, photos, photosSkipped }
 }

@@ -17,7 +17,7 @@ React · TypeScript · Vite (PWA) · Tailwind CSS · Recharts · Supabase (Postg
 
 ## Como rodar
 
-Requer Node.js 20+ e um projeto no [Supabase](https://supabase.com) (plano gratuito).
+Requer Node.js 22.12+ e um projeto no [Supabase](https://supabase.com) (plano gratuito).
 
 1. Instale as dependências:
    ```bash
