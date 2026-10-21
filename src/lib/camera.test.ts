@@ -57,6 +57,16 @@ describe('cameraAt', () => {
     const on2 = cameraAt(2, shots)
     expect(on2.focus).toEqual([0, 1])
   })
+  it('com menos de dois planos fica parada, sem quebrar', () => {
+    expect(cameraAt(3, []).shot).toEqual({ scale: 1, x: 0, y: 0 })
+    expect(cameraAt(3, [shots[1]]).shot).toEqual(shots[1])
+    expect(cameraAt(3, [shots[1]]).focus).toEqual([])
+  })
+  it('move = 0 vira um corte seco, sem NaN', () => {
+    const c = cameraAt(0.5, shots, 0)
+    expect(Number.isNaN(c.shot.scale)).toBe(false)
+    expect(c.shot).toEqual(shots[1])
+  })
   it('nunca anda para trás ao avançar', () => {
     let prev = -1
     for (let p = 0; p <= 2.0001; p += 0.02) {

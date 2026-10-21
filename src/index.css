@@ -167,6 +167,7 @@ body {
       height: calc(100dvh + var(--len, 5) * 100dvh);
       overflow-x: clip; /* os pedaços chegam de fora da tela sem criar rolagem lateral */
     }
+    /* mais curta que a demonstração (100dvh por unidade de peso): são 4 momentos, com a câmera parada boa parte do tempo. O hook mede a altura real da seção, então mudar este número só muda o ritmo. */
     .over-section {
       height: calc(100dvh + var(--len, 4) * 62dvh);
     }

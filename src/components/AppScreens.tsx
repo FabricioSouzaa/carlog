@@ -1,5 +1,5 @@
 import { memo, type ReactNode } from 'react'
-import { formatCurrency, formatDate, formatKm, todayISO } from '../lib/format'
+import { addDaysISO, formatCurrency, formatDate, formatKm, todayISO } from '../lib/format'
 import { TypeBadge } from './ui'
 
 /*
@@ -8,11 +8,7 @@ import { TypeBadge } from './ui'
  * Desenhadas num quadro fixo de 560x360 px e reduzidas por `ScaledScreen`.
  */
 
-const daysAgo = (n: number) => {
-  const [y, m, d] = todayISO().split('-').map(Number)
-  const date = new Date(Date.UTC(y, m - 1, d - n))
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
-}
+const daysAgo = (n: number) => addDaysISO(todayISO(), -n)
 
 const TABS = [
   { id: 'visao', label: 'Visão geral', icon: '📊' },

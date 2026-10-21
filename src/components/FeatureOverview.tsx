@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { cameraAt, overview, union, zoomTo, type Rect } from '../lib/camera'
-import { formatCurrency, formatDate, todayISO } from '../lib/format'
+import { addDaysISO, addMonthsISO, formatCurrency, formatDate, formatMonth, todayISO } from '../lib/format'
 import { ramp } from '../lib/wheel'
 import { TypeBadge } from './ui'
 import { useMediaQuery } from './useMediaQuery'
@@ -15,7 +15,6 @@ const WEIGHTS = [1, 1.3, 1.1, 1]
 const LEN = WEIGHTS.reduce((a, b) => a + b, 0)
 
 const MONTHS = [28, 46, 37, 63, 50, 86, 69, 44, 60, 79, 53, 100]
-const MONTH_LABELS = ['nov', 'dez', 'jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out']
 const CATEGORIES = [
   { name: 'Combustível', total: 7980, pct: 1 },
   { name: 'Manutenção', total: 5210.4, pct: 0.65 },
@@ -26,11 +25,14 @@ const TYPES = [
   { name: 'Valorização', pct: 18, color: 'var(--series-2)' },
   { name: 'Rotina', pct: 36, color: 'var(--series-3)' },
 ]
-const daysAgo = (n: number) => {
-  const [y, m, d] = todayISO().split('-').map(Number)
-  const date = new Date(Date.UTC(y, m - 1, d - n))
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
-}
+const TODAY = todayISO()
+const THIS_MONTH = TODAY.slice(0, 7)
+const daysAgo = (n: number) => addDaysISO(TODAY, -n)
+const longMonth = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${THIS_MONTH}-01T00:00:00Z`))
+// os 12 últimos meses terminando no atual: rótulos curtos (nov, dez...) e o do balão (out/26)
+const shortMonth = (ym: string) => formatMonth(ym).replace('.', '') // 'out./26' -> 'out/26'
+const MONTH_LABELS = Array.from({ length: 12 }, (_, i) => shortMonth(addMonthsISO(THIS_MONTH, i - 11)).split('/')[0])
+const THIS_MONTH_LABEL = shortMonth(THIS_MONTH)
 const LAST = [
   {
     title: 'Troca de óleo e filtro',
@@ -162,12 +164,8 @@ export function FeatureOverview() {
       const parts: Rect[] = [union([rectIn(r.stat1, b), rectIn(r.stat2, b), rectIn(r.stat3, b)]), rectIn(r.chart, b), rectIn(r.cats, b), rectIn(r.last, b)]
       const above = wide ? 0 : (copy.current?.offsetHeight ?? 0) + 12
       const h = Math.max(260, Math.min(wide ? 640 : 520, stage.clientHeight - above - 56))
-      setLayout({
-        pinned,
-        view: { w: v.clientWidth, h },
-        board: { w: b.offsetWidth, h: b.offsetHeight },
-        parts,
-      })
+      const next = { pinned, view: { w: v.clientWidth, h }, board: { w: b.offsetWidth, h: b.offsetHeight }, parts }
+      setLayout((prev) => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next))
     }
     measure()
     window.addEventListener('resize', measure)
@@ -259,7 +257,7 @@ export function FeatureOverview() {
           >
             <div
               ref={board}
-              className="rounded-[22px] border border-slate-200 bg-slate-50 shadow-[0_30px_80px_rgba(15,23,42,0.16)] dark:border-slate-800 dark:bg-slate-950"
+              className="relative rounded-[22px] border border-slate-200 bg-slate-50 shadow-[0_30px_80px_rgba(15,23,42,0.16)] dark:border-slate-800 dark:bg-slate-950"
               style={camStyle}
             >
               <div className="flex h-12 items-center gap-1 border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900">
@@ -273,9 +271,9 @@ export function FeatureOverview() {
               <div className="space-y-3 p-4">
                 <div className="grid grid-cols-4 gap-3">
                   <Stat reg={at('stat1')} label="Total gasto" hint="desde o 1º gasto" value={count(18742.3, 0.5, 0.95)} on={focus[0]} dim={dim(0)} />
-                  <Stat reg={at('stat2')} label="Este mês" hint="outubro de 2026" value={count(1230, 0.5, 0.95)} on={focus[0]} dim={dim(0)} />
-                  <Stat reg={at('stat3')} label="Este ano" hint="2026" value={count(9860.45, 0.5, 0.95)} on={focus[0]} dim={dim(0)} />
-                  <Stat reg={at('stat4')} label="Planejado pendente" hint="3 itens" value={count(1350, 0.5, 0.95)} on={focus[0]} dim={dim(0)} />
+                  <Stat reg={at('stat2')} label="Este mês" hint={longMonth} value={count(1230, 0.5, 0.95)} on={focus[0]} dim={dim(0)} />
+                  <Stat reg={at('stat3')} label="Este ano" hint={TODAY.slice(0, 4)} value={count(9860.45, 0.5, 0.95)} on={focus[0]} dim={dim(0)} />
+                  <Stat reg={at('stat4')} label="Planejado pendente" hint={`${PLANNED.length} itens`} value={count(1350, 0.5, 0.95)} on={focus[0]} dim={dim(0)} />
                 </div>
 
                 <div className="grid grid-cols-[1.45fr_1fr] gap-3">
@@ -304,7 +302,7 @@ export function FeatureOverview() {
                             transform: `translateY(${(1 - r(1.9, 1.98)) * 8}px)`,
                           }}
                         >
-                          <p className="text-[10px] text-slate-300">out/26</p>
+                          <p className="text-[10px] text-slate-300">{THIS_MONTH_LABEL}</p>
                           <p className="text-sm font-bold tabular-nums">R$ 1.230,00</p>
                         </div>
                       </div>

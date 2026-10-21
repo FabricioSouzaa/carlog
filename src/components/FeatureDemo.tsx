@@ -135,7 +135,7 @@ export function FeatureDemo({ onLogin }: { onLogin: () => void }) {
       <div className="wheel-stage flex items-center">
         <div
           className="mx-auto grid w-full max-w-6xl items-center gap-4 px-4 lg:grid-cols-[380px_1fr] lg:gap-16"
-          style={{ opacity: 1 - closing, transform: `scale(${1 - closing * 0.06})`, filter: closing > 0 ? `blur(${closing * 6}px)` : undefined, pointerEvents: closing > 0.5 ? 'none' : undefined }}
+          style={{ opacity: 1 - closing, transform: `scale(${1 - closing * 0.06})`, pointerEvents: closing > 0.02 ? 'none' : undefined }}
         >
           <div>
             <p className="text-[13px] font-semibold tracking-[0.18em] text-blue-300 uppercase">Como funciona</p>

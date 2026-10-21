@@ -43,10 +43,12 @@ export function union(rects: Rect[]): Rect {
  * `focus[k]` (k de 1 a N) vale 1 quando a câmera está em cima da parte k; `zoom` vai de 0 (quadro inteiro) a 1.
  */
 export function cameraAt(position: number, shots: Shot[], move = 0.45): { shot: Shot; focus: number[]; zoom: number } {
+  // com menos de dois planos não há para onde ir: fica no primeiro (ou num plano neutro, se nem ele existir)
+  if (shots.length < 2) return { shot: shots[0] ?? { scale: 1, x: 0, y: 0 }, focus: [], zoom: 0 }
   const last = shots.length - 1
   const p = clamp(position, 0, last)
   const i = Math.min(last - 1, Math.floor(p))
-  const t = smooth(clamp((p - i) / move, 0, 1))
+  const t = smooth(clamp((p - i) / Math.max(move, 1e-6), 0, 1))
   const focus = shots.map((_, k) => (k === i ? 1 - t : 0) + (k === i + 1 ? t : 0))
   return {
     shot: { scale: lerp(shots[i].scale, shots[i + 1].scale, t), x: lerp(shots[i].x, shots[i + 1].x, t), y: lerp(shots[i].y, shots[i + 1].y, t) },
