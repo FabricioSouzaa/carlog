@@ -22,7 +22,7 @@ const STEP_TEXT = [
   'Um clique e o gasto real é salvo.',
 ]
 /** Quanta rolagem cada trecho entre dois momentos ganha: os de planejar e realizar têm mais coisa acontecendo e ganham mais. */
-const WEIGHTS = [1.3, 1.1, 1.1, 1.8, 2, 0.9] // o último trecho é a pausa final, em que entra o convite para usar
+const WEIGHTS = [1.3, 1.1, 1.1, 1.8, 2, 1.3] // o último trecho é a pausa final, em que entra o convite para usar
 const LEN = WEIGHTS.reduce((a, b) => a + b, 0)
 
 /**
@@ -76,7 +76,7 @@ function Cursor({ style }: { style: CSSProperties }) {
  * planejado é criado e, com um clique, vira gasto real. Mesma conta de rolagem do seletor da seção 2 (`useWheel`), só que mais lenta.
  * Sem movimento, mostra a cena pronta.
  */
-export function FeatureDemo() {
+export function FeatureDemo({ onLogin }: { onLogin: () => void }) {
   const [pos, setPos] = useState(0)
   // a cena só precisa de ~1 mudança por centésimo; evita renderizar a cada pixel de rolagem
   const { ref, goTo } = useWheel(SCENE, { tau: 200, dwell: 0.2, weights: WEIGHTS, staticPosition: 3, onPosition: (p) => setPos(Math.round(p * 100) / 100) })
@@ -112,6 +112,9 @@ export function FeatureDemo() {
 
   const r = (from: number, to: number) => ramp(pos, from, to)
   const today = formatDate(todayISO())
+  // fechamento: depois do passo 5 a cena se afasta e entra o convite em tela cheia
+  const closing = r(5.25, 5.65)
+  const invite = r(5.45, 5.85)
 
   // cena 1: Novo gasto
   const formOut = r(3.05, 3.4)
@@ -130,7 +133,10 @@ export function FeatureDemo() {
   return (
     <section ref={ref} id="cadastrar" aria-labelledby="cadastrar-titulo" className="wheel-section demo-section demo-bg relative" style={{ '--p': 0, '--n': SCENE, '--len': LEN } as CSSProperties}>
       <div className="wheel-stage flex items-center">
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-4 px-4 lg:grid-cols-[380px_1fr] lg:gap-16">
+        <div
+          className="mx-auto grid w-full max-w-6xl items-center gap-4 px-4 lg:grid-cols-[380px_1fr] lg:gap-16"
+          style={{ opacity: 1 - closing, transform: `scale(${1 - closing * 0.06})`, filter: closing > 0 ? `blur(${closing * 6}px)` : undefined, pointerEvents: closing > 0.5 ? 'none' : undefined }}
+        >
           <div>
             <p className="text-[13px] font-semibold tracking-[0.18em] text-blue-300 uppercase">Como funciona</p>
             <h2 id="cadastrar-titulo" className="font-display mt-1.5 text-[28px] leading-[1.1] font-bold tracking-tight text-white lg:mt-2 lg:text-5xl">{TITLE}</h2>
@@ -389,6 +395,27 @@ export function FeatureDemo() {
               </div>
             </div>
           </div>
+          </div>
+        </div>
+
+        {/* fechamento em tela cheia: a cena se afasta e o convite ocupa o palco (só com o seletor fixo; sem animação fica o convite pequeno da legenda) */}
+        <div className="demo-final" data-on={invite > 0.05} style={{ opacity: invite, transform: `translateY(${(1 - invite) * 28}px) scale(${0.94 + 0.06 * invite})` }}>
+          <p className="text-[13px] font-semibold tracking-[0.18em] text-blue-300 uppercase">Menos de um minuto, de verdade</p>
+          <h3 className="font-display mt-3 max-w-3xl text-4xl leading-[1.05] font-bold tracking-tight text-white lg:text-7xl">Pronto para testar o Carlog?</h3>
+          <p className="mt-4 max-w-xl text-base text-slate-300 lg:text-xl">O acesso é liberado manualmente. Mande uma mensagem pelo WhatsApp e você recebe o seu.</p>
+          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
+            <a
+              href={whatsappLink(ACCESS_WHATSAPP, ACCESS_MESSAGE)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="cta-big btn !gap-2.5 !rounded-2xl !bg-white !px-8 !py-4 !text-lg !font-bold !text-slate-900 hover:!bg-blue-50"
+            >
+              Quero usar o Carlog
+              <span aria-hidden="true">→</span>
+            </a>
+            <button type="button" onClick={onLogin} className="btn !rounded-2xl border border-white/40 !px-6 !py-4 !text-base !font-semibold text-white hover:bg-white/10">
+              Já tenho conta
+            </button>
           </div>
         </div>
       </div>

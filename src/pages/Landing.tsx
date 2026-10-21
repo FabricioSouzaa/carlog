@@ -21,6 +21,8 @@ const HERO_TITLE = APP_SLOGAN
 // o que vem depois do título só entra quando ele termina de ser digitado
 const TYPED_MS = typingDuration(HERO_TITLE)
 
+/** Intervalo entre uma frase e a seguinte, depois que o título termina de ser digitado. */
+const CHECK_STEP_MS = 420
 const CHECKS = ['Registre cada gasto em segundos', 'Planeje o que ainda vem pela frente', 'Veja para onde vai o seu dinheiro'] as const
 
 export function Landing({ onLogin }: { onLogin: () => void }) {
@@ -46,19 +48,22 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
             </h1>
           </div>
           <div className="scrub-exit" style={{ '--shift': '-56px' } as CSSProperties}>
-            <Reveal delay={TYPED_MS - 200}>
-              <ul className="mt-8 space-y-3.5 text-lg md:text-xl">
-                {CHECKS.map((c) => (
-                  <li key={c} className="flex items-center gap-3 font-medium">
-                    <span aria-hidden="true" className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500 text-sm font-bold">✓</span>
-                    {c}
-                  </li>
-                ))}
-              </ul>
-            </Reveal>
+            {/* depois do título digitado: cada frase sobe e, logo em seguida, o seu check "se desenha" (ver .check-* em index.css) */}
+            <ul className="mt-8 space-y-3.5 text-lg md:text-xl">
+              {CHECKS.map((c, i) => (
+                <li key={c} className="check-line flex items-center gap-3 font-medium" style={{ '--d': `${TYPED_MS + i * CHECK_STEP_MS}ms` } as CSSProperties}>
+                  <span aria-hidden="true" className="check-badge flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-500">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+                      <path className="check-tick" d="M5 12.5l4.5 4.5L19 7.5" pathLength="1" />
+                    </svg>
+                  </span>
+                  {c}
+                </li>
+              ))}
+            </ul>
           </div>
           <div className="scrub-exit" style={{ '--shift': '-84px' } as CSSProperties}>
-            <Reveal delay={TYPED_MS + 250} className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <Reveal delay={TYPED_MS + 3 * CHECK_STEP_MS + 300} className="mt-9 flex flex-col gap-3 sm:flex-row">
               <a href={whatsappLink(ACCESS_WHATSAPP, ACCESS_MESSAGE)} target="_blank" rel="noopener noreferrer" className="btn !bg-white !px-6 !py-3.5 !text-[15px] !font-semibold !text-slate-900 hover:!bg-slate-100">
                 Solicitar acesso pelo WhatsApp
               </a>
@@ -73,7 +78,7 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
       <FeatureWheel />
       {/* o claro da seção 2 se desfaz no céu da seção 3, e o céu volta ao claro depois */}
       <div aria-hidden="true" className="demo-fade" />
-      <FeatureDemo />
+      <FeatureDemo onLogin={onLogin} />
       <div aria-hidden="true" className="demo-fade-out" />
       <FeatureOverview />
 
