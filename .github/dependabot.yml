@@ -10,6 +10,11 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    # os tipos do Node precisam acompanhar a versão do Node que o projeto usa (22), não a mais nova.
+    # Ao subir o Node (engines em package.json e node-version em ci.yml), mude também esta linha.
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   # as ações do próprio CI também são dependências (e já foram alvo de ataques de cadeia de suprimentos)
   - package-ecosystem: github-actions
     directory: /
