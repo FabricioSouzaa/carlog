@@ -14,6 +14,7 @@ Idioma: interface, textos e mensagens em **português (pt-BR)**. Valores em **R$
 - Acesso aos dados isolado em uma camada (`src/storage/`) para poder trocar o provedor (ex.: Firebase) sem mexer nas telas.
 - Sem cache local por enquanto: o app carrega tudo do Supabase ao abrir (precisa de internet). Modo offline fica como melhoria futura.
 - Esquema do banco, regras de acesso (RLS), categorias padrão e bucket de fotos: `supabase/schema.sql` (rodar uma vez no SQL Editor). Mudanças depois disso vão em `supabase/migrations/AAAA-MM-DD_nome.sql` (o usuário roda no SQL Editor) e também são refletidas no `schema.sql`, para instalações novas.
+- Cabeçalhos de segurança e CSP ficam em `vercel.json`. Qualquer origem nova (fonte, imagem, API externa, script) precisa entrar na CSP, senão o navegador bloqueia (ou, em `Report-Only`, avisa no console).
 - Automação: CI no GitHub Actions (lint, testes, build) e Dependabot semanal; ver `.github/`.
 - Fotos: Supabase Storage, bucket privado `receipts`, caminho `<user_id>/<image_id>.jpg`.
 - Testes: Vitest (focar em cálculos de totais/filtros)

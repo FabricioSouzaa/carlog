@@ -37,6 +37,7 @@ Requer Node.js 22.12+ e um projeto no [Supabase](https://supabase.com) (plano gr
 - **Os dados são protegidos no banco, não no front-end** (o código do site é público): cada tabela tem RLS ligada e cada usuário só enxerga as próprias linhas; as fotos ficam num bucket privado, em uma pasta por usuário. Veja `supabase/schema.sql`.
 - O bucket de fotos aceita só JPEG de até 3 MB. Em projetos criados antes dessa regra, rode `supabase/migrations/2026-10-21_limites-do-bucket.sql` no SQL Editor.
 - **CI** (`.github/workflows/ci.yml`): a cada PR roda lint, testes e build no GitHub. **Dependabot** (`.github/dependabot.yml`) abre PRs semanais de atualização.
+- **Cabeçalhos de segurança** (`vercel.json`): `nosniff`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` e `Cross-Origin-Opener-Policy` já valem. A **CSP** (quais origens o site pode carregar) está em modo `Report-Only`: o navegador só *avisa* no console o que bloquearia, sem bloquear (por isso `frame-ancestors`, que o navegador ignora em `Report-Only`, só passa a valer na troca; até lá o `X-Frame-Options` cobre o iframe). Depois de usar o app logado sem avisos, troque para `Content-Security-Policy` para valer de verdade. Se um dia o app passar a carregar algo de fora (fonte, imagem, API), a origem precisa entrar na CSP.
 - Mudanças no banco depois da primeira instalação entram como arquivos novos em `supabase/migrations/` (o `schema.sql` só é rodado uma vez, no começo).
 
 ## Comandos
