@@ -119,6 +119,23 @@ body {
   }
 }
 
+/* o convite do hero some logo nos primeiros pixels de rolagem (e não só quando o hero inteiro sai, como o resto) */
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .scrub-cue {
+      animation: scrub-cue linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 22vh;
+    }
+    @keyframes scrub-cue {
+      to {
+        opacity: 0;
+        transform: translateY(-14px);
+      }
+    }
+  }
+}
+
 /* cursor do Typewriter */
 .caret {
   animation: caret-blink 1s steps(1) infinite;

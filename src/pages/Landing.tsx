@@ -70,8 +70,8 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
             </div>
           </section>
 
-          {/* convite para rolar: texto leve (sem caixa nem borda, para não parecer botão) com uma seta; entra depois dos botões e some quando o hero sai da tela */}
-          <div aria-hidden="true" className="scrub-exit absolute inset-x-0 bottom-6 flex justify-center" style={{ '--shift': '-20px' } as CSSProperties}>
+          {/* convite para rolar: texto leve (sem caixa nem borda, para não parecer botão) com uma seta; entra depois dos botões e some logo nos primeiros pixels de rolagem */}
+          <div aria-hidden="true" className="scrub-cue absolute inset-x-0 bottom-6 flex justify-center">
             <div className="cue-in flex flex-col items-center gap-1.5 text-white/70" style={{ '--cue-in': `${CUE_MS}ms` } as CSSProperties}>
               <span className="text-[13px] font-medium tracking-[0.02em]">Role para ver como funciona</span>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="scroll-cue-arrow" style={{ '--cue-delay': `${CUE_MS + 500}ms` } as CSSProperties}>

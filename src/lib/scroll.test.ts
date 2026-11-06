@@ -25,6 +25,13 @@ describe('railPosition', () => {
     expect(railPosition(TOPS, 3500, VH, DOC)).toBe(2.5)
   })
 
+  it('com a última seção curta, chega ao último ponto deslizando até o fim da rolagem (sem pulo)', () => {
+    const doc = 4500 // rolagem máxima 3700, antes do topo da última seção (4000)
+    expect(railPosition(TOPS, 3350, VH, doc)).toBeCloseTo(2.5)
+    expect(railPosition(TOPS, 3690, VH, doc)).toBeGreaterThan(2.97)
+    expect(railPosition(TOPS, 3700, VH, doc)).toBe(3)
+  })
+
   it('não passa dos limites (rolagem elástica) e aguenta pontos demais ou de menos', () => {
     expect(railPosition(TOPS, -50, VH, DOC)).toBe(0)
     expect(railPosition([0], 300, VH, DOC)).toBe(0)
