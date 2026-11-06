@@ -5,6 +5,7 @@ import { FeatureOverview } from '../components/FeatureOverview'
 import { FeatureWheel } from '../components/FeatureWheel'
 import { Logo } from '../components/Logo'
 import { Reveal } from '../components/Reveal'
+import { ScrollProgress } from '../components/ScrollProgress'
 import { Typewriter } from '../components/Typewriter'
 import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME, APP_SLOGAN, APP_TAGLINE } from '../config'
 import { typingDuration } from '../lib/typing'
@@ -21,6 +22,7 @@ const CHECKS = ['Registre cada gasto em segundos', 'Planeje o que ainda vem pela
 export function Landing({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="min-h-dvh">
+      <ScrollProgress />
       <main>
         {/* hero escuro em tela cheia: o velocímetro grande ao fundo é a imagem; o cabeçalho é só o nome e o descritivo */}
         <div className="relative flex min-h-dvh flex-col overflow-hidden bg-linear-to-b from-slate-900 to-blue-700 text-white">
@@ -65,6 +67,16 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
               </Reveal>
             </div>
           </section>
+
+          {/* convite para rolar: entra depois dos botões e some quando o hero sai da tela */}
+          <div aria-hidden="true" className="scrub-exit absolute inset-x-0 bottom-5 flex justify-center" style={{ '--shift': '-20px' } as CSSProperties}>
+            <Reveal delay={TYPED_MS + 3 * CHECK_STEP_MS + 900} className="flex flex-col items-center gap-1 text-[13px] font-semibold tracking-[0.12em] text-blue-100 uppercase">
+              <span>Role para ver como funciona</span>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="scroll-cue-arrow">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </Reveal>
+          </div>
         </div>
 
         {/* o azul do hero se desfaz num degradê até o fundo claro; o título do seletor só fixa depois dele */}

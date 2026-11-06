@@ -415,6 +415,16 @@ body {
 }
 
 
+/* barra de progresso da landing (ver ScrollProgress): --progress vai de 0 a 1 */
+.scroll-progress {
+  transform: scaleX(var(--progress, 0));
+}
+/* convite para rolar no pé do hero: a seta balança; parada para quem prefere menos movimento */
+@media (prefers-reduced-motion: no-preference) {
+  .scroll-cue-arrow {
+    animation: hint-bounce 1.5s ease-in-out infinite;
+  }
+}
 @keyframes hint-bounce {
   0%,
   100% {
