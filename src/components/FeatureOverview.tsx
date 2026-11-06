@@ -206,6 +206,7 @@ export function FeatureOverview() {
   return (
     <section
       ref={ref}
+      id="raio-x"
       aria-labelledby="visao-titulo"
       className="wheel-section over-section relative"
       style={{ '--p': 0, '--n': WEIGHTS.length + 1, '--len': LEN } as CSSProperties}

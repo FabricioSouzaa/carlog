@@ -5,6 +5,7 @@ import { FeatureOverview } from '../components/FeatureOverview'
 import { FeatureWheel } from '../components/FeatureWheel'
 import { Logo } from '../components/Logo'
 import { Reveal } from '../components/Reveal'
+import { SectionRail } from '../components/SectionRail'
 import { Typewriter } from '../components/Typewriter'
 import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME, APP_SLOGAN, APP_TAGLINE } from '../config'
 import { typingDuration } from '../lib/typing'
@@ -16,14 +17,17 @@ const TYPED_MS = typingDuration(HERO_TITLE)
 
 /** Intervalo entre uma frase e a seguinte, depois que o título termina de ser digitado. */
 const CHECK_STEP_MS = 420
+/** Quando o convite para rolar entra: logo depois dos botões. */
+const CUE_MS = TYPED_MS + 3 * CHECK_STEP_MS + 900
 const CHECKS = ['Registre cada gasto em segundos', 'Planeje o que ainda vem pela frente', 'Veja para onde vai o seu dinheiro'] as const
 
 export function Landing({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="min-h-dvh">
+      <SectionRail />
       <main>
         {/* hero escuro em tela cheia: o velocímetro grande ao fundo é a imagem; o cabeçalho é só o nome e o descritivo */}
-        <div className="relative flex min-h-dvh flex-col overflow-hidden bg-linear-to-b from-slate-900 to-blue-700 text-white">
+        <div id="inicio" className="relative flex min-h-dvh flex-col overflow-hidden bg-linear-to-b from-slate-900 to-blue-700 text-white">
           <Logo tile={false} size={900} className="pointer-events-none absolute top-[8%] -right-[35%] h-[110vw] w-[110vw] opacity-20 md:-top-[2%] md:-right-[12%] md:h-[900px] md:w-[900px]" />
           <header className="relative mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-5">
             <span className="flex items-center gap-3.5">
@@ -65,6 +69,16 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
               </Reveal>
             </div>
           </section>
+
+          {/* convite para rolar: texto leve (sem caixa nem borda, para não parecer botão) com uma seta; entra depois dos botões e some logo nos primeiros pixels de rolagem */}
+          <div aria-hidden="true" className="scrub-cue absolute inset-x-0 bottom-6 flex justify-center">
+            <div className="cue-in flex flex-col items-center gap-1.5 text-white/70" style={{ '--cue-in': `${CUE_MS}ms` } as CSSProperties}>
+              <span className="text-[13px] font-medium tracking-[0.02em]">Role para ver como funciona</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="scroll-cue-arrow" style={{ '--cue-delay': `${CUE_MS + 500}ms` } as CSSProperties}>
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </div>
+          </div>
         </div>
 
         {/* o azul do hero se desfaz num degradê até o fundo claro; o título do seletor só fixa depois dele */}

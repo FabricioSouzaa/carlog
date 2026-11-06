@@ -9,7 +9,7 @@ import { Reveal } from './Reveal'
  */
 export function FinalCta({ onLogin }: { onLogin: () => void }) {
   return (
-    <section aria-labelledby="pronto" className="demo-bg relative overflow-hidden text-white">
+    <section id="comecar" aria-labelledby="pronto" className="demo-bg relative overflow-hidden text-white">
       <Logo
         tile={false}
         size={900}
