@@ -128,7 +128,7 @@ export function FeatureDemo() {
                 const o = i === STEPS.length - 1 && d > 0 ? 1 : Math.max(0, 1 - Math.abs(d) * 1.7) // a do último passo fica até o fim
                 return (
                   <div key={label} className="demo-legend absolute inset-x-0 top-0" style={{ opacity: o, transform: `translateY(${-d * 22}px)` }}>
-                    <p className="font-display text-sm font-bold text-blue-300">0{i + 1} / 05</p>
+                    <p className="font-display text-sm font-bold text-blue-300">0{i + 1} / 0{STEPS.length}</p>
                     <p className="font-display mt-0.5 text-xl font-bold text-white lg:mt-1 lg:text-[28px]">{label}</p>
                     <p className="mt-0.5 text-sm text-slate-300 lg:mt-1 lg:text-[15px]">{STEP_TEXT[i]}</p>
                   </div>

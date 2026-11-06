@@ -5,7 +5,7 @@ import { FeatureOverview } from '../components/FeatureOverview'
 import { FeatureWheel } from '../components/FeatureWheel'
 import { Logo } from '../components/Logo'
 import { Reveal } from '../components/Reveal'
-import { ScrollProgress } from '../components/ScrollProgress'
+import { SectionRail } from '../components/SectionRail'
 import { Typewriter } from '../components/Typewriter'
 import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME, APP_SLOGAN, APP_TAGLINE } from '../config'
 import { typingDuration } from '../lib/typing'
@@ -24,10 +24,10 @@ const CHECKS = ['Registre cada gasto em segundos', 'Planeje o que ainda vem pela
 export function Landing({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="min-h-dvh">
-      <ScrollProgress />
+      <SectionRail />
       <main>
         {/* hero escuro em tela cheia: o velocímetro grande ao fundo é a imagem; o cabeçalho é só o nome e o descritivo */}
-        <div className="relative flex min-h-dvh flex-col overflow-hidden bg-linear-to-b from-slate-900 to-blue-700 text-white">
+        <div id="inicio" className="relative flex min-h-dvh flex-col overflow-hidden bg-linear-to-b from-slate-900 to-blue-700 text-white">
           <Logo tile={false} size={900} className="pointer-events-none absolute top-[8%] -right-[35%] h-[110vw] w-[110vw] opacity-20 md:-top-[2%] md:-right-[12%] md:h-[900px] md:w-[900px]" />
           <header className="relative mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-5">
             <span className="flex items-center gap-3.5">
@@ -72,14 +72,14 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
 
           {/* convite para rolar: entra depois dos botões, chama a atenção com um anel que pulsa e some quando o hero sai da tela */}
           <div aria-hidden="true" className="scrub-exit absolute inset-x-0 bottom-5 flex justify-center" style={{ '--shift': '-20px' } as CSSProperties}>
-            <Reveal delay={CUE_MS} className="flex justify-center">
+            <div className="cue-in flex justify-center" style={{ '--cue-in': `${CUE_MS}ms` } as CSSProperties}>
               <span className="scroll-cue-pill flex flex-col items-center gap-0.5 rounded-3xl border border-white/30 bg-white/10 px-5 pt-2.5 pb-1.5 text-[13px] font-semibold tracking-[0.12em] text-white uppercase backdrop-blur-sm" style={{ '--cue-delay': `${CUE_MS + 700}ms` } as CSSProperties}>
                 <span>Role para ver como funciona</span>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="scroll-cue-arrow">
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </span>
-            </Reveal>
+            </div>
           </div>
         </div>
 

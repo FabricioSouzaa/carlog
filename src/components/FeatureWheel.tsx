@@ -16,7 +16,7 @@ export function FeatureWheel() {
   const showScreens = useMediaQuery('(min-width: 640px)')
 
   return (
-    <section ref={ref} aria-labelledby="abas" className="wheel-section relative bg-slate-50 dark:bg-slate-950" style={{ '--p': 0, '--n': ITEMS.length } as CSSProperties}>
+    <section ref={ref} id="tudo" aria-labelledby="abas" className="wheel-section relative bg-slate-50 dark:bg-slate-950" style={{ '--p': 0, '--n': ITEMS.length } as CSSProperties}>
       <div className="wheel-stage flex items-center">
         <a href="#cadastrar" className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:shadow">Pular esta seção</a>
         <div className="mx-auto grid w-full max-w-6xl items-center gap-4 px-4 lg:grid-cols-[340px_1fr] lg:gap-14">

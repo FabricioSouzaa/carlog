@@ -21,7 +21,7 @@ export function DemoStopwatch({ seconds, done }: { seconds: number; done: boolea
       </div>
       <div className="min-w-0">
         <p className={`text-[11px] font-semibold tracking-[0.12em] uppercase lg:text-xs lg:tracking-[0.14em] ${done ? 'text-green-300' : 'text-blue-300'}`}>{done ? 'Gasto salvo' : 'Tempo para lançar'}</p>
-        <p className="font-display text-base font-bold text-white lg:mt-1 lg:text-[22px]">{done ? `Em ${DEMO_TOTAL_SECONDS} segundos` : 'Cada passo conta'}</p>
+        <p className="font-display text-base font-bold whitespace-nowrap text-white lg:mt-1 lg:text-xl">{done ? `Em ${DEMO_TOTAL_SECONDS} segundos` : 'Cada passo conta'}</p>
         <p className="mt-1 hidden text-sm text-slate-300 lg:block">{done ? 'Do zero ao gasto registrado.' : 'Meta: menos de 1 minuto'}</p>
       </div>
     </div>

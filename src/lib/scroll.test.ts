@@ -1,23 +1,33 @@
 import { describe, expect, it } from 'vitest'
-import { scrollProgress } from './scroll'
+import { railPosition } from './scroll'
 
-describe('scrollProgress', () => {
-  it('é 0 no topo e 1 no fim', () => {
-    expect(scrollProgress(0, 3000, 1000)).toBe(0)
-    expect(scrollProgress(2000, 3000, 1000)).toBe(1)
+const TOPS = [0, 1000, 3000, 4000] // quatro seções
+const VH = 800
+const DOC = 6000
+
+describe('railPosition', () => {
+  it('é 0 no topo da página', () => {
+    expect(railPosition(TOPS, 0, VH, DOC)).toBe(0)
   })
 
-  it('é proporcional no meio', () => {
-    expect(scrollProgress(500, 3000, 1000)).toBe(0.25)
+  it('desliza entre dois pontos na proporção da rolagem', () => {
+    expect(railPosition(TOPS, 500, VH, DOC)).toBe(0.5)
+    expect(railPosition(TOPS, 2000, VH, DOC)).toBe(1.5)
   })
 
-  it('não passa dos limites (rolagem elástica do Safari)', () => {
-    expect(scrollProgress(-40, 3000, 1000)).toBe(0)
-    expect(scrollProgress(2060, 3000, 1000)).toBe(1)
+  it('vale exatamente o ponto quando o topo da seção chega ao topo da janela', () => {
+    expect(railPosition(TOPS, 1000, VH, DOC)).toBe(1)
+    expect(railPosition(TOPS, 3000, VH, DOC)).toBe(2)
   })
 
-  it('página que cabe na tela dá 0', () => {
-    expect(scrollProgress(0, 800, 1000)).toBe(0)
-    expect(scrollProgress(0, 1000, 1000)).toBe(0)
+  it('no fim da página vale o último ponto, mesmo com a última seção curta', () => {
+    expect(railPosition(TOPS, 5200, VH, DOC)).toBe(3)
+    expect(railPosition(TOPS, 3500, VH, DOC)).toBe(2.5)
+  })
+
+  it('não passa dos limites (rolagem elástica) e aguenta pontos demais ou de menos', () => {
+    expect(railPosition(TOPS, -50, VH, DOC)).toBe(0)
+    expect(railPosition([0], 300, VH, DOC)).toBe(0)
+    expect(railPosition([], 300, VH, DOC)).toBe(0)
   })
 })
