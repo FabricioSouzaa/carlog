@@ -70,15 +70,13 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
             </div>
           </section>
 
-          {/* convite para rolar: entra depois dos botões, chama a atenção com um anel que pulsa e some quando o hero sai da tela */}
-          <div aria-hidden="true" className="scrub-exit absolute inset-x-0 bottom-5 flex justify-center" style={{ '--shift': '-20px' } as CSSProperties}>
-            <div className="cue-in flex justify-center" style={{ '--cue-in': `${CUE_MS}ms` } as CSSProperties}>
-              <span className="scroll-cue-pill flex flex-col items-center gap-0.5 rounded-3xl border border-white/30 bg-white/10 px-5 pt-2.5 pb-1.5 text-[13px] font-semibold tracking-[0.12em] text-white uppercase backdrop-blur-sm" style={{ '--cue-delay': `${CUE_MS + 700}ms` } as CSSProperties}>
-                <span>Role para ver como funciona</span>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="scroll-cue-arrow">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </span>
+          {/* convite para rolar: texto leve (sem caixa nem borda, para não parecer botão) com uma seta; entra depois dos botões e some quando o hero sai da tela */}
+          <div aria-hidden="true" className="scrub-exit absolute inset-x-0 bottom-6 flex justify-center" style={{ '--shift': '-20px' } as CSSProperties}>
+            <div className="cue-in flex flex-col items-center gap-1.5 text-white/70" style={{ '--cue-in': `${CUE_MS}ms` } as CSSProperties}>
+              <span className="text-[13px] font-medium tracking-[0.02em]">Role para ver como funciona</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="scroll-cue-arrow" style={{ '--cue-delay': `${CUE_MS + 500}ms` } as CSSProperties}>
+                <path d="M6 9l6 6 6-6" />
+              </svg>
             </div>
           </div>
         </div>
