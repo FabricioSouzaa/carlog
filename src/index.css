@@ -143,7 +143,8 @@ body {
 .wheel-glow,
 .demo-track,
 .demo-legend,
-.demo-hint {
+.demo-hint,
+.demo-stopwatch {
   display: none;
 }
 .wheel-item {
@@ -184,6 +185,17 @@ body {
     }
     .demo-legend {
       display: block;
+    }
+    .demo-stopwatch {
+      display: flex;
+      width: fit-content;
+      margin-top: 0.75rem;
+      transition: background-color 0.4s, border-color 0.4s;
+    }
+    @media (min-width: 1024px) {
+      .demo-stopwatch {
+        margin-top: 1.75rem;
+      }
     }
     /* dica de rolagem no espaço da legenda (vazio no começo); some quando a legenda do passo 1 entra */
     .demo-hint {
@@ -419,10 +431,24 @@ body {
 .scroll-progress {
   transform: scaleX(var(--progress, 0));
 }
-/* convite para rolar no pé do hero: a seta balança; parada para quem prefere menos movimento */
+/* convite para rolar no pé do hero: um anel pulsa em volta e a seta balança (começa depois que ele aparece, ver --cue-delay); parado para quem prefere menos movimento */
 @media (prefers-reduced-motion: no-preference) {
+  .scroll-cue-pill {
+    animation: cue-pulse 2.2s ease-out infinite;
+    animation-delay: var(--cue-delay, 0ms);
+  }
   .scroll-cue-arrow {
-    animation: hint-bounce 1.5s ease-in-out infinite;
+    animation: hint-bounce 1.1s ease-in-out infinite;
+    animation-delay: var(--cue-delay, 0ms);
+  }
+}
+@keyframes cue-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgb(147 197 253 / 0.55);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 18px rgb(147 197 253 / 0);
   }
 }
 @keyframes hint-bounce {

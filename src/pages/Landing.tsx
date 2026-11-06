@@ -17,6 +17,8 @@ const TYPED_MS = typingDuration(HERO_TITLE)
 
 /** Intervalo entre uma frase e a seguinte, depois que o título termina de ser digitado. */
 const CHECK_STEP_MS = 420
+/** Quando o convite para rolar entra: logo depois dos botões. */
+const CUE_MS = TYPED_MS + 3 * CHECK_STEP_MS + 900
 const CHECKS = ['Registre cada gasto em segundos', 'Planeje o que ainda vem pela frente', 'Veja para onde vai o seu dinheiro'] as const
 
 export function Landing({ onLogin }: { onLogin: () => void }) {
@@ -68,13 +70,15 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
             </div>
           </section>
 
-          {/* convite para rolar: entra depois dos botões e some quando o hero sai da tela */}
+          {/* convite para rolar: entra depois dos botões, chama a atenção com um anel que pulsa e some quando o hero sai da tela */}
           <div aria-hidden="true" className="scrub-exit absolute inset-x-0 bottom-5 flex justify-center" style={{ '--shift': '-20px' } as CSSProperties}>
-            <Reveal delay={TYPED_MS + 3 * CHECK_STEP_MS + 900} className="flex flex-col items-center gap-1 text-[13px] font-semibold tracking-[0.12em] text-blue-100 uppercase">
-              <span>Role para ver como funciona</span>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="scroll-cue-arrow">
-                <path d="M6 9l6 6 6-6" />
-              </svg>
+            <Reveal delay={CUE_MS} className="flex justify-center">
+              <span className="scroll-cue-pill flex flex-col items-center gap-0.5 rounded-3xl border border-white/30 bg-white/10 px-5 pt-2.5 pb-1.5 text-[13px] font-semibold tracking-[0.12em] text-white uppercase backdrop-blur-sm" style={{ '--cue-delay': `${CUE_MS + 700}ms` } as CSSProperties}>
+                <span>Role para ver como funciona</span>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="scroll-cue-arrow">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </span>
             </Reveal>
           </div>
         </div>
