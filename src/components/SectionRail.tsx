@@ -57,6 +57,7 @@ export function SectionRail() {
   const [passed, setPassed] = useState(0) // última parada que o carrinho já alcançou
   const [atStart, setAtStart] = useState(true)
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)')
+  const wide = useMediaQuery('(min-width: 768px)') // abaixo disso o trilho é só visual: sem rótulos, sem toque e sem foco
   const [flash, setFlash] = useState(false) // o nome da parada atual aparece um instante quando ela muda
 
   useEffect(() => {
@@ -101,12 +102,11 @@ export function SectionRail() {
     }
   }, [])
 
-  const firstRun = useRef(true)
+  // compara com a parada anterior (e não com "primeira vez"): em desenvolvimento o StrictMode roda o efeito duas vezes ao montar
+  const lastNear = useRef(near)
   useEffect(() => {
-    if (firstRun.current) {
-      firstRun.current = false
-      return
-    }
+    if (lastNear.current === near) return
+    lastNear.current = near
     // só mostra o nome quando o carrinho para um instante na parada; assim, ao atravessar várias numa rolagem rápida, os nomes não piscam
     let hide = 0
     const show = setTimeout(() => {
@@ -129,6 +129,7 @@ export function SectionRail() {
     <nav
       ref={root}
       aria-label="Seções da página"
+      aria-hidden={wide ? undefined : true}
       className="rail group pointer-events-none fixed top-1/2 right-1 z-50 -translate-y-1/2 md:pointer-events-auto [--d:14px] [--gap:36px] [--road:14px] [--over:4px] md:right-5 md:[--d:22px] md:[--gap:70px] md:[--road:36px] md:[--over:8px]"
       style={{ '--pos': 0, '--steps': STOPS.length - 1 } as CSSProperties}
     >
@@ -146,7 +147,7 @@ export function SectionRail() {
               return (
                 <li key={id} className="relative flex justify-center">
                   {/* a parada: uma faixa atravessando a rua (azul depois que o carrinho passa) */}
-                  <button type="button" onClick={() => goTo(id)} aria-label={`Ir para ${label}`} aria-current={here ? 'location' : undefined} className="rail-stop flex items-center justify-center">
+                  <button type="button" disabled={!wide} onClick={() => goTo(id)} aria-label={`Ir para ${label}`} aria-current={here ? 'location' : undefined} className="rail-stop flex items-center justify-center">
                     <span className={`block h-[3px] w-full rounded-full transition-colors motion-reduce:transition-none ${i <= passed ? 'bg-blue-300' : 'bg-white/70'}`} />
                   </button>
                   {/* o nome da seção, à esquerda da rua (só em telas largas) */}
