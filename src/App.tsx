@@ -1,15 +1,16 @@
 import { lazy, Suspense, startTransition, useEffect, useState } from 'react'
 import { startupLink, supabaseConfigured } from './supabase'
-import { ResetPassword } from './pages/ResetPassword'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { Logo } from './components/Logo'
 import { APP_NAME } from './config'
 import { useSession } from './useSession'
-import { Landing } from './pages/Landing'
-import { Login } from './pages/Login'
 import { useData } from './useData'
 
-// cada aba vira um pedaço separado, baixado só quando é aberta
+// as telas de quem ainda não entrou (landing, login, redefinir senha) são pedaços separados do app: quem já tem sessão nunca baixa a landing
+// (a mais pesada, por causa das animações), e quem só visita a landing não baixa o app. Cada aba também é um pedaço, baixado só quando é aberta.
+const loadLanding = () => import('./pages/Landing').then((m) => ({ default: m.Landing }))
+const loadLogin = () => import('./pages/Login').then((m) => ({ default: m.Login }))
+const loadResetPassword = () => import('./pages/ResetPassword').then((m) => ({ default: m.ResetPassword }))
 const loadVisaoGeral = () => import('./pages/VisaoGeral').then((m) => ({ default: m.VisaoGeral }))
 const loadGastos = () => import('./pages/Gastos').then((m) => ({ default: m.Gastos }))
 const loadPlanejados = () => import('./pages/Planejados').then((m) => ({ default: m.Planejados }))
@@ -17,22 +18,39 @@ const loadAjustes = () => import('./pages/Ajustes').then((m) => ({ default: m.Aj
 const loadGaleria = () => import('./pages/Galeria').then((m) => ({ default: m.Galeria }))
 const loadMonthlyBars = () => import('./components/MonthlyBars')
 
+// quem chega pelo link de redefinição de senha já sabe, ao abrir, que vai precisar desta tela: o download começa na hora
+if (startupLink.recovery) void loadResetPassword().catch(() => {})
+
+const Landing = lazy(loadLanding)
+const Login = lazy(loadLogin)
+const ResetPassword = lazy(loadResetPassword)
 const VisaoGeral = lazy(loadVisaoGeral)
 const Gastos = lazy(loadGastos)
 const Planejados = lazy(loadPlanejados)
 const Ajustes = lazy(loadAjustes)
 const Galeria = lazy(loadGaleria)
 
+/**
+ * Roda `fn` quando o navegador está ocioso (no máximo em 3 s, mesmo com a página ocupada; onde não há `requestIdleCallback`, em 2 s).
+ * Devolve a função que cancela, para quem sai da tela antes de ela rodar.
+ */
+function whenIdle(fn: () => void): () => void {
+  if ('requestIdleCallback' in window) {
+    const id = window.requestIdleCallback(fn, { timeout: 3000 })
+    return () => window.cancelIdleCallback(id)
+  }
+  const id = setTimeout(fn, 2000)
+  return () => clearTimeout(id)
+}
+
 /** Baixa os pedaços em segundo plano para a primeira abertura de cada aba já encontrá-los prontos. */
 function prefetchPages() {
   // a Visão geral é a aba inicial: começa já, em paralelo com o carregamento dos dados
   void loadVisaoGeral().catch(() => {})
   void loadMonthlyBars().catch(() => {})
-  const rest = () => {
+  whenIdle(() => {
     for (const load of [loadGastos, loadPlanejados, loadAjustes, loadGaleria]) void load().catch(() => {})
-  }
-  if ('requestIdleCallback' in window) window.requestIdleCallback(rest)
-  else setTimeout(rest, 2000)
+  })
 }
 
 const TABS = [
@@ -43,6 +61,9 @@ const TABS = [
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
+
+const Loading = ({ className = 'p-6' }: { className?: string }) => <p className={`${className} text-center muted`}>Carregando…</p>
+const SCREEN_ERROR = 'Não foi possível carregar esta tela. Verifique a internet e tente de novo.'
 
 function MissingConfig() {
   return (
@@ -60,12 +81,37 @@ export default function App() {
   const { session, ready, recovering, finishRecovery } = useSession()
   // quem chega por um link de e-mail com erro vai direto ao login, onde o aviso aparece
   const [showLogin, setShowLogin] = useState(Boolean(startupLink.error))
+  const loggedOut = ready && !session
+  // quem está na landing provavelmente vai clicar em "Entrar": o login é baixado nos bastidores, para abrir na hora
+  useEffect(() => {
+    if (!loggedOut) return undefined
+    return whenIdle(() => void loadLogin().catch(() => {})) // cancela se a pessoa entrar antes: quem está logado não precisa do login
+  }, [loggedOut])
   if (!supabaseConfigured) return <MissingConfig />
-  if (!ready) return <p className="p-6 text-center muted">Carregando…</p>
+  if (!ready) return <Loading />
   if (!session) {
-    return showLogin ? <Login notice={startupLink.error} onBack={() => setShowLogin(false)} /> : <Landing onLogin={() => setShowLogin(true)} />
+    // em transição, a landing continua na tela até o login chegar (sem trocar por "Carregando…"); o ErrorBoundary evita a tela em branco se o download falhar
+    return (
+      <ErrorBoundary key={showLogin ? 'login' : 'landing'} message={SCREEN_ERROR}>
+        <Suspense fallback={<Loading />}>
+          {showLogin ? (
+            <Login notice={startupLink.error} onBack={() => startTransition(() => setShowLogin(false))} />
+          ) : (
+            <Landing onLogin={() => startTransition(() => setShowLogin(true))} />
+          )}
+        </Suspense>
+      </ErrorBoundary>
+    )
   }
-  if (recovering) return <ResetPassword onDone={finishRecovery} />
+  if (recovering) {
+    return (
+      <ErrorBoundary message={SCREEN_ERROR}>
+        <Suspense fallback={<Loading />}>
+          <ResetPassword onDone={finishRecovery} />
+        </Suspense>
+      </ErrorBoundary>
+    )
+  }
   return <Main email={session.user.email ?? ''} />
 }
 
@@ -130,8 +176,8 @@ function Main({ email }: { email: string }) {
             <button type="button" className="shrink-0 font-medium underline" onClick={api.clearError}>Fechar</button>
           </div>
         )}
-        <ErrorBoundary key={tab} message="Não foi possível carregar esta tela. Verifique a internet e tente de novo.">
-          <Suspense fallback={<p className="py-10 text-center muted">Carregando…</p>}>
+        <ErrorBoundary key={tab} message={SCREEN_ERROR}>
+          <Suspense fallback={<Loading className="py-10" />}>
             {tab === 'galeria' ? (
               <Galeria onBack={() => setTab('visao')} />
             ) : api.loading ? (
