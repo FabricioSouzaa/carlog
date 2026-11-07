@@ -13,7 +13,7 @@ export function useWheel(
     weights,
     staticPosition = 0,
     onPosition,
-    writeProgress = true,
+    writeProgress = false,
   }: {
     /** Quanto o desenho demora para alcançar a rolagem (constante de tempo, ms): menor = mais colado ao dedo. */
     tau?: number
@@ -26,7 +26,7 @@ export function useWheel(
     /** Chamado a cada frame com a posição desenhada (em itens), para cenas que dependem dela. */
     onPosition?: (position: number) => void
     /**
-     * Escrever `--p` (0 a 1) na seção a cada frame? Só vale a pena se o CSS a usa (o seletor da seção 2). Variáveis CSS são
+     * Escrever `--p` (0 a 1) na seção a cada frame? Só ligue se o CSS a usa (o seletor da seção 2). Variáveis CSS são
      * herdadas: mudar uma na seção obriga o navegador a revisar o estilo de todos os elementos dentro dela, a cada frame.
      */
     writeProgress?: boolean

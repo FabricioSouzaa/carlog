@@ -198,7 +198,7 @@ body {
     .demo-section .wheel-stage {
       overflow-x: clip;
     }
-    /* mais curta que a demonstração (100svh por unidade de peso): são 4 momentos, com a câmera parada boa parte do tempo. O hook mede a altura real da seção, então mudar este número só muda o ritmo. */
+    /* mais curta que a demonstração (100 * --sh por unidade de peso): são 4 momentos, com a câmera parada boa parte do tempo. O hook mede a altura real da seção, então mudar este número só muda o ritmo. */
     .over-section {
       height: calc(calc(100 * var(--sh, 1svh)) + var(--len, 4) * calc(62 * var(--sh, 1svh)));
     }
