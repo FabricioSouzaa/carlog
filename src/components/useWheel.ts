@@ -62,7 +62,7 @@ export function useWheel(
       if (current !== target) raf = requestAnimationFrame(frame)
       else lastFrame = 0
     }
-    // a "janela" é a altura do conteúdo fixo (100dvh), não window.innerHeight: nos celulares os dois mudam em
+    // a "janela" é a altura do conteúdo fixo (100svh), não window.innerHeight: nos celulares os dois mudam em
     // momentos diferentes quando a barra de endereço some, e a conta desencontrava nas pontas
     const stage = el.firstElementChild as HTMLElement | null
     // sem o seletor (movimento reduzido ou sem suporte) a seção é uma lista comum e não há o que acompanhar
