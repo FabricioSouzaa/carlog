@@ -8,12 +8,21 @@
 -- resposta do banco ainda revelaria se aquele id existe. Com a chave composta, o par (user_id, category_id) precisa
 -- existir em categories, e user_id é sempre o do próprio dono (o RLS garante). Entre usuários diferentes, o banco recusa.
 --
--- Requisitos: Postgres 15+ (`on delete set null (coluna)`). Supabase → SQL Editor: `select version();` para conferir.
+-- Requisitos: Postgres 15+ (`on delete set null (coluna)`); o script confere a versão e para se for mais antiga.
+
+-- Confere a versão do Postgres antes de mexer em qualquer coisa: `on delete set null (coluna)` só existe a partir da 15.
+do $$
+begin
+  if current_setting('server_version_num')::int < 150000 then
+    raise exception 'Este script precisa do Postgres 15 ou mais novo (versão atual: %).', current_setting('server_version');
+  end if;
+end $$;
 
 begin;
 
 -- 1) O alvo de uma FK composta precisa ser único: (user_id, id) já é único porque id sozinho já é (chave primária);
---    o índice só existe para o banco aceitar o par como alvo.
+--    o índice só existe para o banco aceitar o par como alvo. (Índice único em vez de `unique (...)` da tabela porque
+--    `if not exists` deixa o script re-executável; para o banco, os dois servem de alvo.)
 create unique index if not exists categories_user_id_id_idx on public.categories (user_id, id);
 create unique index if not exists expenses_user_id_id_idx on public.expenses (user_id, id);
 
@@ -35,15 +44,25 @@ alter table public.planned_expenses
   add constraint planned_user_expense_fk foreign key (user_id, expense_id)
   references public.expenses (user_id, id) on delete set null (expense_id);
 
--- 3) As chaves simples antigas viram redundantes (a composta já garante a existência): saem.
+-- 3) Índices nas colunas que APONTAM: ao apagar uma categoria (ou um gasto), o banco procura quem ainda a usa; sem índice,
+--    isso varre a tabela inteira. (Uma tabela pequena nem sente, mas é o hábito certo: toda FK pede índice na coluna de origem.)
+create index if not exists expenses_user_category_idx on public.expenses (user_id, category_id);
+create index if not exists planned_user_category_idx on public.planned_expenses (user_id, category_id);
+create index if not exists planned_user_expense_idx on public.planned_expenses (user_id, expense_id);
+
+-- 4) As chaves simples antigas viram redundantes (a composta já garante a existência): saem.
 alter table public.expenses drop constraint if exists expenses_category_id_fkey;
 alter table public.planned_expenses drop constraint if exists planned_expenses_category_id_fkey;
 alter table public.planned_expenses drop constraint if exists planned_expenses_expense_id_fkey;
 
 commit;
 
--- Conferência (rode depois): deve listar as 3 chaves novas e nenhuma das antigas.
+-- Conferência (rode depois): deve listar exatamente 3 linhas (as chaves novas) e nenhuma das antigas
+-- (expenses_category_id_fkey, planned_expenses_category_id_fkey, planned_expenses_expense_id_fkey).
+-- As chaves de user_id -> auth.users ficam de fora do filtro de propósito.
 -- select conrelid::regclass as tabela, conname, pg_get_constraintdef(oid) as regra
 -- from pg_constraint
--- where contype = 'f' and connamespace = 'public'::regnamespace and conrelid::regclass::text <> 'categories'
+-- where contype = 'f'
+--   and conrelid in ('public.expenses'::regclass, 'public.planned_expenses'::regclass)
+--   and conname not like '%\_user\_id\_fkey'
 -- order by 1, 2;

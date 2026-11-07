@@ -1,6 +1,15 @@
 -- Carlog — esquema do banco (Supabase / Postgres)
 -- Rode UMA vez: Supabase → SQL Editor → New query → cole tudo → Run.
 
+-- Requisito: Postgres 15+ (`on delete set null (coluna)` nas chaves compostas). Confere já aqui, antes de criar qualquer coisa.
+-- Confere a versão do Postgres antes de mexer em qualquer coisa: `on delete set null (coluna)` só existe a partir da 15.
+do $$
+begin
+  if current_setting('server_version_num')::int < 150000 then
+    raise exception 'Este script precisa do Postgres 15 ou mais novo (versão atual: %).', current_setting('server_version');
+  end if;
+end $$;
+
 -- ============ Tabelas ============
 
 create table public.categories (
@@ -32,6 +41,8 @@ create table public.expenses (
 );
 create unique index expenses_user_id_id_idx on public.expenses (user_id, id);
 create index expenses_user_date_idx on public.expenses (user_id, date desc);
+-- índices nas colunas que apontam (apagar categoria/gasto procura quem ainda usa)
+create index expenses_user_category_idx on public.expenses (user_id, category_id);
 
 create table public.planned_expenses (
   id uuid primary key default gen_random_uuid(),
@@ -51,6 +62,8 @@ create table public.planned_expenses (
   constraint planned_user_expense_fk foreign key (user_id, expense_id) references public.expenses (user_id, id) on delete set null (expense_id)
 );
 create index planned_user_idx on public.planned_expenses (user_id);
+create index planned_user_category_idx on public.planned_expenses (user_id, category_id);
+create index planned_user_expense_idx on public.planned_expenses (user_id, expense_id);
 
 -- ============ Segurança: cada usuário só enxerga as próprias linhas ============
 
