@@ -1,6 +1,15 @@
 -- Carlog — esquema do banco (Supabase / Postgres)
 -- Rode UMA vez: Supabase → SQL Editor → New query → cole tudo → Run.
 
+-- Requisito: Postgres 15+ (`on delete set null (coluna)` nas chaves compostas). Confere já aqui, antes de criar qualquer coisa.
+-- Confere a versão do Postgres antes de mexer em qualquer coisa: `on delete set null (coluna)` só existe a partir da 15.
+do $$
+begin
+  if current_setting('server_version_num')::int < 150000 then
+    raise exception 'Este script precisa do Postgres 15 ou mais novo (versão atual: %).', current_setting('server_version');
+  end if;
+end $$;
+
 -- ============ Tabelas ============
 
 create table public.categories (
@@ -12,6 +21,8 @@ create table public.categories (
 );
 create unique index categories_user_name_idx on public.categories (user_id, lower(name));
 create unique index categories_one_fallback_idx on public.categories (user_id) where is_fallback;
+-- alvo das chaves compostas abaixo (ver migrations/2026-11-07_fk-composta-user-id.sql)
+create unique index categories_user_id_id_idx on public.categories (user_id, id);
 
 create table public.expenses (
   id uuid primary key default gen_random_uuid(),
@@ -19,14 +30,19 @@ create table public.expenses (
   description text not null check (length(trim(description)) > 0),
   amount numeric(12, 2) not null check (amount > 0),
   date date not null,
-  category_id uuid not null references public.categories (id) on delete restrict,
+  category_id uuid not null,
   type text not null check (type in ('maintenance', 'upgrade', 'routine')),
   odometer integer check (odometer >= 0),
   notes text,
   attachments text[] not null default '{}', -- ids das fotos no Storage
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- chave composta: só aceita categoria do mesmo usuário (o RLS não vale dentro da checagem de uma FK simples)
+  constraint expenses_user_category_fk foreign key (user_id, category_id) references public.categories (user_id, id) on delete restrict
 );
+create unique index expenses_user_id_id_idx on public.expenses (user_id, id);
 create index expenses_user_date_idx on public.expenses (user_id, date desc);
+-- índices nas colunas que apontam (apagar categoria/gasto procura quem ainda usa)
+create index expenses_user_category_idx on public.expenses (user_id, category_id);
 
 create table public.planned_expenses (
   id uuid primary key default gen_random_uuid(),
@@ -34,15 +50,20 @@ create table public.planned_expenses (
   description text not null check (length(trim(description)) > 0),
   estimated_amount numeric(12, 2) not null check (estimated_amount > 0),
   estimated_max numeric(12, 2) check (estimated_max >= estimated_amount),
-  category_id uuid not null references public.categories (id) on delete restrict,
+  category_id uuid not null,
   type text not null check (type in ('maintenance', 'upgrade', 'routine')),
   priority text not null check (priority in ('low', 'medium', 'high')),
   notes text,
   status text not null default 'planned' check (status in ('planned', 'done')),
-  expense_id uuid references public.expenses (id) on delete set null,
-  created_at timestamptz not null default now()
+  expense_id uuid,
+  created_at timestamptz not null default now(),
+  constraint planned_user_category_fk foreign key (user_id, category_id) references public.categories (user_id, id) on delete restrict,
+  -- set null só em expense_id: um set null simples também zeraria user_id (obrigatório). Postgres 15+.
+  constraint planned_user_expense_fk foreign key (user_id, expense_id) references public.expenses (user_id, id) on delete set null (expense_id)
 );
 create index planned_user_idx on public.planned_expenses (user_id);
+create index planned_user_category_idx on public.planned_expenses (user_id, category_id);
+create index planned_user_expense_idx on public.planned_expenses (user_id, expense_id);
 
 -- ============ Segurança: cada usuário só enxerga as próprias linhas ============
 
