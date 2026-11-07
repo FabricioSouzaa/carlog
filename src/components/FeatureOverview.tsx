@@ -208,7 +208,7 @@ export function FeatureOverview() {
       ref={ref}
       id="raio-x"
       aria-labelledby="visao-titulo"
-      className="wheel-section over-section relative"
+      className="over-section relative"
       style={{ '--n': WEIGHTS.length + 1, '--len': LEN } as CSSProperties}
     >
       <div className="wheel-stage isolate flex items-center">

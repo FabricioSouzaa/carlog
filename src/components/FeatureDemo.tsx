@@ -110,7 +110,7 @@ export function FeatureDemo() {
   const toastIn = r(3.68, 3.9)
 
   return (
-    <section ref={ref} id="cadastrar" aria-labelledby="cadastrar-titulo" className="wheel-section demo-section demo-bg relative" style={{ '--n': SCENE, '--len': LEN } as CSSProperties}>
+    <section ref={ref} id="cadastrar" aria-labelledby="cadastrar-titulo" className="demo-section demo-bg relative" style={{ '--n': SCENE, '--len': LEN } as CSSProperties}>
       <div className="wheel-stage flex items-center">
         <div className="mx-auto grid w-full max-w-6xl items-center gap-4 px-4 lg:grid-cols-[380px_1fr] lg:gap-16">
           <div ref={intro}>

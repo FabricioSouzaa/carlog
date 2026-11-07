@@ -1,11 +1,11 @@
-import { memo, type ReactNode } from 'react'
+import { createContext, useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { daysAgoISO, formatCurrency, formatDate, formatKm } from '../lib/format'
 import { TypeBadge } from './ui'
 
 /*
  * Réplicas estáticas das telas do app para a landing, com dados fictícios (nada vem de conta nenhuma).
  * Usam as mesmas classes e o mesmo TypeBadge das telas reais, para parecerem o app de verdade.
- * Desenhadas num quadro fixo de 560x360 px e reduzidas por `ScaledScreen`.
+ * Desenhadas num quadro fixo de 560x360 px e ajustadas à largura disponível por `FitScreen`.
  */
 
 
@@ -15,22 +15,51 @@ const TABS = [
   { id: 'planejados', label: 'Planejados', icon: '🗓️' },
   { id: 'ajustes', label: 'Ajustes', icon: '⚙️' },
 ] as const
-type ScreenId = (typeof TABS)[number]['id'] | 'galeria'
+export type TabId = (typeof TABS)[number]['id']
+type ScreenId = TabId
 
-/** A "janela" do app: barra de abas (como a do app) e o conteúdo da tela. */
+/**
+ * Faz as abas da réplica funcionarem (a demonstração da seção 2 as clica sozinha e deixa a pessoa clicar também).
+ * Sem esse contexto as abas são só desenho, como nas outras seções.
+ */
+export interface TabsControl {
+  onSelect: (id: TabId) => void
+  /** Recebe o elemento de cada aba, para a demonstração saber onde apontar o cursor. */
+  setTabEl: (id: TabId, el: HTMLElement | null) => void
+}
+const TabsControlContext = createContext<TabsControl | null>(null)
+export const TabsControlProvider = TabsControlContext.Provider
+
+/** A "janela" do app: barra de abas (como a do app) e o conteúdo da tela (cada tela devolve só o conteúdo). */
 function AppWindow({ active, children }: { active: ScreenId; children: ReactNode }) {
+  const control = useContext(TabsControlContext)
   return (
     <div className="flex h-[360px] w-[560px] flex-col overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <div className="flex shrink-0 items-center gap-1 border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900">
+      <div role={control ? 'tablist' : undefined} aria-label={control ? 'Telas do app' : undefined} className="flex shrink-0 items-center gap-1 border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900">
         <span className="mr-3 rounded-lg px-2 py-1 text-sm font-bold">Carlog</span>
-        {TABS.map((t) => (
-          <span key={t.id} className={`flex items-center gap-1.5 px-2.5 py-2.5 text-[13px] font-medium ${t.id === active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`}>
-            <span aria-hidden="true">{t.icon}</span>
-            {t.label}
-          </span>
-        ))}
+        {TABS.map((t) => {
+          const cls = `flex items-center gap-1.5 px-2.5 py-2.5 text-[13px] font-medium ${t.id === active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`
+          const inner = (
+            <>
+              <span aria-hidden="true">{t.icon}</span>
+              {t.label}
+            </>
+          )
+          return control ? (
+            <button key={t.id} type="button" role="tab" aria-selected={t.id === active} ref={(el) => control.setTabEl(t.id, el)} onClick={() => control.onSelect(t.id)} className={`${cls} cursor-pointer hover:text-slate-900 dark:hover:text-slate-100`}>
+              {inner}
+            </button>
+          ) : (
+            <span key={t.id} className={cls}>
+              {inner}
+            </span>
+          )
+        })}
       </div>
-      <div className="min-h-0 flex-1 space-y-3 overflow-hidden p-4">{children}</div>
+      {/* a chave refaz só o conteúdo ao trocar de aba (e dispara o fade); a barra de abas é a mesma, então o foco do teclado não se perde */}
+      <div key={active} role={control ? 'tabpanel' : undefined} className="tab-screen-in min-h-0 flex-1 space-y-3 overflow-hidden p-4">
+        {children}
+      </div>
     </div>
   )
 }
@@ -46,7 +75,7 @@ const MONTHS = [28, 46, 37, 63, 50, 86, 69, 44, 60, 79, 53, 100]
 
 function Overview() {
   return (
-    <AppWindow active="visao">
+    <>
       <div className="grid grid-cols-3 gap-3">
         <Stat label="Total gasto" value={formatCurrency(18742.3)} />
         <Stat label="Este mês" value={formatCurrency(1230)} />
@@ -74,7 +103,7 @@ function Overview() {
           </div>
         ))}
       </section>
-    </AppWindow>
+    </>
   )
 }
 
@@ -98,7 +127,7 @@ function ExpenseRow({ title, meta, amount, type }: { title: string; meta: string
 
 function Expenses() {
   return (
-    <AppWindow active="gastos">
+    <>
       <div className="flex items-end justify-between">
         <h1 className="text-xl font-bold">Gastos</h1>
         <p className="text-sm">
@@ -115,13 +144,13 @@ function Expenses() {
       </div>
       <ExpenseRow title="Troca de óleo e filtro" meta={`${formatDate(daysAgoISO(1))} · Manutenção · ${formatKm(48200)}`} amount={389.9} type="maintenance" />
       <ExpenseRow title="Polimento técnico" meta={`${formatDate(daysAgoISO(9))} · Lavagem/Estética`} amount={450} type="upgrade" />
-    </AppWindow>
+    </>
   )
 }
 
 function Planned() {
   return (
-    <AppWindow active="planejados">
+    <>
       <h1 className="text-xl font-bold">Planejados</h1>
       <div className="card !p-3">
         <p className="muted !text-xs">Total estimado (3 itens)</p>
@@ -152,32 +181,13 @@ function Planned() {
           <p className="font-bold tabular-nums">{formatCurrency(950)}</p>
         </div>
       </article>
-    </AppWindow>
-  )
-}
-
-function Gallery() {
-  return (
-    <AppWindow active="galeria">
-      <h1 className="text-xl font-bold">Meu carro</h1>
-      <div className="relative h-60 overflow-hidden rounded-xl bg-linear-to-br from-slate-900 via-blue-800 to-blue-500">
-        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between p-3 text-white">
-          <span className="rounded-full bg-black/30 px-2.5 py-1 text-xs">Foto 2 de 8</span>
-          <div className="flex gap-1.5">
-            {[0, 1, 2, 3].map((i) => (
-              <span key={i} className={`h-1.5 w-1.5 rounded-full ${i === 1 ? 'bg-white' : 'bg-white/40'}`} />
-            ))}
-          </div>
-        </div>
-        <span aria-hidden="true" className="absolute inset-0 flex items-center justify-center text-6xl opacity-30">🚗</span>
-      </div>
-    </AppWindow>
+    </>
   )
 }
 
 function Settings() {
   return (
-    <AppWindow active="ajustes">
+    <>
       <h1 className="text-xl font-bold">Ajustes</h1>
       <section className="card !p-3">
         <h2 className="mb-1.5 text-sm font-semibold">Categorias</h2>
@@ -195,28 +205,43 @@ function Settings() {
           <span className="btn-outline pointer-events-none !px-3 !py-1.5 !text-xs">Importar</span>
         </div>
       </section>
-    </AppWindow>
+    </>
   )
 }
 
-const SCREENS: Record<'visao' | 'gastos' | 'planejados' | 'galeria' | 'ajustes', () => ReactNode> = {
+const SCREENS: Record<TabId, () => ReactNode> = {
   visao: Overview,
   gastos: Expenses,
   planejados: Planned,
-  galeria: Gallery,
   ajustes: Settings,
 }
 
 export type ScreenKey = keyof typeof SCREENS
 
-/** Mostra a réplica reduzida (a janela tem 560x360; aqui ela é encolhida e ganha moldura). */
-export const ScaledScreen = memo(function ScaledScreen({ screen }: { screen: ScreenKey }) {
+/**
+ * Mostra a réplica ajustada à largura do espaço disponível: ela é desenhada em 560x360 e ganha a escala certa (tudo é DOM, então
+ * continua nítida em qualquer tamanho). A altura acompanha a escala.
+ */
+export function FitScreen({ screen }: { screen: TabId }) {
   const Screen = SCREENS[screen]
+  const box = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!el) return
+    const fit = () => setScale(el.clientWidth / 560)
+    fit()
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit)
+    observer?.observe(el)
+    return () => observer?.disconnect()
+  }, [])
   return (
-    <div aria-hidden="true" className="h-[180px] w-[280px] overflow-hidden rounded-xl border border-slate-200 shadow-[0_8px_24px_rgba(15,23,42,0.12)] lg:h-[245px] lg:w-[381px] dark:border-slate-700">
-      <div className="origin-top-left scale-50 lg:scale-[0.68]">
-        <Screen />
+    <div ref={box} className="relative w-full overflow-hidden" style={{ height: 360 * scale }}>
+      <div className="origin-top-left" style={{ width: 560, height: 360, transform: `scale(${scale})` }}>
+        <AppWindow active={screen}>
+          <Screen />
+        </AppWindow>
       </div>
     </div>
   )
-})
+}

@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { activeIndex, scrollTargetFor, weightedPosition, wheelPosition, wheelProgress } from '../lib/wheel'
+import { useCallback, useEffect, useRef } from 'react'
+import { scrollTargetFor, weightedPosition, wheelProgress } from '../lib/wheel'
 
 /**
- * Liga uma seção alta (com conteúdo "sticky" dentro) à rolagem. Escreve `--p` (0 a 1) na seção a cada frame e
- * devolve o item em foco. Cada item para um instante no centro (`wheelPosition`) e o movimento desliza atrás da rolagem.
+ * Liga uma seção alta (com palco "sticky" dentro) à rolagem. A cada frame chama `onPosition` com a posição da cena, em itens (0 a
+ * `weights.length`), e devolve `goTo` para rolar até um item. Cada item "para" um instante (`weightedPosition`) e o movimento
+ * desliza atrás da rolagem (amortecimento por `tau`). Não escreve nada no DOM da seção: quem usa decide o que mudar a cada frame.
  */
 export function useWheel(
   count: number,
@@ -13,27 +14,20 @@ export function useWheel(
     weights,
     staticPosition = 0,
     onPosition,
-    writeProgress = false,
   }: {
     /** Quanto o desenho demora para alcançar a rolagem (constante de tempo, ms): menor = mais colado ao dedo. */
     tau?: number
-    /** Fração do trecho em que cada item fica parado (ver `wheelPosition`). */
+    /** Fração do trecho em que cada item fica parado (ver `weightedPosition`). */
     dwell?: number
-    /** Peso de cada trecho entre itens (trechos mais pesados ganham mais rolagem). Padrão: todos iguais. Use uma constante: muda o efeito se trocar a cada render. */
-    weights?: number[]
-    /** Posição usada quando a seção é só uma lista comum (movimento reduzido ou sem suporte). */
+    /** Peso de cada trecho entre itens (trechos mais pesados ganham mais rolagem). Use uma constante: muda o efeito se trocar a cada render. */
+    weights: number[]
+    /** Posição usada quando a seção é só um bloco comum (movimento reduzido ou sem suporte). */
     staticPosition?: number
     /** Chamado a cada frame com a posição desenhada (em itens), para cenas que dependem dela. */
     onPosition?: (position: number) => void
-    /**
-     * Escrever `--p` (0 a 1) na seção a cada frame? Só ligue se o CSS a usa (o seletor da seção 2). Variáveis CSS são
-     * herdadas: mudar uma na seção obriga o navegador a revisar o estilo de todos os elementos dentro dela, a cada frame.
-     */
-    writeProgress?: boolean
-  } = {},
+  },
 ) {
   const ref = useRef<HTMLElement>(null)
-  const [active, setActive] = useState(0)
   const onPositionRef = useRef(onPosition)
   useEffect(() => {
     onPositionRef.current = onPosition
@@ -42,15 +36,10 @@ export function useWheel(
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const last = Math.max(1, weights ? weights.length : count - 1) // posição final: com pesos, a de `weightedPosition`
     let target = 0 // posição pedida pela rolagem (em itens)
     let current = 0 // posição desenhada: vai atrás da pedida, para o movimento deslizar
     let raf = 0
-    const draw = () => {
-      if (writeProgress) el.style.setProperty('--p', (current / last).toFixed(4))
-      setActive(activeIndex(current, count))
-      onPositionRef.current?.(current)
-    }
+    const draw = () => onPositionRef.current?.(current)
     let lastFrame = 0 // instante do frame anterior, para o amortecimento depender do tempo e não da taxa de quadros
     const frame = (now: number) => {
       raf = 0
@@ -62,15 +51,15 @@ export function useWheel(
       if (current !== target) raf = requestAnimationFrame(frame)
       else lastFrame = 0
     }
-    // a "janela" é a altura do conteúdo fixo (100 * --sh), não window.innerHeight: nos celulares os dois mudam em
+    // a "janela" é a altura do palco fixo (100 * --sh), não window.innerHeight: nos celulares os dois mudam em
     // momentos diferentes quando a barra de endereço some, e a conta desencontrava nas pontas
     const stage = el.firstElementChild as HTMLElement | null
-    // sem o seletor (movimento reduzido ou sem suporte) a seção é uma lista comum e não há o que acompanhar
+    // sem o palco fixo (movimento reduzido ou sem suporte) a seção é um bloco comum e não há o que acompanhar
     const pinned = () => !!stage && getComputedStyle(stage).position === 'sticky'
     const read = () => {
       if (!pinned()) return staticPosition
       const p = wheelProgress(el.getBoundingClientRect().top, el.offsetHeight, stage!.offsetHeight)
-      return weights ? weightedPosition(p, weights, dwell) : wheelPosition(p, count, dwell)
+      return weightedPosition(p, weights, dwell)
     }
     const onScroll = () => {
       target = read()
@@ -85,7 +74,7 @@ export function useWheel(
       window.removeEventListener('resize', onScroll)
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [count, tau, dwell, weights, staticPosition, writeProgress])
+  }, [count, tau, dwell, weights, staticPosition])
 
   /** Rola a página até o ponto em que o item `index` fica em foco. */
   const goTo = useCallback(
@@ -99,5 +88,5 @@ export function useWheel(
     [count, weights],
   )
 
-  return { ref, active, goTo }
+  return { ref, goTo }
 }
