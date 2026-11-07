@@ -52,7 +52,8 @@ function Car() {
  * A posição do carrinho vai direto para o estilo (`--pos`); só a parada atual e o "começo" viram estado do React.
  */
 export function SectionRail() {
-  const root = useRef<HTMLElement>(null)
+  const pin = useRef<HTMLSpanElement>(null)
+  const fill = useRef<HTMLSpanElement>(null)
   const [near, setNear] = useState(0) // parada mais próxima do carrinho
   const [passed, setPassed] = useState(0) // última parada que o carrinho já alcançou
   const [atStart, setAtStart] = useState(true)
@@ -75,7 +76,10 @@ export function SectionRail() {
     const update = () => {
       frame = 0
       const pos = railPosition(tops, window.scrollY, window.innerHeight, docHeight)
-      root.current?.style.setProperty('--pos', pos.toFixed(3))
+      // a posição vai só para os dois elementos que a usam: escrever na `nav` obrigaria o navegador a revisar o estilo do trilho inteiro a cada frame
+      const value = pos.toFixed(3)
+      pin.current?.style.setProperty('--pos', value)
+      fill.current?.style.setProperty('--pos', value)
       setNear(Math.round(pos))
       setPassed(Math.floor(pos + 0.001))
       setAtStart(window.scrollY < window.innerHeight * START_ZONE)
@@ -127,17 +131,16 @@ export function SectionRail() {
 
   return (
     <nav
-      ref={root}
       aria-label="Seções da página"
       aria-hidden={wide ? undefined : true}
       className="rail group pointer-events-none fixed top-1/2 right-1 z-50 -translate-y-1/2 md:pointer-events-auto [--d:14px] [--gap:36px] [--road:14px] [--over:4px] md:right-5 md:[--d:22px] md:[--gap:70px] md:[--road:36px] md:[--over:8px]"
-      style={{ '--pos': 0, '--steps': STOPS.length - 1 } as CSSProperties}
+      style={{ '--steps': STOPS.length - 1 } as CSSProperties}
     >
       <div className="relative rounded-full border border-white/15 bg-slate-900/60 px-[3px] py-3 backdrop-blur-md md:px-1.5 md:py-4">
         <div className="relative">
           {/* a rua: asfalto com a faixa pontilhada no meio e, por cima, o trecho já percorrido */}
           <span aria-hidden="true" className="rail-road absolute left-1/2 -translate-x-1/2">
-            <span className="rail-fill" />
+            <span ref={fill} className="rail-fill" style={{ '--pos': 0 } as CSSProperties} />
           </span>
 
           <ol className="relative flex flex-col" style={{ gap: 'var(--gap)' }}>
@@ -170,7 +173,7 @@ export function SectionRail() {
           </ol>
 
           {/* o carrinho: desce pela rua conforme a rolagem */}
-          <span aria-hidden="true" className="rail-pin pointer-events-none absolute top-0 left-1/2">
+          <span ref={pin} aria-hidden="true" className="rail-pin pointer-events-none absolute top-0 left-1/2" style={{ '--pos': 0 } as CSSProperties}>
             <Car />
           </span>
         </div>

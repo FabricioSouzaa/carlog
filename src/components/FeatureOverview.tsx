@@ -123,6 +123,7 @@ export function FeatureOverview() {
     dwell: 0.2,
     weights: WEIGHTS,
     staticPosition: WEIGHTS.length,
+    writeProgress: false,
     onPosition: (p) => setPos(Math.round(p * 100) / 100),
   })
   const wide = useMediaQuery('(min-width: 1024px)')

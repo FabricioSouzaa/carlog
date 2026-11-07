@@ -62,7 +62,7 @@ const Caret = () => <span className="caret ml-0.5 h-5 w-0.5 shrink-0 bg-blue-600
 export function FeatureDemo() {
   const [pos, setPos] = useState(0)
   // a cena só precisa de ~1 mudança por centésimo; evita renderizar a cada pixel de rolagem
-  const { ref, goTo } = useWheel(SCENE, { tau: 200, dwell: 0.2, weights: WEIGHTS, staticPosition: SAVED, onPosition: (p) => setPos(Math.round(p * 100) / 100) })
+  const { ref, goTo } = useWheel(SCENE, { tau: 200, dwell: 0.2, weights: WEIGHTS, staticPosition: SAVED, writeProgress: false, onPosition: (p) => setPos(Math.round(p * 100) / 100) })
   // -1 antes de a demonstração começar: nenhum passo marcado ainda
   const step = pos < 0.06 ? -1 : Math.max(0, Math.min(STEPS.length - 1, Math.round(pos) - 1))
   const saved = pos >= SAVED - 0.1
