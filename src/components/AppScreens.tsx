@@ -28,6 +28,8 @@ export interface TabsControl {
   setTabEl: (id: TabId, el: HTMLElement | null) => void
   /** Põe o foco do teclado na aba (setas, Home e End). */
   focusTab: (id: TabId) => void
+  /** Abas ainda "travadas" na demonstração: aparecem foscas até o cursor clicar nelas. */
+  locked: ReadonlySet<TabId>
 }
 export const TAB_PANEL_ID = 'painel-do-app'
 const TabsControlContext = createContext<TabsControl | null>(null)
@@ -59,7 +61,7 @@ function AppWindow({ active, children }: { active: ScreenId; children: ReactNode
             </>
           )
           return control ? (
-            <button key={t.id} id={`aba-${t.id}`} type="button" role="tab" aria-selected={t.id === active} aria-controls={TAB_PANEL_ID} tabIndex={t.id === active ? 0 : -1} ref={(el) => control.setTabEl(t.id, el)} onClick={() => control.onSelect(t.id)} className={`${cls} cursor-pointer hover:text-slate-900 dark:hover:text-slate-100`}>
+            <button key={t.id} id={`aba-${t.id}`} type="button" role="tab" aria-selected={t.id === active} aria-controls={TAB_PANEL_ID} tabIndex={t.id === active ? 0 : -1} ref={(el) => control.setTabEl(t.id, el)} onClick={() => control.onSelect(t.id)} className={`${cls} cursor-pointer transition-opacity duration-500 hover:text-slate-900 dark:hover:text-slate-100 ${control.locked.has(t.id) ? 'opacity-35' : ''}`}>
               {inner}
             </button>
           ) : (

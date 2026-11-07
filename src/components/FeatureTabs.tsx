@@ -10,9 +10,10 @@ const TABS: { id: TabId; label: string; text: string }[] = [
   { id: 'ajustes', label: 'Ajustes', text: 'categorias, backup e segurança da conta.' },
 ]
 
-const MOVE_MS = 750 // o cursor desliza até a aba
+const MOVE_MS = 650 // o cursor desliza até a aba
 const CLICK_LEAD_MS = 120 // do anel do clique até a tela trocar
-const DWELL_MS = 2600 // quanto cada tela fica na janela
+const DWELL_MS = 1700 // quanto cada tela fica na janela (curto: quem não entende que é uma demonstração acha que travou)
+const START_MS = 500 // espera antes do primeiro movimento, depois que a janela aparece
 
 const Arrow = () => (
   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="drop-shadow-md">
@@ -36,6 +37,7 @@ export function FeatureTabs() {
   const [visible, setVisible] = useState(false)
   const [cursor, setCursor] = useState({ x: 520, y: 330, shown: false })
   const [press, setPress] = useState(0)
+  const [reached, setReached] = useState(0) // última aba que o cursor já clicou neste ciclo; as seguintes aparecem foscas
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)')
   const touch = useMediaQuery('(hover: none)')
   const playing = visible && !paused && !reduced
@@ -64,7 +66,10 @@ export function FeatureTabs() {
     [aim],
   )
 
-  // estável: se mudasse a cada render, a janela inteira (réplica) renderizaria de novo a cada passo da animação
+  // só enquanto a demonstração anda as abas ainda não clicadas ficam foscas; pausada, clicada por você ou com movimento reduzido, todas acesas
+  const locked = useMemo(() => (playing ? new Set(TABS.slice(reached + 1).map((t) => t.id)) : new Set<TabId>()), [playing, reached])
+
+  // estável: só muda quando uma aba é destravada (e não a cada passo da animação), senão a janela inteira renderizaria de novo
   const control = useMemo<TabsControl>(
     () => ({
       onSelect: (id) => {
@@ -76,8 +81,9 @@ export function FeatureTabs() {
         else tabEls.current.delete(id)
       },
       focusTab: (id) => tabEls.current.get(id)?.focus(),
+      locked,
     }),
-    [select],
+    [select, locked],
   )
 
   // girar o celular ou redimensionar a janela muda a escala da réplica: o cursor reaponta (senão ficaria no px antigo)
@@ -112,13 +118,18 @@ export function FeatureTabs() {
       point(next)
       at(MOVE_MS, () => setPress((n) => n + 1))
       at(MOVE_MS + CLICK_LEAD_MS, () => {
-        select(next)
+        const clicked = next
+        select(clicked)
+        setReached(clicked) // acende a aba clicada; ao dar a volta (clicou a primeira), as outras apagam de novo e o ciclo recomeça
         next = (next + 1) % TABS.length
       })
       at(MOVE_MS + CLICK_LEAD_MS + DWELL_MS, step)
     }
-    at(40, () => point(activeRef.current)) // o cursor aparece sobre a aba atual
-    at(900, step)
+    at(40, () => {
+      point(activeRef.current) // o cursor aparece sobre a aba atual
+      setReached(activeRef.current)
+    })
+    at(START_MS, step)
     return () => timers.forEach((t) => window.clearTimeout(t))
   }, [playing, point, select])
 
