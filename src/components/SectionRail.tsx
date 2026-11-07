@@ -17,7 +17,7 @@ const START_ZONE = 0.2
 /** O carrinho visto de cima, de frente para baixo (é para onde ele anda). Desenhado em código, como o logo. */
 function Car() {
   return (
-    <svg viewBox="0 0 22 40" aria-hidden="true" className="block h-auto w-[10px] drop-shadow-[0_2px_3px_rgb(0_0_0_/_0.55)] md:w-[26px]">
+    <svg viewBox="0 0 22 40" aria-hidden="true" className="block h-auto w-2 drop-shadow-[0_2px_3px_rgb(0_0_0_/_0.55)] md:w-[26px]">
       <defs>
         <linearGradient id="rail-car-body" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stopColor="#1d4ed8" />
@@ -48,7 +48,9 @@ function Car() {
  * Mapa da página, fixo na borda direita: uma "ruazinha" com uma parada por seção e um carrinho que desce por ela conforme a
  * rolagem ("você está aqui"). O nome da seção aparece por um instante quando a parada atual muda e, para todas, ao passar o
  * mouse (só no computador, para não cobrir o conteúdo). No começo da página o carrinho diz "Você está aqui". Clicar numa
- * parada leva até a seção (no celular o trilho é só visual: não intercepta toques no conteúdo). O fundo escurecido e translúcido deixa o mapa legível tanto nas seções escuras quanto nas claras.
+ * parada leva até a seção. No computador o fundo escurecido e translúcido deixa o mapa legível nas seções claras e escuras.
+ * No celular o trilho é só a rua e o carrinho, finos, dentro da margem de 16 px da página (sem fundo, sem desfoque, sem nomes e sem
+ * receber toques): não cobre botões nem textos. A rua tem asfalto escuro e bordas claras, então se vê nos dois fundos.
  * A posição do carrinho vai direto para o estilo (`--pos`); só a parada atual e o "começo" viram estado do React.
  */
 export function SectionRail() {
@@ -136,10 +138,10 @@ export function SectionRail() {
     <nav
       aria-label="Seções da página"
       aria-hidden={wide ? undefined : true}
-      className="rail group pointer-events-none fixed top-1/2 right-1 z-50 -translate-y-1/2 md:pointer-events-auto [--d:14px] [--gap:36px] [--road:14px] [--over:4px] md:right-5 md:[--d:22px] md:[--gap:70px] md:[--road:36px] md:[--over:8px]"
+      className="rail group pointer-events-none fixed top-1/2 right-[max(1px,env(safe-area-inset-right))] z-50 -translate-y-1/2 md:pointer-events-auto md:right-5 [--d:12px] [--gap:34px] [--road:12px] [--over:2px] md:[--d:22px] md:[--gap:70px] md:[--road:36px] md:[--over:8px]"
       style={{ '--steps': STOPS.length - 1 } as CSSProperties}
     >
-      <div className="relative rounded-full border border-white/15 bg-slate-900/60 px-[3px] py-3 backdrop-blur-md md:px-1.5 md:py-4">
+      <div className="relative py-2 md:rounded-full md:border md:border-white/15 md:bg-slate-900/60 md:px-1.5 md:py-4 md:backdrop-blur-md">
         <div className="relative">
           {/* a rua: asfalto com a faixa pontilhada no meio e, por cima, o trecho já percorrido */}
           <span aria-hidden="true" className="rail-road absolute left-1/2 -translate-x-1/2">

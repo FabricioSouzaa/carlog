@@ -374,7 +374,9 @@ body {
     --page-bg: #020617;
   }
 }
-@media (prefers-reduced-motion: no-preference) {
+/* o céu piscando só no computador: o céu cobre a seção inteira (milhares de px de altura); animá-lo o transforma numa camada
+   gigante de composição, e no celular (principalmente no Safari do iPhone) isso pesa na memória e na rolagem */
+@media (prefers-reduced-motion: no-preference) and (min-width: 1024px) {
   .demo-bg::before {
     animation: twinkle 7s ease-in-out infinite alternate;
   }
