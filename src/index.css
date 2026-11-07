@@ -475,9 +475,8 @@ body {
   left: 0;
   /* a faixa tem sempre a altura toda da rua e cresce por escala: mexer em `transform` não força layout (mexer na altura forçaria) */
   height: calc(var(--steps) * (var(--d) + var(--gap)));
-  border-radius: 6px;
   background: rgb(96 165 250 / 0.3);
-  transform-origin: top;
+  transform-origin: top; /* sem border-radius: a escala o deformaria; os cantos arredondados são da rua */
   transform: scaleY(calc(var(--pos) / var(--steps)));
   will-change: transform;
 }

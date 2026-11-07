@@ -54,6 +54,7 @@ function Car() {
 export function SectionRail() {
   const pin = useRef<HTMLSpanElement>(null)
   const fill = useRef<HTMLSpanElement>(null)
+  const seen = useRef({ near: 0, passed: 0, atStart: true }) // últimos valores enviados ao React: só chama `set*` quando mudam
   const [near, setNear] = useState(0) // parada mais próxima do carrinho
   const [passed, setPassed] = useState(0) // última parada que o carrinho já alcançou
   const [atStart, setAtStart] = useState(true)
@@ -80,9 +81,11 @@ export function SectionRail() {
       const value = pos.toFixed(3)
       pin.current?.style.setProperty('--pos', value)
       fill.current?.style.setProperty('--pos', value)
-      setNear(Math.round(pos))
-      setPassed(Math.floor(pos + 0.001))
-      setAtStart(window.scrollY < window.innerHeight * START_ZONE)
+      const next = { near: Math.round(pos), passed: Math.floor(pos + 0.001), atStart: window.scrollY < window.innerHeight * START_ZONE }
+      if (next.near !== seen.current.near) setNear(next.near)
+      if (next.passed !== seen.current.passed) setPassed(next.passed)
+      if (next.atStart !== seen.current.atStart) setAtStart(next.atStart)
+      seen.current = next
     }
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(update)

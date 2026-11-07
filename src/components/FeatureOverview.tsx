@@ -210,7 +210,7 @@ export function FeatureOverview() {
       id="raio-x"
       aria-labelledby="visao-titulo"
       className="wheel-section over-section relative"
-      style={{ '--p': 0, '--n': WEIGHTS.length + 1, '--len': LEN } as CSSProperties}
+      style={{ '--n': WEIGHTS.length + 1, '--len': LEN } as CSSProperties}
     >
       <div className="wheel-stage isolate flex items-center">
         <div
