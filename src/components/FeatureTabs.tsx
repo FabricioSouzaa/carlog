@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FitScreen, TabsControlProvider, type TabId, type TabsControl } from './AppScreens'
+import { FitScreen, TabsControlProvider, type LockEffect, type TabId, type TabsControl } from './AppScreens'
 import { useMediaQuery } from './useMediaQuery'
 
 /** As telas do app, na ordem das abas, com a frase que aparece embaixo da janela. */
@@ -14,6 +14,15 @@ const MOVE_MS = 650 // o cursor desliza até a aba
 const CLICK_LEAD_MS = 120 // do anel do clique até a tela trocar
 const DWELL_MS = 1700 // quanto cada tela fica na janela (curto: quem não entende que é uma demonstração acha que travou)
 const START_MS = 500 // espera antes do primeiro movimento, depois que a janela aparece
+
+/**
+ * TEMPORÁRIO (comparar efeitos na prévia): `?fx=fosco`, `?fx=cadeado` ou `?fx=pontilhado` (padrão) escolhem como as abas ainda não
+ * clicadas aparecem. Quando o usuário escolher um, este parâmetro e os outros dois efeitos saem.
+ */
+const effectFromUrl = (): LockEffect => {
+  const v = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('fx')
+  return v === 'fosco' || v === 'cadeado' ? v : 'pontilhado'
+}
 
 const Arrow = () => (
   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="drop-shadow-md">
@@ -37,6 +46,8 @@ export function FeatureTabs() {
   const [visible, setVisible] = useState(false)
   const [cursor, setCursor] = useState({ x: 520, y: 330, shown: false })
   const [press, setPress] = useState(0)
+  const [heading, setHeading] = useState<TabId | null>(null) // aba para a qual o cursor está indo (pulsa até o clique)
+  const [effect] = useState(effectFromUrl)
   const [reached, setReached] = useState(0) // última aba que o cursor já clicou neste ciclo; as seguintes aparecem foscas
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)')
   const touch = useMediaQuery('(hover: none)')
@@ -70,6 +81,7 @@ export function FeatureTabs() {
   const locked = useMemo(() => (playing ? new Set(TABS.slice(reached + 1).map((t) => t.id)) : new Set<TabId>()), [playing, reached])
 
   // estável: só muda quando uma aba é destravada (e não a cada passo da animação), senão a janela inteira renderizaria de novo
+  const headingNow = playing ? heading : null
   const control = useMemo<TabsControl>(
     () => ({
       onSelect: (id) => {
@@ -82,8 +94,10 @@ export function FeatureTabs() {
       },
       focusTab: (id) => tabEls.current.get(id)?.focus(),
       locked,
+      effect,
+      heading: headingNow,
     }),
-    [select, locked],
+    [select, locked, effect, headingNow],
   )
 
   // girar o celular ou redimensionar a janela muda a escala da réplica: o cursor reaponta (senão ficaria no px antigo)
@@ -116,9 +130,11 @@ export function FeatureTabs() {
     let next = (activeRef.current + 1) % TABS.length
     const step = () => {
       point(next)
+      setHeading(TABS[next].id)
       at(MOVE_MS, () => setPress((n) => n + 1))
       at(MOVE_MS + CLICK_LEAD_MS, () => {
         const clicked = next
+        setHeading(null)
         select(clicked)
         setReached(clicked) // acende a aba clicada; ao dar a volta (clicou a primeira), as outras apagam de novo e o ciclo recomeça
         next = (next + 1) % TABS.length

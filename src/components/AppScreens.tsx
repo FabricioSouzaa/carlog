@@ -5,7 +5,7 @@ import { TypeBadge } from './ui'
 /*
  * Réplicas estáticas das telas do app para a landing, com dados fictícios (nada vem de conta nenhuma).
  * Usam as mesmas classes e o mesmo TypeBadge das telas reais, para parecerem o app de verdade.
- * Desenhadas num quadro fixo de 560x360 px e ajustadas à largura disponível por `FitScreen`.
+ * Desenhadas para um quadro de 560x360 px (ou maior, se houver espaço) e ajustadas por `FitScreen`; o que não cabe é recortado.
  */
 
 
@@ -28,9 +28,15 @@ export interface TabsControl {
   setTabEl: (id: TabId, el: HTMLElement | null) => void
   /** Põe o foco do teclado na aba (setas, Home e End). */
   focusTab: (id: TabId) => void
-  /** Abas ainda "travadas" na demonstração: aparecem foscas até o cursor clicar nelas. */
+  /** Abas ainda "travadas" na demonstração: sinalizadas até o cursor clicar nelas. */
   locked: ReadonlySet<TabId>
+  /** Como as abas travadas aparecem (ver `LockEffect`). */
+  effect: LockEffect
+  /** Aba para a qual o cursor está indo agora (ganha um anel pulsante), ou nenhuma. */
+  heading: TabId | null
 }
+/** `fosco`: embaçada e meio apagada · `cadeado`: ícone de cadeado no lugar do ícone · `pontilhado`: contorno tracejado, com o nome legível. */
+export type LockEffect = 'fosco' | 'cadeado' | 'pontilhado'
 export const TAB_PANEL_ID = 'painel-do-app'
 const TabsControlContext = createContext<TabsControl | null>(null)
 export const TabsControlProvider = TabsControlContext.Provider
@@ -49,19 +55,24 @@ function AppWindow({ active, children }: { active: ScreenId; children: ReactNode
     control.focusTab(TABS[next].id)
   }
   return (
-    <div className="flex h-[360px] w-[560px] flex-col overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <div role={control ? 'tablist' : undefined} aria-label={control ? 'Telas do app' : undefined} onKeyDown={onKeyDown} className="flex shrink-0 items-center gap-1 border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900">
         <span className="mr-3 rounded-lg px-2 py-1 text-sm font-bold">Carlog</span>
         {TABS.map((t) => {
           const cls = `flex items-center gap-1.5 px-2.5 py-2.5 text-[13px] font-medium ${t.id === active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`
+          const locked = !!control?.locked.has(t.id)
           const inner = (
             <>
-              <span aria-hidden="true">{t.icon}</span>
+              <span aria-hidden="true">{locked && control?.effect === 'cadeado' ? '🔒' : t.icon}</span>
               {t.label}
             </>
           )
+          // aba travada na demonstração: cada efeito diz "ainda vai acontecer" de um jeito; a que o cursor está alcançando pulsa
+          const dashed = locked && control?.effect === 'pontilhado'
+          const lockCls = !locked ? '' : control?.effect === 'fosco' ? 'opacity-60 blur-[1.5px]' : control?.effect === 'cadeado' ? 'opacity-60' : ''
+          const ring = control?.heading === t.id ? 'tab-next' : ''
           return control ? (
-            <button key={t.id} id={`aba-${t.id}`} type="button" role="tab" aria-selected={t.id === active} aria-controls={TAB_PANEL_ID} tabIndex={t.id === active ? 0 : -1} ref={(el) => control.setTabEl(t.id, el)} onClick={() => control.onSelect(t.id)} className={`${cls} cursor-pointer transition-opacity duration-500 hover:text-slate-900 dark:hover:text-slate-100 ${control.locked.has(t.id) ? 'opacity-35' : ''}`}>
+            <button key={t.id} id={`aba-${t.id}`} type="button" role="tab" aria-selected={t.id === active} aria-controls={TAB_PANEL_ID} tabIndex={t.id === active ? 0 : -1} ref={(el) => control.setTabEl(t.id, el)} onClick={() => control.onSelect(t.id)} className={`${cls} cursor-pointer rounded-lg border transition-all duration-500 hover:text-slate-900 dark:hover:text-slate-100 ${dashed ? 'border-dashed border-slate-300 dark:border-slate-600' : 'border-transparent'} ${lockCls} ${ring}`}>
               {inner}
             </button>
           ) : (
@@ -109,6 +120,8 @@ function Overview() {
         {[
           ['Combustível', 100],
           ['Manutenção', 65],
+          ['Seguro', 40],
+          ['Peças', 22],
         ].map(([n, w]) => (
           <div key={n} className="mb-1.5 flex items-center gap-2 text-xs">
             <span className="w-20 shrink-0">{n}</span>
@@ -159,6 +172,7 @@ function Expenses() {
       </div>
       <ExpenseRow title="Troca de óleo e filtro" meta={`${formatDate(daysAgoISO(1))} · Manutenção · ${formatKm(48200)}`} amount={389.9} type="maintenance" />
       <ExpenseRow title="Polimento técnico" meta={`${formatDate(daysAgoISO(9))} · Lavagem/Estética`} amount={450} type="upgrade" />
+      <ExpenseRow title="Abastecimento" meta={`${formatDate(daysAgoISO(14))} · Combustível · ${formatKm(47900)}`} amount={210} type="routine" />
     </>
   )
 }
@@ -206,7 +220,7 @@ function Settings() {
       <h1 className="text-xl font-bold">Ajustes</h1>
       <section className="card !p-3">
         <h2 className="mb-1.5 text-sm font-semibold">Categorias</h2>
-        {['Combustível', 'Manutenção', 'Seguro'].map((c) => (
+        {['Combustível', 'Manutenção', 'Seguro', 'Peças', 'IPVA/Licenciamento'].map((c) => (
           <div key={c} className="flex items-center justify-between border-b border-slate-100 py-1.5 text-sm last:border-0 dark:border-slate-800">
             <span>{c}</span>
             <span className="text-xs text-slate-400">Renomear · Remover</span>
@@ -234,20 +248,25 @@ const SCREENS: Record<TabId, () => ReactNode> = {
 export type ScreenKey = keyof typeof SCREENS
 
 /**
- * Mostra a réplica ajustada à largura do espaço disponível: ela é desenhada em 560x360 e ganha a escala certa (tudo é DOM, então
- * continua nítida em qualquer tamanho). A altura acompanha a escala.
+ * Mostra a réplica ajustada ao espaço disponível. Com 560 px ou mais ela é desenhada na largura do espaço, em tamanho natural (e mostra
+ * mais conteúdo, que as telas já trazem e o quadro recorta quando falta lugar); com menos, é desenhada em 560x360 e reduzida (tudo é DOM,
+ * então continua nítida). A altura acompanha.
  */
 export const FitScreen = memo(function FitScreen({ screen }: { screen: TabId }) {
   const Screen = SCREENS[screen]
   const box = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
+  const [dims, setDims] = useState({ scale: 1, w: 560, h: 360 })
   useLayoutEffect(() => {
     const el = box.current
     if (!el) return
     // largura 0 (ainda sem layout ou escondida) daria escala 0 e a tela sumiria: ignora; e arredonda para não renderizar por fração de pixel
     const fit = () => {
-      const w = el.clientWidth
-      if (w > 0) setScale(Math.round((w / 560) * 1000) / 1000)
+      const cw = el.clientWidth
+      if (cw <= 0) return
+      // com espaço (>= 560 px) a tela é desenhada na largura disponível, em tamanho NATURAL, e mostra mais conteúdo; só num espaço
+      // menor ela é desenhada em 560 e reduzida (ampliar tudo, como antes, dava a impressão de zoom)
+      const w = cw >= 560 ? Math.min(cw, 900) : 560
+      setDims({ scale: Math.round((cw / w) * 1000) / 1000, w, h: Math.round(360 + (w - 560) * 0.35) })
     }
     fit()
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit)
@@ -255,8 +274,8 @@ export const FitScreen = memo(function FitScreen({ screen }: { screen: TabId }) 
     return () => observer?.disconnect()
   }, [])
   return (
-    <div ref={box} className="relative w-full overflow-hidden" style={{ height: 360 * scale }}>
-      <div className="origin-top-left" style={{ width: 560, height: 360, transform: `scale(${scale})` }}>
+    <div ref={box} className="relative w-full overflow-hidden" style={{ height: dims.h * dims.scale }}>
+      <div className="origin-top-left" style={{ width: dims.w, height: dims.h, transform: `scale(${dims.scale})` }}>
         <AppWindow active={screen}>
           <Screen />
         </AppWindow>

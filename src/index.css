@@ -318,6 +318,21 @@ body {
   }
 }
 
+/* seção 2: a aba para a qual o cursor está indo ganha um anel azul pulsante até o clique */
+@media (prefers-reduced-motion: no-preference) {
+  .tab-next {
+    animation: tab-next 1.1s ease-out infinite;
+  }
+}
+@keyframes tab-next {
+  0% {
+    box-shadow: 0 0 0 0 rgb(59 130 246 / 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgb(59 130 246 / 0);
+  }
+}
+
 /* seção 2 (FeatureTabs): a tela nova entra com um fade curto e o clique ganha um anel que se abre; parados com movimento reduzido */
 @media (prefers-reduced-motion: no-preference) {
   .tab-screen-in {
