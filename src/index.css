@@ -177,17 +177,18 @@ body {
 @media (prefers-reduced-motion: no-preference) {
   @supports (transform: translateY(calc(abs(1) * 1px))) {
     /*
-     * Alturas da landing em `svh` (a altura da tela com a barra de endereço visível), e não em `dvh`: no Safari do iPhone a barra
-     * encolhe no primeiro gesto de rolagem e `dvh` muda junto; como as seções são múltiplos dessa unidade, a página inteira mudava de
-     * tamanho (medido: +954 px no Raio-X para 84 px de barra), o trilho recalculava tudo e o palco da seção 3 mudava de altura por
-     * baixo dos elementos. `svh` não muda. No computador `svh`, `dvh` e `vh` são iguais.
+     * Alturas da landing em `calc(N * var(--sh, 1svh))`: `--sh` é 1% da altura da janela medida UMA vez (ver `lib/stableViewport.ts`).
+     * No celular a barra de endereço encolhe no primeiro gesto de rolagem e a janela cresce; com `dvh` a página inteira mudava de
+     * tamanho (medido: +954 px no Raio-X para 84 px de barra), o trilho escorregava e o palco da seção 3 mudava de altura por baixo
+     * dos elementos. `svh` basta no Safari, mas o Chrome do iPhone não informa a diferença e o `svh` se comporta como `dvh`; por
+     * isso a altura é guardada. Sem JavaScript, vale `1svh`. No computador `--sh` acompanha a janela (= `vh`).
      */
     .wheel-section {
       --gap: 185px;
-      height: calc(100svh + (var(--n) - 1) * 56svh);
+      height: calc(calc(100 * var(--sh, 1svh)) + (var(--n) - 1) * calc(56 * var(--sh, 1svh)));
     }
     .demo-section {
-      height: calc(100svh + var(--len, 5) * 100svh);
+      height: calc(calc(100 * var(--sh, 1svh)) + var(--len, 5) * calc(100 * var(--sh, 1svh)));
     }
     /*
      * Os pedaços chegam de fora da tela (voam de além da borda), então alguém precisa cortar o que passa da largura. O corte fica no
@@ -199,12 +200,12 @@ body {
     }
     /* mais curta que a demonstração (100svh por unidade de peso): são 4 momentos, com a câmera parada boa parte do tempo. O hook mede a altura real da seção, então mudar este número só muda o ritmo. */
     .over-section {
-      height: calc(100svh + var(--len, 4) * 62svh);
+      height: calc(calc(100 * var(--sh, 1svh)) + var(--len, 4) * calc(62 * var(--sh, 1svh)));
     }
     .wheel-stage {
       position: sticky;
       top: 0;
-      height: 100svh; /* altura fixa (não min-height): o conteúdo se ajusta à tela, e não o contrário */
+      height: calc(100 * var(--sh, 1svh)); /* altura fixa (não min-height): o conteúdo se ajusta à tela, e não o contrário */
       padding-block: 0;
     }
     .wheel-nav {
@@ -258,7 +259,7 @@ body {
     .wheel {
       --pad: 12px;
       /* no celular baixo (ex.: iPhone SE) a roda encolhe para caber ao lado do título dentro da tela */
-      height: clamp(320px, calc(100svh - 230px), 560px);
+      height: clamp(320px, calc(calc(100 * var(--sh, 1svh)) - 230px), 560px);
       perspective: 1200px;
       /* os cards somem suavemente em cima e embaixo, como no seletor do iPhone; a folga lateral guarda sombras e a inclinação */
       margin-inline: calc(var(--pad) * -1);
@@ -302,7 +303,7 @@ body {
       }
       .wheel {
         --pad: 28px;
-        height: min(960px, 92svh);
+        height: min(960px, calc(92 * var(--sh, 1svh)));
       }
       .wheel-item {
         --grow: 0.07;
@@ -366,7 +367,7 @@ body {
 .demo-fade-out {
   position: relative;
   isolation: isolate;
-  height: 26svh;
+  height: calc(26 * var(--sh, 1svh));
 }
 .demo-fade {
   background: linear-gradient(180deg, var(--page-bg, #f8fafc), var(--sky-top));

@@ -45,8 +45,8 @@ function Car() {
 }
 
 /**
- * (Ancorado em `top: 50svh` e não em `top: 50%`: num elemento fixo `%` é a altura ATUAL da janela, que cresce quando a barra de endereço
- * do Safari encolhe no primeiro gesto de rolagem; o trilho escorregava uns 20 px nesse instante. `svh` não muda.)
+ * (Ancorado em `top: calc(50 * var(--sh))` e não em `top: 50%`: num elemento fixo `%` é a altura ATUAL da janela, que cresce quando a barra
+ * de endereço encolhe no primeiro gesto de rolagem; o trilho escorregava uns 20 px nesse instante. `--sh` é a altura medida uma vez.)
  * Mapa da página, fixo na borda direita: uma "ruazinha" com uma parada por seção e um carrinho que desce por ela conforme a
  * rolagem ("você está aqui"). O nome da seção aparece por um instante quando a parada atual muda e, para todas, ao passar o
  * mouse (só no computador, para não cobrir o conteúdo). No começo da página o carrinho diz "Você está aqui". Clicar numa
@@ -140,7 +140,7 @@ export function SectionRail() {
     <nav
       aria-label="Seções da página"
       aria-hidden={wide ? undefined : true}
-      className="rail group pointer-events-none fixed top-[50svh] right-[max(1px,env(safe-area-inset-right))] z-50 -translate-y-1/2 md:pointer-events-auto md:right-5 [--d:12px] [--gap:34px] [--road:12px] [--over:2px] md:[--d:22px] md:[--gap:70px] md:[--road:36px] md:[--over:8px]"
+      className="rail group pointer-events-none fixed top-[calc(50*var(--sh,1svh))] right-[max(1px,env(safe-area-inset-right))] z-50 -translate-y-1/2 md:pointer-events-auto md:right-5 [--d:12px] [--gap:34px] [--road:12px] [--over:2px] md:[--d:22px] md:[--gap:70px] md:[--road:36px] md:[--over:8px]"
       style={{ '--steps': STOPS.length - 1 } as CSSProperties}
     >
       <div className="relative py-2 md:rounded-full md:border md:border-white/15 md:bg-slate-900/60 md:px-1.5 md:py-4 md:backdrop-blur-md">

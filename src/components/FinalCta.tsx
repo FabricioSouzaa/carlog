@@ -15,7 +15,7 @@ export function FinalCta({ onLogin }: { onLogin: () => void }) {
         size={900}
         className="pointer-events-none absolute top-[6%] -right-[40%] h-[120vw] w-[120vw] opacity-15 md:-right-[12%] md:h-[820px] md:w-[820px]"
       />
-      <div className="relative mx-auto flex min-h-[88svh] max-w-5xl flex-col items-center justify-center px-4 py-24 text-center">
+      <div className="relative mx-auto flex min-h-[calc(88*var(--sh,1svh))] max-w-5xl flex-col items-center justify-center px-4 py-24 text-center">
         <Reveal>
           <p className="text-[13px] font-semibold tracking-[0.18em] text-blue-300 uppercase">Comece agora</p>
         </Reveal>
