@@ -16,7 +16,7 @@ export function ramp(value: number, from: number, to: number): number {
 }
 
 /**
- * Posição do seletor, em "itens" (0 a weights.length), para um progresso `p` da rolagem. Cada trecho entre dois itens
+ * Posição da cena, em "itens" (0 a weights.length), para um progresso `p` da rolagem. Cada trecho entre dois itens
  * ocupa uma fatia da rolagem proporcional ao seu peso (trechos com mais coisa acontecendo ganham mais rolagem).
  * Em vez de seguir a rolagem em linha reta, cada item "para" um pouco (`dwell` = fração do trecho em que ele fica parado)
  * e a troca acontece no meio do caminho, com partida e chegada suaves: dá a sensação de carrossel.
@@ -37,16 +37,6 @@ export function weightedPosition(p: number, weights: number[], dwell = 0.16): nu
     start = end
   }
   return weights.length
-}
-
-/** Igual a `weightedPosition` com todos os trechos do mesmo tamanho (seletor da seção 2). */
-export function wheelPosition(p: number, count: number, dwell = 0.16): number {
-  return count <= 1 ? 0 : weightedPosition(p, Array<number>(count - 1).fill(1), dwell)
-}
-
-/** Índice do item em foco para uma posição do seletor (em itens), entre `count` itens. */
-export function activeIndex(position: number, count: number): number {
-  return count > 1 ? Math.round(clamp(position, 0, count - 1)) : 0
 }
 
 /**

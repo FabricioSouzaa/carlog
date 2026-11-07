@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react'
 import { FeatureDemo } from '../components/FeatureDemo'
 import { FinalCta } from '../components/FinalCta'
 import { FeatureOverview } from '../components/FeatureOverview'
-import { FeatureWheel } from '../components/FeatureWheel'
+import { FeatureTabs } from '../components/FeatureTabs'
 import { Logo } from '../components/Logo'
 import { Reveal } from '../components/Reveal'
 import { SectionRail } from '../components/SectionRail'
@@ -83,7 +83,7 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
 
         {/* o azul do hero se desfaz num degradê até o fundo claro; o título do seletor só fixa depois dele */}
         <div aria-hidden="true" className="h-[calc(20*var(--sh,1svh))] bg-linear-to-b from-blue-700 to-slate-50 dark:to-slate-950" />
-        <FeatureWheel />
+        <FeatureTabs />
         {/* o claro da seção 2 se desfaz no céu da seção 3, e o céu volta ao claro depois */}
         <div aria-hidden="true" className="demo-fade" />
         <FeatureDemo />
