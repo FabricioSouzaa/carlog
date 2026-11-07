@@ -188,7 +188,14 @@ body {
     }
     .demo-section {
       height: calc(100svh + var(--len, 5) * 100svh);
-      overflow-x: clip; /* os pedaços chegam de fora da tela sem criar rolagem lateral */
+    }
+    /*
+     * Os pedaços chegam de fora da tela (voam de além da borda), então alguém precisa cortar o que passa da largura. O corte fica no
+     * próprio palco fixo e NÃO no envoltório da seção: um `overflow` num ancestral do elemento `sticky` fazia o Safari do iPhone
+     * reposicionar o palco pela thread principal, um quadro atrasada (medido em vídeo: o palco "tremia" ~5 px a cada quadro).
+     */
+    .demo-section .wheel-stage {
+      overflow-x: clip;
     }
     /* mais curta que a demonstração (100svh por unidade de peso): são 4 momentos, com a câmera parada boa parte do tempo. O hook mede a altura real da seção, então mudar este número só muda o ritmo. */
     .over-section {
