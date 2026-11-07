@@ -11,7 +11,7 @@ import { useWheel } from './useWheel'
  * Cada card para um instante no centro (`wheelPosition`) e o movimento desliza atrás da rolagem. Com `prefers-reduced-motion` (ou sem suporte a `abs()`) vira uma lista comum, sem fixar nada.
  */
 export function FeatureWheel() {
-  const { ref, active, goTo } = useWheel(ITEMS.length)
+  const { ref, active, goTo } = useWheel(ITEMS.length, { writeProgress: true }) // o CSS dos cards lê --p
   // a réplica da tela só aparece (e só é montada) a partir de tablet; no celular o card é só texto
   const showScreens = useMediaQuery('(min-width: 640px)')
 

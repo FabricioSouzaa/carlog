@@ -176,22 +176,36 @@ body {
 
 @media (prefers-reduced-motion: no-preference) {
   @supports (transform: translateY(calc(abs(1) * 1px))) {
+    /*
+     * Alturas da landing em `calc(N * var(--sh, 1svh))`: `--sh` é 1% da altura da janela medida UMA vez (ver `lib/stableViewport.ts`).
+     * No celular a barra de endereço encolhe no primeiro gesto de rolagem e a janela cresce; com `dvh` a página inteira mudava de
+     * tamanho (medido: +954 px no Raio-X para 84 px de barra), o trilho escorregava e o palco da seção 3 mudava de altura por baixo
+     * dos elementos. `svh` basta no Safari, mas o Chrome do iPhone não informa a diferença e o `svh` se comporta como `dvh`; por
+     * isso a altura é guardada. Sem JavaScript, vale `1svh`. No computador `--sh` acompanha a janela (= `vh`).
+     */
     .wheel-section {
       --gap: 185px;
-      height: calc(100dvh + (var(--n) - 1) * 56dvh);
+      height: calc(calc(100 * var(--sh, 1svh)) + (var(--n) - 1) * calc(56 * var(--sh, 1svh)));
     }
     .demo-section {
-      height: calc(100dvh + var(--len, 5) * 100dvh);
-      overflow-x: clip; /* os pedaços chegam de fora da tela sem criar rolagem lateral */
+      height: calc(calc(100 * var(--sh, 1svh)) + var(--len, 5) * calc(100 * var(--sh, 1svh)));
     }
-    /* mais curta que a demonstração (100dvh por unidade de peso): são 4 momentos, com a câmera parada boa parte do tempo. O hook mede a altura real da seção, então mudar este número só muda o ritmo. */
+    /*
+     * Os pedaços chegam de fora da tela (voam de além da borda), então alguém precisa cortar o que passa da largura. O corte fica no
+     * próprio palco fixo e NÃO no envoltório da seção: um `overflow` num ancestral do elemento `sticky` fazia o Safari do iPhone
+     * reposicionar o palco pela thread principal, um quadro atrasada (medido em vídeo: o palco "tremia" ~5 px a cada quadro).
+     */
+    .demo-section .wheel-stage {
+      overflow-x: clip;
+    }
+    /* mais curta que a demonstração (100 * --sh por unidade de peso): são 4 momentos, com a câmera parada boa parte do tempo. O hook mede a altura real da seção, então mudar este número só muda o ritmo. */
     .over-section {
-      height: calc(100dvh + var(--len, 4) * 62dvh);
+      height: calc(calc(100 * var(--sh, 1svh)) + var(--len, 4) * calc(62 * var(--sh, 1svh)));
     }
     .wheel-stage {
       position: sticky;
       top: 0;
-      height: 100dvh; /* altura fixa (não min-height): o conteúdo se ajusta à tela, e não o contrário */
+      height: calc(100 * var(--sh, 1svh)); /* altura fixa (não min-height): o conteúdo se ajusta à tela, e não o contrário */
       padding-block: 0;
     }
     .wheel-nav {
@@ -245,7 +259,7 @@ body {
     .wheel {
       --pad: 12px;
       /* no celular baixo (ex.: iPhone SE) a roda encolhe para caber ao lado do título dentro da tela */
-      height: clamp(320px, calc(100dvh - 230px), 560px);
+      height: clamp(320px, calc(calc(100 * var(--sh, 1svh)) - 230px), 560px);
       perspective: 1200px;
       /* os cards somem suavemente em cima e embaixo, como no seletor do iPhone; a folga lateral guarda sombras e a inclinação */
       margin-inline: calc(var(--pad) * -1);
@@ -289,7 +303,7 @@ body {
       }
       .wheel {
         --pad: 28px;
-        height: min(960px, 92dvh);
+        height: min(960px, calc(92 * var(--sh, 1svh)));
       }
       .wheel-item {
         --grow: 0.07;
@@ -353,7 +367,7 @@ body {
 .demo-fade-out {
   position: relative;
   isolation: isolate;
-  height: 26dvh;
+  height: calc(26 * var(--sh, 1svh));
 }
 .demo-fade {
   background: linear-gradient(180deg, var(--page-bg, #f8fafc), var(--sky-top));
@@ -374,7 +388,9 @@ body {
     --page-bg: #020617;
   }
 }
-@media (prefers-reduced-motion: no-preference) {
+/* o céu piscando só no computador: o céu cobre a seção inteira (milhares de px de altura); animá-lo o transforma numa camada
+   gigante de composição, e no celular (principalmente no Safari do iPhone) isso pesa na memória e na rolagem */
+@media (prefers-reduced-motion: no-preference) and (min-width: 1024px) {
   .demo-bg::before {
     animation: twinkle 7s ease-in-out infinite alternate;
   }
@@ -416,6 +432,8 @@ body {
   border-radius: 9999px;
   background: radial-gradient(closest-side, rgb(96 165 250 / 0.38), transparent);
   filter: blur(34px);
+  /* camada própria: sem isso o brilho desfocado é redesenhado a cada quadro e, no WebKit (Safari), deixava a seção 3 em ~50% de quadros lentos */
+  will-change: transform;
 }
 .demo-toast {
   position: absolute;
@@ -473,13 +491,17 @@ body {
   top: 10px;
   right: 0;
   left: 0;
-  height: calc(var(--pos) * (var(--d) + var(--gap)));
-  border-radius: 6px;
+  /* a faixa tem sempre a altura toda da rua e cresce por escala: mexer em `transform` não força layout (mexer na altura forçaria) */
+  height: calc(var(--steps) * (var(--d) + var(--gap)));
   background: rgb(96 165 250 / 0.3);
+  transform-origin: top; /* sem border-radius: a escala o deformaria; os cantos arredondados são da rua */
+  transform: scaleY(calc(var(--pos) / var(--steps)));
+  will-change: transform;
 }
 /* o carrinho: o centro dele acompanha o centro da parada */
 .rail-pin {
   transform: translate(-50%, calc(var(--pos) * (var(--d) + var(--gap)) + var(--d) / 2 - 50%));
+  will-change: transform;
 }
 /* convite do hero: entra depois dos botões e a seta balança; parado com movimento reduzido */
 @media (prefers-reduced-motion: no-preference) {

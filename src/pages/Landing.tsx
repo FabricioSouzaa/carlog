@@ -27,7 +27,7 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
       <SectionRail />
       <main>
         {/* hero escuro em tela cheia: o velocímetro grande ao fundo é a imagem; o cabeçalho é só o nome e o descritivo */}
-        <div id="inicio" className="relative flex min-h-dvh flex-col overflow-hidden bg-linear-to-b from-slate-900 to-blue-700 text-white">
+        <div id="inicio" className="relative flex min-h-[calc(100*var(--sh,1svh))] flex-col overflow-hidden bg-linear-to-b from-slate-900 to-blue-700 text-white">
           <Logo tile={false} size={900} className="pointer-events-none absolute top-[8%] -right-[35%] h-[110vw] w-[110vw] opacity-20 md:-top-[2%] md:-right-[12%] md:h-[900px] md:w-[900px]" />
           <header className="relative mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-5">
             <span className="flex items-center gap-3.5">
@@ -82,7 +82,7 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
         </div>
 
         {/* o azul do hero se desfaz num degradê até o fundo claro; o título do seletor só fixa depois dele */}
-        <div aria-hidden="true" className="h-[20dvh] bg-linear-to-b from-blue-700 to-slate-50 dark:to-slate-950" />
+        <div aria-hidden="true" className="h-[calc(20*var(--sh,1svh))] bg-linear-to-b from-blue-700 to-slate-50 dark:to-slate-950" />
         <FeatureWheel />
         {/* o claro da seção 2 se desfaz no céu da seção 3, e o céu volta ao claro depois */}
         <div aria-hidden="true" className="demo-fade" />

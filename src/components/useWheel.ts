@@ -13,6 +13,7 @@ export function useWheel(
     weights,
     staticPosition = 0,
     onPosition,
+    writeProgress = false,
   }: {
     /** Quanto o desenho demora para alcançar a rolagem (constante de tempo, ms): menor = mais colado ao dedo. */
     tau?: number
@@ -24,6 +25,11 @@ export function useWheel(
     staticPosition?: number
     /** Chamado a cada frame com a posição desenhada (em itens), para cenas que dependem dela. */
     onPosition?: (position: number) => void
+    /**
+     * Escrever `--p` (0 a 1) na seção a cada frame? Só ligue se o CSS a usa (o seletor da seção 2). Variáveis CSS são
+     * herdadas: mudar uma na seção obriga o navegador a revisar o estilo de todos os elementos dentro dela, a cada frame.
+     */
+    writeProgress?: boolean
   } = {},
 ) {
   const ref = useRef<HTMLElement>(null)
@@ -41,7 +47,7 @@ export function useWheel(
     let current = 0 // posição desenhada: vai atrás da pedida, para o movimento deslizar
     let raf = 0
     const draw = () => {
-      el.style.setProperty('--p', (current / last).toFixed(4))
+      if (writeProgress) el.style.setProperty('--p', (current / last).toFixed(4))
       setActive(activeIndex(current, count))
       onPositionRef.current?.(current)
     }
@@ -56,7 +62,7 @@ export function useWheel(
       if (current !== target) raf = requestAnimationFrame(frame)
       else lastFrame = 0
     }
-    // a "janela" é a altura do conteúdo fixo (100dvh), não window.innerHeight: nos celulares os dois mudam em
+    // a "janela" é a altura do conteúdo fixo (100 * --sh), não window.innerHeight: nos celulares os dois mudam em
     // momentos diferentes quando a barra de endereço some, e a conta desencontrava nas pontas
     const stage = el.firstElementChild as HTMLElement | null
     // sem o seletor (movimento reduzido ou sem suporte) a seção é uma lista comum e não há o que acompanhar
@@ -79,7 +85,7 @@ export function useWheel(
       window.removeEventListener('resize', onScroll)
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [count, tau, dwell, weights, staticPosition])
+  }, [count, tau, dwell, weights, staticPosition, writeProgress])
 
   /** Rola a página até o ponto em que o item `index` fica em foco. */
   const goTo = useCallback(
