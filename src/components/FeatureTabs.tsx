@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FitScreen, TabsControlProvider, type TabId, type TabsControl } from './AppScreens'
 import { useMediaQuery } from './useMediaQuery'
 
@@ -30,6 +30,7 @@ export function FeatureTabs() {
   const stage = useRef<HTMLDivElement>(null)
   const tabEls = useRef(new Map<TabId, HTMLElement>())
   const activeRef = useRef(0)
+  const targetRef = useRef(0) // aba para onde o cursor aponta (para reapontar se a tela mudar de tamanho)
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
   const [visible, setVisible] = useState(false)
@@ -54,23 +55,49 @@ export function FeatureTabs() {
     return { x: t.left - b.left + t.width * 0.5, y: t.top - b.top + t.height * 0.62 }
   }, [])
 
-  const control: TabsControl = {
-    onSelect: (id) => {
-      const i = TABS.findIndex((t) => t.id === id)
-      select(i)
-      setPaused(true) // clicar numa aba é assumir o controle: o automático pára
+  const point = useCallback(
+    (i: number) => {
+      targetRef.current = i
+      const p = aim(i)
+      if (p) setCursor({ ...p, shown: true })
     },
-    setTabEl: (id, el) => {
-      if (el) tabEls.current.set(id, el)
-      else tabEls.current.delete(id)
-    },
-  }
+    [aim],
+  )
+
+  // estável: se mudasse a cada render, a janela inteira (réplica) renderizaria de novo a cada passo da animação
+  const control = useMemo<TabsControl>(
+    () => ({
+      onSelect: (id) => {
+        select(TABS.findIndex((t) => t.id === id))
+        setPaused(true) // clicar numa aba é assumir o controle: o automático pára
+      },
+      setTabEl: (id, el) => {
+        if (el) tabEls.current.set(id, el)
+        else tabEls.current.delete(id)
+      },
+      focusTab: (id) => tabEls.current.get(id)?.focus(),
+    }),
+    [select],
+  )
+
+  // girar o celular ou redimensionar a janela muda a escala da réplica: o cursor reaponta (senão ficaria no px antigo)
+  useEffect(() => {
+    const el = stage.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => {
+      const p = aim(targetRef.current)
+      if (p) setCursor((c) => (c.shown ? { ...p, shown: true } : c))
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [aim])
 
   // só anima enquanto a janela está (quase toda) na tela
   useEffect(() => {
     const el = stage.current
     if (!el || typeof IntersectionObserver === 'undefined') return
-    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { threshold: 0.6 })
+    // 0,3 e não mais: numa tela baixa (celular deitado, zoom grande) a janela inteira nunca chegaria a 60% visível e a demonstração não começaria
+    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { threshold: 0.3 })
     io.observe(el)
     return () => io.disconnect()
   }, [])
@@ -81,10 +108,6 @@ export function FeatureTabs() {
     const timers: number[] = []
     const at = (ms: number, fn: () => void) => void timers.push(window.setTimeout(fn, ms))
     let next = (activeRef.current + 1) % TABS.length
-    const point = (i: number) => {
-      const p = aim(i)
-      if (p) setCursor({ ...p, shown: true })
-    }
     const step = () => {
       point(next)
       at(MOVE_MS, () => setPress((n) => n + 1))
@@ -97,7 +120,7 @@ export function FeatureTabs() {
     at(40, () => point(activeRef.current)) // o cursor aparece sobre a aba atual
     at(900, step)
     return () => timers.forEach((t) => window.clearTimeout(t))
-  }, [playing, aim, select])
+  }, [playing, point, select])
 
   const current = TABS[active]
   return (
@@ -139,23 +162,25 @@ export function FeatureTabs() {
           <p className="text-center text-base text-slate-600 md:text-[17px] dark:text-slate-300" aria-live="off">
             <span className="font-semibold text-slate-900 dark:text-slate-100">{current.label}:</span> {current.text}
           </p>
-          <div className="flex items-center gap-3">
-            <div aria-hidden="true" className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            {/* os pontos também escolhem a tela (alvo de toque maior que as abas da réplica); o teclado e os leitores de tela usam as abas */}
+            <div aria-hidden="true" className="flex items-center">
               {TABS.map((t, i) => (
-                <span key={t.id} className={`h-2 rounded-full transition-all duration-300 ${i === active ? 'w-7 bg-blue-600' : 'w-2 bg-slate-300 dark:bg-slate-700'}`} />
+                <button key={t.id} type="button" tabIndex={-1} onClick={() => control.onSelect(t.id)} className="flex h-10 w-7 items-center justify-center">
+                  <span className={`h-2 rounded-full transition-all duration-300 ${i === active ? 'w-7 bg-blue-600' : 'w-2 bg-slate-300 dark:bg-slate-700'}`} />
+                </button>
               ))}
             </div>
             {!reduced && (
               <button
                 type="button"
                 onClick={() => setPaused((p) => !p)}
-                aria-pressed={paused}
-                aria-label={paused ? 'Continuar a demonstração' : 'Pausar a demonstração'}
-                className="flex size-7 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                className="ml-2 flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100"
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
                   {paused ? <path d="M2.5 1.2v9.6L10.5 6z" /> : <path d="M2.5 1h2.6v10H2.5zM6.9 1h2.6v10H6.9z" />}
                 </svg>
+                {paused ? 'Continuar' : 'Pausar'}
               </button>
             )}
           </div>

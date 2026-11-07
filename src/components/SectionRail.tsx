@@ -189,8 +189,8 @@ export function SectionRail() {
 
           {/* o carrinho: desce pela rua conforme a rolagem */}
           <span ref={pin} aria-hidden="true" className="rail-pin pointer-events-none absolute top-0 left-1/2" style={{ '--pos': 0 } as CSSProperties}>
-            {/* no começo da página o carrinho também pulsa: no celular não há rótulo, então é o único "você está aqui" */}
-            {atStart && <span className="rail-here absolute top-1/2 left-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full md:size-7" />}
+            {/* no começo da página o carrinho pulsa só no celular (lá não há rótulo); no computador quem pulsa é o rótulo, para não somar duas animações de sombra */}
+            {atStart && <span className="rail-here absolute top-1/2 left-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full md:hidden" />}
             <Car />
           </span>
         </div>

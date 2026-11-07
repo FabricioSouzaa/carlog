@@ -1,4 +1,4 @@
-import { createContext, useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, memo, useContext, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { daysAgoISO, formatCurrency, formatDate, formatKm } from '../lib/format'
 import { TypeBadge } from './ui'
 
@@ -26,16 +26,29 @@ export interface TabsControl {
   onSelect: (id: TabId) => void
   /** Recebe o elemento de cada aba, para a demonstração saber onde apontar o cursor. */
   setTabEl: (id: TabId, el: HTMLElement | null) => void
+  /** Põe o foco do teclado na aba (setas, Home e End). */
+  focusTab: (id: TabId) => void
 }
+export const TAB_PANEL_ID = 'painel-do-app'
 const TabsControlContext = createContext<TabsControl | null>(null)
 export const TabsControlProvider = TabsControlContext.Provider
 
 /** A "janela" do app: barra de abas (como a do app) e o conteúdo da tela (cada tela devolve só o conteúdo). */
 function AppWindow({ active, children }: { active: ScreenId; children: ReactNode }) {
   const control = useContext(TabsControlContext)
+  // teclado do padrão "abas": setas movem entre elas, Home e End vão às pontas (só uma aba fica na ordem do Tab)
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (!control) return
+    const i = TABS.findIndex((t) => t.id === active)
+    const next = e.key === 'ArrowRight' ? (i + 1) % TABS.length : e.key === 'ArrowLeft' ? (i - 1 + TABS.length) % TABS.length : e.key === 'Home' ? 0 : e.key === 'End' ? TABS.length - 1 : -1
+    if (next < 0) return
+    e.preventDefault()
+    control.onSelect(TABS[next].id)
+    control.focusTab(TABS[next].id)
+  }
   return (
     <div className="flex h-[360px] w-[560px] flex-col overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <div role={control ? 'tablist' : undefined} aria-label={control ? 'Telas do app' : undefined} className="flex shrink-0 items-center gap-1 border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900">
+      <div role={control ? 'tablist' : undefined} aria-label={control ? 'Telas do app' : undefined} onKeyDown={onKeyDown} className="flex shrink-0 items-center gap-1 border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900">
         <span className="mr-3 rounded-lg px-2 py-1 text-sm font-bold">Carlog</span>
         {TABS.map((t) => {
           const cls = `flex items-center gap-1.5 px-2.5 py-2.5 text-[13px] font-medium ${t.id === active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`
@@ -46,7 +59,7 @@ function AppWindow({ active, children }: { active: ScreenId; children: ReactNode
             </>
           )
           return control ? (
-            <button key={t.id} type="button" role="tab" aria-selected={t.id === active} ref={(el) => control.setTabEl(t.id, el)} onClick={() => control.onSelect(t.id)} className={`${cls} cursor-pointer hover:text-slate-900 dark:hover:text-slate-100`}>
+            <button key={t.id} id={`aba-${t.id}`} type="button" role="tab" aria-selected={t.id === active} aria-controls={TAB_PANEL_ID} tabIndex={t.id === active ? 0 : -1} ref={(el) => control.setTabEl(t.id, el)} onClick={() => control.onSelect(t.id)} className={`${cls} cursor-pointer hover:text-slate-900 dark:hover:text-slate-100`}>
               {inner}
             </button>
           ) : (
@@ -57,7 +70,7 @@ function AppWindow({ active, children }: { active: ScreenId; children: ReactNode
         })}
       </div>
       {/* a chave refaz só o conteúdo ao trocar de aba (e dispara o fade); a barra de abas é a mesma, então o foco do teclado não se perde */}
-      <div key={active} role={control ? 'tabpanel' : undefined} className="tab-screen-in min-h-0 flex-1 space-y-3 overflow-hidden p-4">
+      <div key={active} id={control ? TAB_PANEL_ID : undefined} role={control ? 'tabpanel' : undefined} aria-labelledby={control ? `aba-${active}` : undefined} className="tab-screen-in min-h-0 flex-1 space-y-3 overflow-hidden p-4">
         {children}
       </div>
     </div>
@@ -222,14 +235,18 @@ export type ScreenKey = keyof typeof SCREENS
  * Mostra a réplica ajustada à largura do espaço disponível: ela é desenhada em 560x360 e ganha a escala certa (tudo é DOM, então
  * continua nítida em qualquer tamanho). A altura acompanha a escala.
  */
-export function FitScreen({ screen }: { screen: TabId }) {
+export const FitScreen = memo(function FitScreen({ screen }: { screen: TabId }) {
   const Screen = SCREENS[screen]
   const box = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
   useLayoutEffect(() => {
     const el = box.current
     if (!el) return
-    const fit = () => setScale(el.clientWidth / 560)
+    // largura 0 (ainda sem layout ou escondida) daria escala 0 e a tela sumiria: ignora; e arredonda para não renderizar por fração de pixel
+    const fit = () => {
+      const w = el.clientWidth
+      if (w > 0) setScale(Math.round((w / 560) * 1000) / 1000)
+    }
     fit()
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit)
     observer?.observe(el)
@@ -244,4 +261,4 @@ export function FitScreen({ screen }: { screen: TabId }) {
       </div>
     </div>
   )
-}
+})

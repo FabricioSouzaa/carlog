@@ -118,7 +118,7 @@ function Panel({ title, on, dim, className = '', children }: { title: string; on
  */
 export function FeatureOverview() {
   const [pos, setPos] = useState(0)
-  const { ref } = useWheel(WEIGHTS.length + 1, {
+  const { ref } = useWheel({
     tau: 170,
     dwell: 0.2,
     weights: WEIGHTS,
@@ -209,7 +209,7 @@ export function FeatureOverview() {
       id="raio-x"
       aria-labelledby="visao-titulo"
       className="over-section relative"
-      style={{ '--n': WEIGHTS.length + 1, '--len': LEN } as CSSProperties}
+      style={{ '--len': LEN } as CSSProperties}
     >
       <div className="wheel-stage isolate flex items-center">
         <div

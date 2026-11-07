@@ -6,9 +6,7 @@ import { scrollTargetFor, weightedPosition, wheelProgress } from '../lib/wheel'
  * `weights.length`), e devolve `goTo` para rolar até um item. Cada item "para" um instante (`weightedPosition`) e o movimento
  * desliza atrás da rolagem (amortecimento por `tau`). Não escreve nada no DOM da seção: quem usa decide o que mudar a cada frame.
  */
-export function useWheel(
-  count: number,
-  {
+export function useWheel({
     tau = 70,
     dwell,
     weights,
@@ -25,8 +23,7 @@ export function useWheel(
     staticPosition?: number
     /** Chamado a cada frame com a posição desenhada (em itens), para cenas que dependem dela. */
     onPosition?: (position: number) => void
-  },
-) {
+  }) {
   const ref = useRef<HTMLElement>(null)
   const onPositionRef = useRef(onPosition)
   useEffect(() => {
@@ -74,7 +71,7 @@ export function useWheel(
       window.removeEventListener('resize', onScroll)
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [count, tau, dwell, weights, staticPosition])
+  }, [tau, dwell, weights, staticPosition])
 
   /** Rola a página até o ponto em que o item `index` fica em foco. */
   const goTo = useCallback(
@@ -82,10 +79,10 @@ export function useWheel(
       const el = ref.current
       const stage = el?.firstElementChild as HTMLElement | null
       if (!el || !stage) return
-      const top = scrollTargetFor(index, count, el.getBoundingClientRect().top + window.scrollY, el.offsetHeight, stage.offsetHeight, weights)
+      const top = scrollTargetFor(index, weights.length, el.getBoundingClientRect().top + window.scrollY, el.offsetHeight, stage.offsetHeight, weights)
       window.scrollTo({ top, behavior: 'smooth' })
     },
-    [count, weights],
+    [weights],
   )
 
   return { ref, goTo }
