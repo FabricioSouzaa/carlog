@@ -55,7 +55,7 @@ function AppWindow({ active, children }: { active: ScreenId; children: ReactNode
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <div role={control ? 'tablist' : undefined} aria-label={control ? 'Telas do app' : undefined} onKeyDown={onKeyDown} className="flex shrink-0 items-center gap-1 border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900">
-        <span className="mr-3 rounded-lg px-2 py-1 text-sm font-bold">Carlog</span>
+        <span role={control ? 'presentation' : undefined} className="mr-3 rounded-lg px-2 py-1 text-sm font-bold">Carlog</span>
         {TABS.map((t) => {
           const cls = `flex items-center gap-1.5 px-2.5 py-2.5 text-[13px] font-medium ${t.id === active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`
           const inner = (
@@ -216,7 +216,7 @@ function Settings() {
       <h1 className="text-xl font-bold">Ajustes</h1>
       <section className="card !p-3">
         <h2 className="mb-1.5 text-sm font-semibold">Categorias</h2>
-        {['Combustível', 'Manutenção', 'Seguro', 'Peças', 'IPVA/Licenciamento'].map((c) => (
+        {['Combustível', 'Manutenção', 'Seguro', 'Peças'].map((c) => (
           <div key={c} className="flex items-center justify-between border-b border-slate-100 py-1.5 text-sm last:border-0 dark:border-slate-800">
             <span>{c}</span>
             <span className="text-xs text-slate-400">Renomear · Remover</span>

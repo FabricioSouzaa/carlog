@@ -36,6 +36,7 @@ export function FeatureTabs() {
   const activeRef = useRef(0)
   const targetRef = useRef(0) // aba para onde o cursor aponta (para reapontar se a tela mudar de tamanho)
   const revealedRef = useRef(false)
+  const pausedRef = useRef(false)
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
   const [visible, setVisible] = useState(() => typeof IntersectionObserver === 'undefined') // sem IntersectionObserver, anda sempre
@@ -47,6 +48,9 @@ export function FeatureTabs() {
   const [press, setPress] = useState(0)
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)')
   const touch = useMediaQuery('(hover: none)')
+  useEffect(() => {
+    pausedRef.current = paused
+  })
   const playing = visible && !paused && !reduced
   // a janela fica embaçada até o cursor "ligar" a demonstração; se a pessoa assumir o controle, pausar ou preferir menos movimento, nítida
   const frosted = !reduced && !paused && !revealed
@@ -57,6 +61,7 @@ export function FeatureTabs() {
   }, [])
 
   const reveal = useCallback((on: boolean) => {
+    if (on === revealedRef.current) return // só a transição conta: clicar na aba que já está aberta não refaz o conteúdo
     revealedRef.current = on
     setRevealed(on)
     if (on) setEpoch((n) => n + 1) // refaz o conteúdo já nítido, para a entrada acontecer diante de quem olha
@@ -124,10 +129,13 @@ export function FeatureTabs() {
     // 0,3 e não mais: numa tela baixa (celular deitado, zoom grande) a janela inteira nunca chegaria a 60% visível e a demonstração não começaria
     const io = new IntersectionObserver(([entry]) => {
       setVisible(entry.isIntersecting)
-      if (!entry.isIntersecting) {
+      // se a pessoa assumiu o controle (pausou ou clicou), a janela fica como ela deixou; senão, volta ao começo (embaçada, na Visão geral)
+      if (!entry.isIntersecting && !pausedRef.current) {
         revealedRef.current = false
         setRevealed(false)
         setReached(-1)
+        activeRef.current = 0
+        setActive(0)
       }
     }, { threshold: 0.3 })
     io.observe(el)
@@ -187,7 +195,8 @@ export function FeatureTabs() {
       </div>
 
       <div className="mx-auto mt-10 w-full max-w-[820px]">
-        <div ref={stage} className="relative">
+        {/* quem chega pelo teclado e põe o foco na janela pausa a demonstração (senão a tela e a aba mudariam sozinhas debaixo do foco) */}
+        <div ref={stage} className="relative" onFocusCapture={(e) => { if ((e.target as HTMLElement).matches(':focus-visible')) setPaused(true) }}>
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-900">
             {/* embaçada até o cursor clicar em "Visão geral": entra em foco e o conteúdo acontece */}
             <div className={`transition-[filter,opacity] duration-700 motion-reduce:transition-none ${frosted ? 'opacity-60 blur-[7px]' : ''}`}>
@@ -232,7 +241,14 @@ export function FeatureTabs() {
             {!reduced && (
               <button
                 type="button"
-                onClick={() => setPaused((p) => !p)}
+                onClick={() => {
+                  // retomar continua de onde estava: sem voltar a embaçar a janela no meio da tela
+                  if (paused && !revealedRef.current) {
+                    revealedRef.current = true
+                    setRevealed(true)
+                  }
+                  setPaused((p) => !p)
+                }}
                 className="ml-2 flex h-10 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100"
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">

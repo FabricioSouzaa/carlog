@@ -55,7 +55,7 @@ const Caret = () => <span className="caret ml-0.5 h-5 w-0.5 shrink-0 bg-blue-600
 /**
  * Seção "Menos de um minuto por gasto": a janela "Novo gasto" começa vazia e fixa na tela; conforme você rola, os campos
  * entram um a um e se preenchem sozinhos (descrição digitada devagar, valor, tipo, fotos, salvar) enquanto um cronômetro
- * corre ao lado e para no "Gasto salvo". Mesma conta de rolagem do seletor da seção 2 (`useWheel`), só que mais lenta.
+ * corre ao lado e para no "Gasto salvo". Mesma conta de rolagem da seção 4 (`useWheel`), só que mais lenta.
  * Sem movimento, mostra a cena pronta.
  */
 export function FeatureDemo() {
