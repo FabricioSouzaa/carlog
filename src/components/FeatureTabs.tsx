@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FitScreen, TabsControlProvider, type LockEffect, type TabId, type TabsControl } from './AppScreens'
+import { FitScreen, TabsControlProvider, type TabId, type TabsControl } from './AppScreens'
 import { useMediaQuery } from './useMediaQuery'
 
 /** As telas do app, na ordem das abas, com a frase que aparece embaixo da janela. */
@@ -13,16 +13,8 @@ const TABS: { id: TabId; label: string; text: string }[] = [
 const MOVE_MS = 650 // o cursor desliza até a aba
 const CLICK_LEAD_MS = 120 // do anel do clique até a tela trocar
 const DWELL_MS = 1700 // quanto cada tela fica na janela (curto: quem não entende que é uma demonstração acha que travou)
-const START_MS = 500 // espera antes do primeiro movimento, depois que a janela aparece
-
-/**
- * TEMPORÁRIO (comparar efeitos na prévia): `?fx=fosco`, `?fx=cadeado` ou `?fx=pontilhado` (padrão) escolhem como as abas ainda não
- * clicadas aparecem. Quando o usuário escolher um, este parâmetro e os outros dois efeitos saem.
- */
-const effectFromUrl = (): LockEffect => {
-  const v = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('fx')
-  return v === 'fosco' || v === 'cadeado' ? v : 'pontilhado'
-}
+const START_MS = 700 // com a janela embaçada, espera antes de o cursor se mexer
+const FROST_MS = 600 // ao recomeçar o ciclo: a janela embaça e, depois disso, o cursor volta
 
 const Arrow = () => (
   <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="drop-shadow-md">
@@ -31,9 +23,11 @@ const Arrow = () => (
 )
 
 /**
- * "Tudo em um só lugar": uma janela do app em que um cursor clica sozinho em cada aba (no celular, um toque), em loop. É uma animação
- * por TEMPO e não presa à rolagem (as seções 3 e 4 já são): roda só enquanto a janela está na tela, e a pessoa pode clicar numa aba
- * (assume o controle e o automático pára) ou pausar. Com `prefers-reduced-motion` não anda sozinha; as abas continuam clicáveis.
+ * "Tudo em um só lugar": uma janela do app que CHEGA EMBAÇADA (e as abas também); um cursor aparece, clica em "Visão geral", a janela
+ * entra em foco e o conteúdo acontece (os blocos entram em sequência, as barras crescem); depois ele percorre as outras abas, acendendo
+ * cada uma ao clicar. No fim do ciclo a janela embaça de novo e recomeça. É uma animação por TEMPO e não presa à rolagem (as seções 3 e 4
+ * já são): roda só enquanto a janela está na tela. Clicar numa aba assume o controle (acende tudo e o automático pára); há botão de
+ * pausa; com `prefers-reduced-motion` nada embaça nem anda sozinho e as abas continuam clicáveis.
  * As telas são as réplicas de `AppScreens`; as abas delas são as do próprio desenho, tornadas clicáveis por `TabsControlProvider`.
  */
 export function FeatureTabs() {
@@ -41,21 +35,31 @@ export function FeatureTabs() {
   const tabEls = useRef(new Map<TabId, HTMLElement>())
   const activeRef = useRef(0)
   const targetRef = useRef(0) // aba para onde o cursor aponta (para reapontar se a tela mudar de tamanho)
+  const revealedRef = useRef(false)
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
-  const [visible, setVisible] = useState(false)
+  const [visible, setVisible] = useState(() => typeof IntersectionObserver === 'undefined') // sem IntersectionObserver, anda sempre
+  const [revealed, setRevealed] = useState(false) // a janela já entrou em foco neste ciclo?
+  const [epoch, setEpoch] = useState(0)
+  const [reached, setReached] = useState(-1) // última aba que o cursor já clicou neste ciclo (-1: nenhuma, tudo fosco)
+  const [heading, setHeading] = useState<TabId | null>(null) // aba para a qual o cursor está indo (pulsa até o clique)
   const [cursor, setCursor] = useState({ x: 520, y: 330, shown: false })
   const [press, setPress] = useState(0)
-  const [heading, setHeading] = useState<TabId | null>(null) // aba para a qual o cursor está indo (pulsa até o clique)
-  const [effect] = useState(effectFromUrl)
-  const [reached, setReached] = useState(0) // última aba que o cursor já clicou neste ciclo; as seguintes aparecem foscas
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)')
   const touch = useMediaQuery('(hover: none)')
   const playing = visible && !paused && !reduced
+  // a janela fica embaçada até o cursor "ligar" a demonstração; se a pessoa assumir o controle, pausar ou preferir menos movimento, nítida
+  const frosted = !reduced && !paused && !revealed
 
   const select = useCallback((i: number) => {
     activeRef.current = i
     setActive(i)
+  }, [])
+
+  const reveal = useCallback((on: boolean) => {
+    revealedRef.current = on
+    setRevealed(on)
+    if (on) setEpoch((n) => n + 1) // refaz o conteúdo já nítido, para a entrada acontecer diante de quem olha
   }, [])
 
   // onde apontar (em px da tela, dentro da janela) para clicar na aba `i`
@@ -79,13 +83,14 @@ export function FeatureTabs() {
 
   // só enquanto a demonstração anda as abas ainda não clicadas ficam foscas; pausada, clicada por você ou com movimento reduzido, todas acesas
   const locked = useMemo(() => (playing ? new Set(TABS.slice(reached + 1).map((t) => t.id)) : new Set<TabId>()), [playing, reached])
-
-  // estável: só muda quando uma aba é destravada (e não a cada passo da animação), senão a janela inteira renderizaria de novo
   const headingNow = playing ? heading : null
+
+  // estável: só muda quando uma aba é destravada, a janela é revelada ou o cursor muda de alvo, e não a cada passo da animação
   const control = useMemo<TabsControl>(
     () => ({
       onSelect: (id) => {
         select(TABS.findIndex((t) => t.id === id))
+        reveal(true)
         setPaused(true) // clicar numa aba é assumir o controle: o automático pára
       },
       setTabEl: (id, el) => {
@@ -94,10 +99,10 @@ export function FeatureTabs() {
       },
       focusTab: (id) => tabEls.current.get(id)?.focus(),
       locked,
-      effect,
       heading: headingNow,
+      epoch,
     }),
-    [select, locked, effect, headingNow],
+    [select, reveal, locked, headingNow, epoch],
   )
 
   // girar o celular ou redimensionar a janela muda a escala da réplica: o cursor reaponta (senão ficaria no px antigo)
@@ -112,42 +117,65 @@ export function FeatureTabs() {
     return () => observer.disconnect()
   }, [aim])
 
-  // só anima enquanto a janela está (quase toda) na tela
+  // só anima enquanto a janela está (quase toda) na tela; ao sair da tela a janela volta a embaçar, para a próxima chegada ser nova
   useEffect(() => {
     const el = stage.current
     if (!el || typeof IntersectionObserver === 'undefined') return
     // 0,3 e não mais: numa tela baixa (celular deitado, zoom grande) a janela inteira nunca chegaria a 60% visível e a demonstração não começaria
-    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { threshold: 0.3 })
+    const io = new IntersectionObserver(([entry]) => {
+      setVisible(entry.isIntersecting)
+      if (!entry.isIntersecting) {
+        revealedRef.current = false
+        setRevealed(false)
+        setReached(-1)
+      }
+    }, { threshold: 0.3 })
     io.observe(el)
     return () => io.disconnect()
   }, [])
 
-  // o roteiro: o cursor aparece na aba atual, desliza até a próxima, clica, a tela troca, espera, e segue (em loop)
+  // o roteiro: janela embaçada -> o cursor aparece e clica em "Visão geral" (a janela entra em foco) -> percorre as outras abas, acendendo
+  // cada uma -> ao dar a volta, a janela embaça de novo e recomeça. Retomando uma pausa (já revelada), continua de onde estava.
   useEffect(() => {
     if (!playing) return
     const timers: number[] = []
     const at = (ms: number, fn: () => void) => void timers.push(window.setTimeout(fn, ms))
-    let next = (activeRef.current + 1) % TABS.length
-    const step = () => {
-      point(next)
-      setHeading(TABS[next].id)
+    const run = (i: number) => {
+      point(i)
+      setHeading(TABS[i].id)
       at(MOVE_MS, () => setPress((n) => n + 1))
       at(MOVE_MS + CLICK_LEAD_MS, () => {
-        const clicked = next
         setHeading(null)
-        select(clicked)
-        setReached(clicked) // acende a aba clicada; ao dar a volta (clicou a primeira), as outras apagam de novo e o ciclo recomeça
-        next = (next + 1) % TABS.length
+        select(i)
+        setReached(i) // acende a aba clicada
+        if (i === 0) reveal(true) // o clique em "Visão geral" põe a janela em foco
+        const next = (i + 1) % TABS.length
+        at(DWELL_MS, () => {
+          if (next !== 0) return run(next)
+          // deu a volta: a janela embaça de novo e o ciclo recomeça
+          reveal(false)
+          setReached(-1)
+          select(0)
+          at(FROST_MS + START_MS, () => run(0))
+        })
       })
-      at(MOVE_MS + CLICK_LEAD_MS + DWELL_MS, step)
     }
-    at(40, () => {
-      point(activeRef.current) // o cursor aparece sobre a aba atual
-      setReached(activeRef.current)
-    })
-    at(START_MS, step)
+    if (revealedRef.current) {
+      const from = activeRef.current
+      at(40, () => {
+        point(from)
+        setReached(from)
+      })
+      at(START_MS, () => run((from + 1) % TABS.length))
+    } else {
+      at(40, () => {
+        select(0)
+        setReached(-1)
+      })
+      at(START_MS, () => run(0))
+    }
     return () => timers.forEach((t) => window.clearTimeout(t))
-  }, [playing, point, select])
+  }, [playing, point, select, reveal])
 
   const current = TABS[active]
   return (
@@ -161,9 +189,12 @@ export function FeatureTabs() {
       <div className="mx-auto mt-10 w-full max-w-[820px]">
         <div ref={stage} className="relative">
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-900">
-            <TabsControlProvider value={control}>
-              <FitScreen screen={current.id} />
-            </TabsControlProvider>
+            {/* embaçada até o cursor clicar em "Visão geral": entra em foco e o conteúdo acontece */}
+            <div className={`transition-[filter,opacity] duration-700 motion-reduce:transition-none ${frosted ? 'opacity-60 blur-[7px]' : ''}`}>
+              <TabsControlProvider value={control}>
+                <FitScreen screen={current.id} />
+              </TabsControlProvider>
+            </div>
           </div>
           {/* o cursor (ou o toque) e o anel do clique; fora da janela escalada, em px da tela */}
           <div
@@ -194,7 +225,7 @@ export function FeatureTabs() {
             <div aria-hidden="true" className="flex items-center">
               {TABS.map((t, i) => (
                 <button key={t.id} type="button" tabIndex={-1} onClick={() => control.onSelect(t.id)} className="flex h-10 w-7 items-center justify-center">
-                  <span className={`h-2 rounded-full transition-all duration-300 ${i === active ? 'w-7 bg-blue-600' : 'w-2 bg-slate-300 dark:bg-slate-700'}`} />
+                  <span className={`h-2 rounded-full transition-all duration-300 ${i === active && revealed ? 'w-7 bg-blue-600' : 'w-2 bg-slate-300 dark:bg-slate-700'}`} />
                 </button>
               ))}
             </div>

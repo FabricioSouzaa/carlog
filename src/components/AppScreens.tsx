@@ -28,15 +28,13 @@ export interface TabsControl {
   setTabEl: (id: TabId, el: HTMLElement | null) => void
   /** Põe o foco do teclado na aba (setas, Home e End). */
   focusTab: (id: TabId) => void
-  /** Abas ainda "travadas" na demonstração: sinalizadas até o cursor clicar nelas. */
+  /** Abas ainda "travadas" na demonstração: aparecem foscas (embaçadas) até o cursor clicar nelas. */
   locked: ReadonlySet<TabId>
-  /** Como as abas travadas aparecem (ver `LockEffect`). */
-  effect: LockEffect
   /** Aba para a qual o cursor está indo agora (ganha um anel pulsante), ou nenhuma. */
   heading: TabId | null
+  /** Sobe a cada "revelação" da janela: refaz o conteúdo da tela para a entrada dele acontecer diante de quem olha, já nítido. */
+  epoch: number
 }
-/** `fosco`: embaçada e meio apagada · `cadeado`: ícone de cadeado no lugar do ícone · `pontilhado`: contorno tracejado, com o nome legível. */
-export type LockEffect = 'fosco' | 'cadeado' | 'pontilhado'
 export const TAB_PANEL_ID = 'painel-do-app'
 const TabsControlContext = createContext<TabsControl | null>(null)
 export const TabsControlProvider = TabsControlContext.Provider
@@ -60,19 +58,17 @@ function AppWindow({ active, children }: { active: ScreenId; children: ReactNode
         <span className="mr-3 rounded-lg px-2 py-1 text-sm font-bold">Carlog</span>
         {TABS.map((t) => {
           const cls = `flex items-center gap-1.5 px-2.5 py-2.5 text-[13px] font-medium ${t.id === active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`
-          const locked = !!control?.locked.has(t.id)
           const inner = (
             <>
-              <span aria-hidden="true">{locked && control?.effect === 'cadeado' ? '🔒' : t.icon}</span>
+              <span aria-hidden="true">{t.icon}</span>
               {t.label}
             </>
           )
-          // aba travada na demonstração: cada efeito diz "ainda vai acontecer" de um jeito; a que o cursor está alcançando pulsa
-          const dashed = locked && control?.effect === 'pontilhado'
-          const lockCls = !locked ? '' : control?.effect === 'fosco' ? 'opacity-60 blur-[1.5px]' : control?.effect === 'cadeado' ? 'opacity-60' : ''
+          // aba ainda não clicada na demonstração: fosca; a que o cursor está alcançando pulsa
+          const lockCls = control?.locked.has(t.id) ? 'opacity-60 blur-[1.5px]' : ''
           const ring = control?.heading === t.id ? 'tab-next' : ''
           return control ? (
-            <button key={t.id} id={`aba-${t.id}`} type="button" role="tab" aria-selected={t.id === active} aria-controls={TAB_PANEL_ID} tabIndex={t.id === active ? 0 : -1} ref={(el) => control.setTabEl(t.id, el)} onClick={() => control.onSelect(t.id)} className={`${cls} cursor-pointer rounded-lg border transition-all duration-500 hover:text-slate-900 dark:hover:text-slate-100 ${dashed ? 'border-dashed border-slate-300 dark:border-slate-600' : 'border-transparent'} ${lockCls} ${ring}`}>
+            <button key={t.id} id={`aba-${t.id}`} type="button" role="tab" aria-selected={t.id === active} aria-controls={TAB_PANEL_ID} tabIndex={t.id === active ? 0 : -1} ref={(el) => control.setTabEl(t.id, el)} onClick={() => control.onSelect(t.id)} className={`${cls} cursor-pointer rounded-lg border transition-all duration-500 hover:text-slate-900 dark:hover:text-slate-100 border-transparent ${lockCls} ${ring}`}>
               {inner}
             </button>
           ) : (
@@ -83,7 +79,7 @@ function AppWindow({ active, children }: { active: ScreenId; children: ReactNode
         })}
       </div>
       {/* a chave refaz só o conteúdo ao trocar de aba (e dispara o fade); a barra de abas é a mesma, então o foco do teclado não se perde */}
-      <div key={active} id={control ? TAB_PANEL_ID : undefined} role={control ? 'tabpanel' : undefined} aria-labelledby={control ? `aba-${active}` : undefined} className="tab-screen-in min-h-0 flex-1 space-y-3 overflow-hidden p-4">
+      <div key={`${active}:${control?.epoch ?? 0}`} id={control ? TAB_PANEL_ID : undefined} role={control ? 'tabpanel' : undefined} aria-labelledby={control ? `aba-${active}` : undefined} className="tab-screen-in min-h-0 flex-1 space-y-3 overflow-hidden p-4">
         {children}
       </div>
     </div>
@@ -111,7 +107,7 @@ function Overview() {
         <h2 className="mb-2 text-sm font-semibold">Gasto por mês (últimos 12 meses)</h2>
         <div className="flex h-24 items-end gap-2">
           {MONTHS.map((h, i) => (
-            <div key={i} className="flex-1 rounded-t" style={{ height: `${h}%`, background: 'var(--series-1)' }} />
+            <div key={i} className="bar-grow flex-1 rounded-t" style={{ height: `${h}%`, background: 'var(--series-1)', animationDelay: `${150 + i * 40}ms` }} />
           ))}
         </div>
       </section>
@@ -126,7 +122,7 @@ function Overview() {
           <div key={n} className="mb-1.5 flex items-center gap-2 text-xs">
             <span className="w-20 shrink-0">{n}</span>
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-              <div className="h-full rounded-full" style={{ width: `${w}%`, background: 'var(--series-1)' }} />
+              <div className="bar-grow-x h-full rounded-full" style={{ width: `${w}%`, background: 'var(--series-1)', animationDelay: '450ms' }} />
             </div>
           </div>
         ))}

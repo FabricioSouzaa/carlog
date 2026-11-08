@@ -333,19 +333,52 @@ body {
   }
 }
 
-/* seção 2 (FeatureTabs): a tela nova entra com um fade curto e o clique ganha um anel que se abre; parados com movimento reduzido */
+/*
+ * seção 2 (FeatureTabs): ao mostrar uma tela, os blocos dela entram em sequência (sobem e aparecem), as barras do gráfico crescem e o
+ * clique ganha um anel que se abre. Parados com movimento reduzido.
+ */
 @media (prefers-reduced-motion: no-preference) {
-  .tab-screen-in {
-    animation: tab-fade 0.3s ease-out;
+  .tab-screen-in > * {
+    animation: tab-pop 0.45s ease-out both;
+  }
+  .tab-screen-in > :nth-child(2) {
+    animation-delay: 0.07s;
+  }
+  .tab-screen-in > :nth-child(3) {
+    animation-delay: 0.14s;
+  }
+  .tab-screen-in > :nth-child(4) {
+    animation-delay: 0.21s;
+  }
+  .tab-screen-in > :nth-child(n + 5) {
+    animation-delay: 0.28s;
+  }
+  .bar-grow {
+    transform-origin: bottom;
+    animation: bar-grow 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .bar-grow-x {
+    transform-origin: left;
+    animation: bar-grow-x 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
   .tab-click-ring {
     animation: tab-ring 0.55s ease-out both;
   }
 }
-@keyframes tab-fade {
+@keyframes tab-pop {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(10px);
+  }
+}
+@keyframes bar-grow {
+  from {
+    transform: scaleY(0.04);
+  }
+}
+@keyframes bar-grow-x {
+  from {
+    transform: scaleX(0.02);
   }
 }
 @keyframes tab-ring {
