@@ -57,31 +57,31 @@ function AppWindow({ active, compact, children }: { active: ScreenId; compact: b
     control.focusTab(TABS[next].id)
   }
   const bar = (
-      <div role={control ? 'tablist' : undefined} aria-label={control ? 'Telas do app' : undefined} onKeyDown={onKeyDown} className={compact ? 'grid shrink-0 grid-cols-4 border-t border-slate-200 bg-white px-1 pb-1 dark:border-slate-800 dark:bg-slate-900' : 'flex shrink-0 items-center gap-1 border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900'}>
-        {!compact && <span role={control ? 'presentation' : undefined} className="mr-3 rounded-lg px-2 py-1 text-sm font-bold">Carlog</span>}
-        {TABS.map((t) => {
-          const layout = compact ? 'flex flex-col items-center gap-0.5 px-1 py-2 text-[11px]' : 'flex items-center gap-1.5 px-2.5 py-2.5 text-[13px]'
-          const cls = `${layout} font-medium ${t.id === active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`
-          const inner = (
-            <>
-              <span aria-hidden="true" className={compact ? 'text-lg leading-none' : undefined}>{t.icon}</span>
-              {t.label}
-            </>
-          )
-          // aba ainda não clicada na demonstração: fosca; a que o cursor está alcançando pulsa
-          const lockCls = control?.locked.has(t.id) ? 'opacity-60 blur-[1.5px]' : ''
-          const ring = control?.heading === t.id ? 'tab-next' : ''
-          return control ? (
-            <button key={t.id} id={`aba-${t.id}`} type="button" role="tab" aria-selected={t.id === active} aria-controls={TAB_PANEL_ID} tabIndex={t.id === active ? 0 : -1} ref={(el) => control.setTabEl(t.id, el)} onClick={() => control.onSelect(t.id)} className={`${cls} cursor-pointer rounded-lg border transition-all duration-500 hover:text-slate-900 dark:hover:text-slate-100 border-transparent ${lockCls} ${ring}`}>
-              {inner}
-            </button>
-          ) : (
-            <span key={t.id} className={cls}>
-              {inner}
-            </span>
-          )
-        })}
-      </div>
+    <div key="barra" role={control ? 'tablist' : undefined} aria-label={control ? 'Telas do app' : undefined} onKeyDown={onKeyDown} className={compact ? 'grid shrink-0 grid-cols-4 border-t border-slate-200 bg-white px-1 pb-1 dark:border-slate-800 dark:bg-slate-900' : 'flex shrink-0 items-center gap-1 border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900'}>
+      {!compact && <span role={control ? 'presentation' : undefined} className="mr-3 rounded-lg px-2 py-1 text-sm font-bold">Carlog</span>}
+      {TABS.map((t) => {
+        const layout = compact ? 'flex flex-col items-center gap-0.5 px-0.5 py-2 text-[11px] whitespace-nowrap min-[360px]:text-xs' : 'flex items-center gap-1.5 px-2.5 py-2.5 text-[13px]'
+        const cls = `${layout} font-medium ${t.id === active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`
+        const inner = (
+          <>
+            <span aria-hidden="true" className={compact ? 'text-lg leading-none' : undefined}>{t.icon}</span>
+            {t.label}
+          </>
+        )
+        // aba ainda não clicada na demonstração: fosca; a que o cursor está alcançando pulsa
+        const lockCls = control?.locked.has(t.id) ? 'opacity-60 blur-[1.5px]' : ''
+        const ring = control?.heading === t.id ? 'tab-next' : ''
+        return control ? (
+          <button key={t.id} id={`aba-${t.id}`} type="button" role="tab" aria-selected={t.id === active} aria-controls={TAB_PANEL_ID} tabIndex={t.id === active ? 0 : -1} ref={(el) => control.setTabEl(t.id, el)} onClick={() => control.onSelect(t.id)} className={`${cls} cursor-pointer rounded-lg border transition-all duration-500 hover:text-slate-900 dark:hover:text-slate-100 border-transparent ${lockCls} ${ring}`}>
+            {inner}
+          </button>
+        ) : (
+          <span key={t.id} className={cls}>
+            {inner}
+          </span>
+        )
+      })}
+    </div>
   )
   // a chave refaz só o conteúdo ao trocar de aba (e dispara o fade); a barra de abas é a mesma, então o foco do teclado não se perde
   const panel = (
@@ -153,7 +153,7 @@ function ExpenseRow({ title, meta, amount, type, compact }: { title: string; met
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-sm font-semibold">{title}</h3>
-          <p className="muted truncate !text-xs">{meta}</p>
+          <p className={`muted !text-xs ${compact ? 'truncate' : ''}`}>{meta}</p>
         </div>
         <p className="shrink-0 text-base font-bold tabular-nums">{formatCurrency(amount)}</p>
       </div>
@@ -273,7 +273,7 @@ export const FitScreen = memo(function FitScreen({ screen, compact = false }: { 
   const [dims, setDims] = useState({ scale: 1, w: 560, h: 360 })
   useLayoutEffect(() => {
     const el = box.current
-    if (!el) return
+    if (!el || compact) return // no celular a janela não é reduzida: nada a medir
     // largura 0 (ainda sem layout ou escondida) daria escala 0 e a tela sumiria: ignora; e arredonda para não renderizar por fração de pixel
     const fit = () => {
       const cw = el.clientWidth
@@ -287,7 +287,7 @@ export const FitScreen = memo(function FitScreen({ screen, compact = false }: { 
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit)
     observer?.observe(el)
     return () => observer?.disconnect()
-  }, [])
+  }, [compact])
   // celular: sem reduzir (a escala de 0,64 deixava o texto minúsculo); a janela ocupa a largura toda, numa altura fixa de aparelho
   if (compact) {
     return (
