@@ -22,7 +22,6 @@ const LEN = WEIGHTS.reduce((a, b) => a + b, 0)
  * 4 salvar é tocado e o aviso "Gasto salvo" aparece (o cronômetro para).
  * Entre dois números, cada pedaço se anima por `ramp` (ver `lib/wheel.ts`); nada aparece antes da sua vez.
  */
-const SCENE = 5 // momentos 0 a 4; depois do 4 há só uma pausa
 const SAVED = 4 // posição em que o gasto está salvo
 
 /** Chegada "de fora da tela": o pedaço vem de além da borda (cima, direita ou baixo) e desacelera ao chegar no card. */
@@ -56,13 +55,13 @@ const Caret = () => <span className="caret ml-0.5 h-5 w-0.5 shrink-0 bg-blue-600
 /**
  * Seção "Menos de um minuto por gasto": a janela "Novo gasto" começa vazia e fixa na tela; conforme você rola, os campos
  * entram um a um e se preenchem sozinhos (descrição digitada devagar, valor, tipo, fotos, salvar) enquanto um cronômetro
- * corre ao lado e para no "Gasto salvo". Mesma conta de rolagem do seletor da seção 2 (`useWheel`), só que mais lenta.
+ * corre ao lado e para no "Gasto salvo". Mesma conta de rolagem da seção 4 (`useWheel`), só que mais lenta.
  * Sem movimento, mostra a cena pronta.
  */
 export function FeatureDemo() {
   const [pos, setPos] = useState(0)
   // a cena só precisa de ~1 mudança por centésimo; evita renderizar a cada pixel de rolagem
-  const { ref, goTo } = useWheel(SCENE, { tau: 200, dwell: 0.2, weights: WEIGHTS, staticPosition: SAVED, onPosition: (p) => setPos(Math.round(p * 100) / 100) })
+  const { ref, goTo } = useWheel({ tau: 200, dwell: 0.2, weights: WEIGHTS, staticPosition: SAVED, onPosition: (p) => setPos(Math.round(p * 100) / 100) })
   // -1 antes de a demonstração começar: nenhum passo marcado ainda
   const step = pos < 0.06 ? -1 : Math.max(0, Math.min(STEPS.length - 1, Math.round(pos) - 1))
   const saved = pos >= SAVED - 0.1
@@ -110,7 +109,7 @@ export function FeatureDemo() {
   const toastIn = r(3.68, 3.9)
 
   return (
-    <section ref={ref} id="cadastrar" aria-labelledby="cadastrar-titulo" className="wheel-section demo-section demo-bg relative" style={{ '--n': SCENE, '--len': LEN } as CSSProperties}>
+    <section ref={ref} id="cadastrar" aria-labelledby="cadastrar-titulo" className="demo-section demo-bg relative" style={{ '--len': LEN } as CSSProperties}>
       <div className="wheel-stage flex items-center">
         <div className="mx-auto grid w-full max-w-6xl items-center gap-4 px-4 lg:grid-cols-[380px_1fr] lg:gap-16">
           <div ref={intro}>

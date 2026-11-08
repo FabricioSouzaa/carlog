@@ -163,10 +163,18 @@ export function SectionRail() {
                   {/* o nome da seção, à esquerda da rua (só em telas largas) */}
                   <span
                     aria-hidden="true"
-                    className={`pointer-events-none absolute top-1/2 right-full mr-3 hidden -translate-y-1/2 items-center gap-2 rounded-full border border-white/20 bg-slate-900/80 px-3 py-1.5 text-[13px] font-medium whitespace-nowrap text-white transition-opacity duration-300 motion-reduce:transition-none group-focus-within:opacity-100 group-hover:opacity-100 md:flex ${showLabel ? 'opacity-100' : 'opacity-0'}`}
+                    className={`pointer-events-none absolute top-1/2 right-full mr-3 hidden -translate-y-1/2 items-center gap-2 rounded-full border border-white/20 bg-slate-900/80 px-3 py-1.5 text-[13px] font-medium whitespace-nowrap text-white transition-opacity duration-300 motion-reduce:transition-none group-focus-within:opacity-100 group-hover:opacity-100 md:flex ${showLabel ? 'opacity-100' : 'opacity-0'} ${showLabel && atStart && i === 0 ? 'rail-here' : ''}`}
                   >
-                    {atStart && i === 0 ? (
-                      'Você está aqui'
+                    {i === 0 ? (
+                      /* "Você está aqui" é o texto do início; o nome ("Início") só aparece quando a pessoa mexe no trilho à mão (mouse ou foco).
+                         Como o texto não troca ao começar a rolar, o rótulo some sem piscar "Início". */
+                      <>
+                        <span className="group-focus-within:hidden group-hover:hidden">Você está aqui</span>
+                        <span className="hidden items-center gap-2 group-focus-within:flex group-hover:flex">
+                          <span className="font-display text-xs font-bold text-blue-300">01</span>
+                          {label}
+                        </span>
+                      </>
                     ) : (
                       <>
                         <span className="font-display text-xs font-bold text-blue-300">0{i + 1}</span>
@@ -181,6 +189,8 @@ export function SectionRail() {
 
           {/* o carrinho: desce pela rua conforme a rolagem */}
           <span ref={pin} aria-hidden="true" className="rail-pin pointer-events-none absolute top-0 left-1/2" style={{ '--pos': 0 } as CSSProperties}>
+            {/* no começo da página o carrinho pulsa só no celular (lá não há rótulo); no computador quem pulsa é o rótulo, para não somar duas animações de sombra */}
+            {atStart && <span className="rail-here absolute top-1/2 left-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full md:hidden" />}
             <Car />
           </span>
         </div>
