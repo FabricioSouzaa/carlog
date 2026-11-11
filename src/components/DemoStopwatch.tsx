@@ -1,11 +1,20 @@
+import { useEffect, useState } from 'react'
 import { formatStopwatch } from '../lib/stopwatch'
+
+/** A cena (`FeatureDemo`) empurra o estado por aqui: só este componente pequeno renderiza a cada segundo, e não a cena inteira. */
+export type StopwatchSetter = (state: { seconds: number; done: boolean }) => void
 
 /**
  * Cronômetro da demonstração: um anel que enche até 1 minuto e o tempo dentro dele. Quando o gasto é salvo, fica verde e
  * mostra quanto tempo levou. Decorativo (os leitores de tela ignoram): o título da seção já diz "menos de um minuto".
  * No celular encolhe para uma faixa baixa, sem a frase de apoio.
  */
-export function DemoStopwatch({ seconds, done }: { seconds: number; done: boolean }) {
+export function DemoStopwatch({ register }: { register: (setter: StopwatchSetter | null) => void }) {
+  const [{ seconds, done }, setState] = useState({ seconds: 0, done: false })
+  useEffect(() => {
+    register((next) => setState((prev) => (prev.seconds === next.seconds && prev.done === next.done ? prev : next)))
+    return () => register(null)
+  }, [register])
   const frac = Math.min(1, seconds / 60)
   return (
     <div
