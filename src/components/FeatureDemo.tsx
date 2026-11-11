@@ -39,8 +39,8 @@ const flyIn =
   (el, pos) => {
     const r = ramp(pos, a, b)
     const k = Math.pow(1 - r, 3) // 1 longe, 0 no lugar (desacelera no fim)
-    const x = from === 'right' || from === 'downright' ? k * 60 : 0 // vw
-    const y = from === 'up' ? -k * 70 : from === 'down' || from === 'downright' ? k * 60 : 0 // vh
+    const x = from === 'right' || from === 'downright' ? k * (SHORT_FLIGHT ? 35 : 60) : 0 // vw
+    const y = from === 'up' ? -k * (SHORT_FLIGHT ? 35 : 70) : from === 'down' || from === 'downright' ? k * (SHORT_FLIGHT ? 35 : 60) : 0 // vh
     el.style.opacity = String(Math.min(1, r * 2.4))
     el.style.transform = `translate(${x}vw, ${y}vh)`
   }
@@ -70,13 +70,20 @@ const photo =
   }
 
 /*
- * Camadas próprias (`will-change`): comparadas no iPhone em vídeo. Com camada em TODOS os campos que voam o passo 3 -> 4 fica liso mas o 1 -> 2
- * trava (os campos de cima e de baixo começam fora da tela e cada camada paga o desenho na primeira aparição); sem nenhuma, o 1 -> 2 fica liso e
- * o 3 -> 4 volta a travar (o botão "Salvar" afunda e ganha o anel, e sem camada é redesenhado dentro do cartão a cada quadro). Padrão: camada só
- * no botão "Salvar". `?camadas=todas` e `?camadas=nenhuma` ligam as outras duas, para comparar (teste temporário: sai depois da decisão).
+ * Camadas próprias (`will-change`) nos pedaços da cena, comparadas no iPhone em vídeo e no aparelho (três versões):
+ * - em TODOS os campos que voam: o passo 3 -> 4 fica liso, o 1 -> 2 trava. É o padrão;
+ * - em NENHUM: o 1 -> 2 fica liso, o 3 -> 4 trava;
+ * - só no botão "Salvar": pior que as duas (trava nos dois).
+ * `?camadas=nenhuma` e `?camadas=salvar` ligam as outras (teste temporário: sai depois da decisão).
  */
-const LAYER_MODE = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('camadas') : null
-const SCENE_LAYER = LAYER_MODE === 'todas' ? 'scene-layer' : ''
+const QUERY = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams()
+const LAYER_MODE = QUERY.get('camadas')
+/* Dois ajustes para o 1 -> 2 (que trava com camadas em todos os campos), ligáveis para comparar no aparelho: `?aquecer=1` mostra cada campo por
+   2 quadros a 2% de opacidade quando a seção entra na tela, para o navegador criar e desenhar as camadas ANTES de elas aparecerem de verdade;
+   `?voo=curto` encurta a distância de que os campos de cima e de baixo chegam (já começam perto da tela). Testes temporários. */
+const PREWARM = QUERY.has('aquecer')
+const SHORT_FLIGHT = QUERY.get('voo') === 'curto'
+const SCENE_LAYER = LAYER_MODE === 'nenhuma' || LAYER_MODE === 'salvar' ? '' : 'scene-layer'
 const SAVE_LAYER = LAYER_MODE === 'nenhuma' ? '' : 'scene-layer'
 
 /** O que depende da posição mas só muda de vez em quando: é o que passa pelo React. */
@@ -151,6 +158,33 @@ export function FeatureDemo() {
     setD((prev) => (sameDiscrete(prev, next) ? prev : next))
   }
   const { ref, goTo } = useWheel({ tau: 200, dwell: 0.2, weights: WEIGHTS, staticPosition: SAVED, onPosition })
+
+  // aquecimento das camadas (teste `?aquecer=1`): ao entrar na tela, os pedaços com camada aparecem por 2 quadros a 2% e voltam à posição certa
+  useEffect(() => {
+    const section = ref.current
+    if (!PREWARM || !section || typeof IntersectionObserver === 'undefined') return
+    let raf = 0
+    const io = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || posRef.current > 0.3) return
+      io.disconnect()
+      const layered = [...nodes.current.values()].filter(({ el }) => el.classList.contains('scene-layer'))
+      for (const { el } of layered) {
+        el.style.opacity = '0.02'
+        el.style.transform = 'none'
+      }
+      void section.offsetHeight // força o navegador a criar e desenhar as camadas agora
+      raf = requestAnimationFrame(() => {
+        raf = requestAnimationFrame(() => {
+          for (const { el, apply } of layered) apply(el, posRef.current) // volta ao estado da posição atual
+        })
+      })
+    })
+    io.observe(section)
+    return () => {
+      io.disconnect()
+      cancelAnimationFrame(raf)
+    }
+  }, [ref])
 
   const intro = useRef<HTMLDivElement>(null)
   const fit = useRef<HTMLDivElement>(null)
