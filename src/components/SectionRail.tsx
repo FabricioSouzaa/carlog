@@ -82,15 +82,13 @@ export function SectionRail() {
      * quadro) e o carrinho, movido por JavaScript, alternava entre andar 0 e 3,5 px por quadro. Os pontos-chave são os mesmos de `railPosition`
      * (o topo de cada seção, em fração da rolagem total); entre eles a posição é linear. Sem suporte, vale o JavaScript abaixo.
      */
+    let signature = '' // os pontos-chave da animação atual: se uma nova medida der os mesmos, não há o que refazer
     const buildTimeline = () => {
-      anims.forEach((a) => a.cancel())
-      anims = []
       const Timeline = scrollTimelineCtor()
       const pinEl = pin.current
       const fillEl = fill.current
       // a faixa de rolagem da linha do tempo é `scrollHeight - clientHeight` do documento: é essa a conta que precisa bater
       const maxScroll = docHeight - document.documentElement.clientHeight
-      builtView = window.innerHeight
       const last = tops.length - 1
       if (!Timeline || !pinEl || !fillEl || maxScroll <= 0 || last < 1 || typeof KeyframeEffect === 'undefined') return
       try {
@@ -100,19 +98,30 @@ export function SectionRail() {
         for (let i = 1; i < stops.length; i++) stops[i].offset = Math.max(stops[i].offset, stops[i - 1].offset) // os deslocamentos não podem voltar
         if (stops[0].offset > 0) stops.unshift({ offset: 0, k: 0 })
         if (stops[stops.length - 1].offset < 1) stops.push({ offset: 1, k: last })
+        builtView = window.innerHeight
+        const sig = stops.map((x) => `${x.k}:${x.offset.toFixed(4)}`).join('|')
+        if (anims.length === 2 && sig === signature) return // nada mudou
+        signature = sig
+        const pinFrames: Keyframe[] = stops.map(({ offset, k }) => ({ offset, transform: `translate(-50%, calc(${k} * (var(--d) + var(--gap)) + var(--d) / 2 - 50%))` }))
+        const fillFrames: Keyframe[] = stops.map(({ offset, k }) => ({ offset, transform: `scaleY(${k / last})` }))
+        if (anims.length === 2) {
+          // troca os pontos NO LUGAR: cancelar e recriar deixava o carrinho sem animação por um quadro, e ele aparecia no início (era o "piscar"
+          // visto em vídeo de iPhone enquanto a barra do Safari animava e a altura da janela mudava a cada quadro)
+          ;(anims[0].effect as KeyframeEffect).setKeyframes(pinFrames)
+          ;(anims[1].effect as KeyframeEffect).setKeyframes(fillFrames)
+          return
+        }
         const timeline = new Timeline({ source: document.scrollingElement ?? document.documentElement })
         const run = (el: HTMLElement, frames: Keyframe[]) => {
           const anim = new Animation(new KeyframeEffect(el, frames, { fill: 'both', easing: 'linear' }), timeline)
           anim.play()
           return anim
         }
-        anims = [
-          run(pinEl, stops.map(({ offset, k }) => ({ offset, transform: `translate(-50%, calc(${k} * (var(--d) + var(--gap)) + var(--d) / 2 - 50%))` }))),
-          run(fillEl, stops.map(({ offset, k }) => ({ offset, transform: `scaleY(${k / last})` }))),
-        ]
+        anims = [run(pinEl, pinFrames), run(fillEl, fillFrames)]
       } catch {
         anims.forEach((a) => a.cancel())
         anims = [] // qualquer falha: fica o JavaScript
+        signature = ''
       }
     }
     const measure = () => {
@@ -126,7 +135,9 @@ export function SectionRail() {
     let frame = 0
     const update = () => {
       frame = 0
-      if (anims.length > 0 && window.innerHeight !== builtView) measure() // a janela mudou de altura sem avisar: refaz as medidas e a animação
+      // a janela mudou MUITO de altura sem avisar (a emulação do Chrome começa em 1466 e vai a 844): refaz as medidas. Variações pequenas (a barra do
+      // Safari do iPhone encolhendo e voltando) não pedem nada: o carrinho erra menos de 2 px e refazer a cada quadro de animação da barra custava caro
+      if (anims.length > 0 && Math.abs(window.innerHeight - builtView) > builtView * 0.1) measure()
       const pos = railPosition(tops, window.scrollY, window.innerHeight, docHeight)
       // a posição vai só para os dois elementos que a usam: escrever na `nav` obrigaria o navegador a revisar o estilo do trilho inteiro a cada frame
       if (anims.length === 0) {
