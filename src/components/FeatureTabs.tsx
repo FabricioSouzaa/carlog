@@ -48,6 +48,8 @@ export function FeatureTabs() {
   const [press, setPress] = useState(0)
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)')
   const touch = useMediaQuery('(hover: none)')
+  // abaixo de 600 px a janela vira um aparelho de celular (abas embaixo, telas compactas, sem reduzir); a escala de 0,64 deixava o texto minúsculo
+  const phone = useMediaQuery('(max-width: 599px)')
   useEffect(() => {
     pausedRef.current = paused
   })
@@ -197,11 +199,12 @@ export function FeatureTabs() {
       <div className="mx-auto mt-10 w-full max-w-[820px]">
         {/* quem chega pelo teclado e põe o foco na janela pausa a demonstração (senão a tela e a aba mudariam sozinhas debaixo do foco) */}
         <div ref={stage} className="relative" onFocusCapture={(e) => { if ((e.target as HTMLElement).matches(':focus-visible')) setPaused(true) }}>
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.14)] dark:border-slate-800 dark:bg-slate-900">
+          {/* celular: moldura de aparelho (estreita, cantos bem redondos); computador: janela */}
+          <div className={`overflow-hidden border bg-white shadow-[0_24px_60px_rgba(15,23,42,0.14)] dark:bg-slate-900 ${phone ? 'mx-auto max-w-[340px] rounded-[2rem] border-2 border-slate-300 dark:border-slate-700' : 'rounded-2xl border-slate-200 dark:border-slate-800'}`}>
             {/* embaçada até o cursor clicar em "Visão geral": entra em foco e o conteúdo acontece */}
             <div className={`transition-[filter,opacity] duration-700 motion-reduce:transition-none ${frosted ? 'opacity-60 blur-[7px]' : ''}`}>
               <TabsControlProvider value={control}>
-                <FitScreen screen={current.id} />
+                <FitScreen screen={current.id} compact={phone} />
               </TabsControlProvider>
             </div>
           </div>
