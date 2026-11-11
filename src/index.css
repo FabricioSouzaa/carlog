@@ -193,8 +193,11 @@ body {
     .demo-track {
       display: flex;
     }
+    /* as legendas trocam de opacidade e posição a cada quadro (uma entra enquanto a outra sai): em camada própria o texto grande é desenhado
+       uma vez e só é composto; sem isso era redesenhado a cada quadro do passo 3 -> 4 */
     .demo-legend {
       display: block;
+      will-change: transform, opacity;
     }
     .demo-stopwatch {
       display: flex;
@@ -419,16 +422,29 @@ body {
   border-radius: 22px;
   border: 1px solid rgb(226 232 240 / 0.9);
   background: #fff;
-  box-shadow:
-    0 0 0 1px rgb(147 197 253 / 0.25),
-    0 30px 90px rgb(2 6 23 / 0.55);
+  box-shadow: 0 0 0 1px rgb(147 197 253 / 0.25);
   will-change: transform, opacity;
+}
+/*
+ * A sombra grande do cartão vive num elemento à parte, atrás dele: dentro do cartão ela fazia parte da camada que é repintada a cada
+ * quadro de rolagem (campos entrando, texto digitado), e desfocar 90 px de sombra de novo em cada repintura pesa muito no celular.
+ * Separada, a sombra é desenhada uma vez e só é composta.
+ */
+.demo-shadow {
+  border-radius: 22px;
+  box-shadow: 0 30px 90px rgb(2 6 23 / 0.55);
+  will-change: transform;
+  pointer-events: none;
 }
 @media (prefers-color-scheme: dark) {
   .demo-card {
     border-color: rgb(30 41 59);
     background: rgb(15 23 42);
   }
+}
+/* camada própria (`will-change`) nos pedaços da cena que mudam todo quadro: ver `LAYER_MODE` em `FeatureDemo.tsx` para onde ela vale e por quê. */
+.scene-layer {
+  will-change: transform, opacity;
 }
 .demo-glow {
   position: absolute;
@@ -456,6 +472,7 @@ body {
   font-size: 14px;
   font-weight: 600;
   box-shadow: 0 8px 24px rgb(2 6 23 / 0.35);
+  will-change: transform, opacity; /* entra por opacidade e posição, junto com o toque em salvar */
 }
 @media (prefers-color-scheme: dark) {
   .demo-toast {
