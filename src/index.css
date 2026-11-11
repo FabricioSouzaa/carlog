@@ -442,9 +442,7 @@ body {
     background: rgb(15 23 42);
   }
 }
-/* camada própria (`will-change`) nos campos que voam: DESLIGADA por padrão. Medido no WebKit, com ela o ritmo ficou em ~23 ms por quadro
-   (~43 fps) e sem ela em ~17-21 ms; no iPhone os campos de cima e de baixo começam fora da tela e a camada paga o desenho na primeira
-   aparição. `?camadas=1` na URL liga, só para comparar no aparelho (ver `SCENE_LAYER` em `FeatureDemo.tsx`). */
+/* camada própria (`will-change`) nos pedaços da cena que mudam todo quadro: ver `LAYER_MODE` em `FeatureDemo.tsx` para onde ela vale e por quê. */
 .scene-layer {
   will-change: transform, opacity;
 }

@@ -70,11 +70,14 @@ const photo =
   }
 
 /*
- * Camadas próprias (`will-change`) nos campos que voam: a hipótese é que cada uma paga o custo de ser desenhada na PRIMEIRA vez que entra na
- * vista (os campos de cima e de baixo começam fora da tela), e que isso trava os passos com campos voando no iPhone. Para comparar no aparelho,
- * o padrão é SEM camadas e `?camadas=1` na URL liga. (Teste temporário: sai assim que a comparação decidir.)
+ * Camadas próprias (`will-change`): comparadas no iPhone em vídeo. Com camada em TODOS os campos que voam o passo 3 -> 4 fica liso mas o 1 -> 2
+ * trava (os campos de cima e de baixo começam fora da tela e cada camada paga o desenho na primeira aparição); sem nenhuma, o 1 -> 2 fica liso e
+ * o 3 -> 4 volta a travar (o botão "Salvar" afunda e ganha o anel, e sem camada é redesenhado dentro do cartão a cada quadro). Padrão: camada só
+ * no botão "Salvar". `?camadas=todas` e `?camadas=nenhuma` ligam as outras duas, para comparar (teste temporário: sai depois da decisão).
  */
-const SCENE_LAYER = typeof location !== 'undefined' && new URLSearchParams(location.search).has('camadas') ? 'scene-layer' : ''
+const LAYER_MODE = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('camadas') : null
+const SCENE_LAYER = LAYER_MODE === 'todas' ? 'scene-layer' : ''
+const SAVE_LAYER = LAYER_MODE === 'nenhuma' ? '' : 'scene-layer'
 
 /** O que depende da posição mas só muda de vez em quando: é o que passa pelo React. */
 interface Discrete {
@@ -326,7 +329,7 @@ export function FeatureDemo() {
                       </div>
                     </div>
                   </div>
-                  <div ref={bind('salvar', flyIn('down', 2.7, 2.94))} className={`${SCENE_LAYER} px-5 pb-5 lg:px-7 lg:pb-7`}>
+                  <div ref={bind('salvar', flyIn('down', 2.7, 2.94))} className={`${SAVE_LAYER} px-5 pb-5 lg:px-7 lg:pb-7`}>
                     {/* o toque em "Salvar": o botão afunda um pouco e um anel aparece (por opacidade; animar um `box-shadow` por quadro repinta o cartão) */}
                     <div
                       ref={bind('salvar-botao', (el, pos) => (el.style.transform = `scale(${1 - ramp(pos, 3.45, 3.6) * 0.015})`))}
