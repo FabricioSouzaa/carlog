@@ -6,6 +6,7 @@ import { TypeBadge } from './ui'
  * Réplicas estáticas das telas do app para a landing, com dados fictícios (nada vem de conta nenhuma).
  * Usam as mesmas classes e o mesmo TypeBadge das telas reais, para parecerem o app de verdade.
  * Desenhadas para um quadro de 560x360 px (ou maior, se houver espaço) e ajustadas por `FitScreen`; o que não cabe é recortado.
+ * No celular (`compact`) a janela ocupa a largura toda, sem reduzir, com a barra de abas embaixo e telas com menos elementos por linha.
  */
 
 
@@ -39,8 +40,11 @@ export const TAB_PANEL_ID = 'painel-do-app'
 const TabsControlContext = createContext<TabsControl | null>(null)
 export const TabsControlProvider = TabsControlContext.Provider
 
-/** A "janela" do app: barra de abas (como a do app) e o conteúdo da tela (cada tela devolve só o conteúdo). */
-function AppWindow({ active, children }: { active: ScreenId; children: ReactNode }) {
+/**
+ * A "janela" do app: barra de abas (como a do app) e o conteúdo da tela (cada tela devolve só o conteúdo).
+ * No modo `compact` (celular) a barra vai EMBAIXO, com o ícone sobre o nome, como o app de verdade no celular.
+ */
+function AppWindow({ active, compact, children }: { active: ScreenId; compact: boolean; children: ReactNode }) {
   const control = useContext(TabsControlContext)
   // teclado do padrão "abas": setas movem entre elas, Home e End vão às pontas (só uma aba fica na ordem do Tab)
   const onKeyDown = (e: KeyboardEvent) => {
@@ -52,38 +56,50 @@ function AppWindow({ active, children }: { active: ScreenId; children: ReactNode
     control.onSelect(TABS[next].id)
     control.focusTab(TABS[next].id)
   }
-  return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <div role={control ? 'tablist' : undefined} aria-label={control ? 'Telas do app' : undefined} onKeyDown={onKeyDown} className="flex shrink-0 items-center gap-1 border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900">
-        <span role={control ? 'presentation' : undefined} className="mr-3 rounded-lg px-2 py-1 text-sm font-bold">Carlog</span>
-        {TABS.map((t) => {
-          const cls = `flex items-center gap-1.5 px-2.5 py-2.5 text-[13px] font-medium ${t.id === active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`
-          const inner = (
-            <>
-              <span aria-hidden="true">{t.icon}</span>
-              {t.label}
-            </>
-          )
-          // aba ainda não clicada na demonstração: fosca; a que o cursor está alcançando pulsa
-          const lockCls = control?.locked.has(t.id) ? 'opacity-60 blur-[1.5px]' : ''
-          const ring = control?.heading === t.id ? 'tab-next' : ''
-          return control ? (
-            <button key={t.id} id={`aba-${t.id}`} type="button" role="tab" aria-selected={t.id === active} aria-controls={TAB_PANEL_ID} tabIndex={t.id === active ? 0 : -1} ref={(el) => control.setTabEl(t.id, el)} onClick={() => control.onSelect(t.id)} className={`${cls} cursor-pointer rounded-lg border transition-all duration-500 hover:text-slate-900 dark:hover:text-slate-100 border-transparent ${lockCls} ${ring}`}>
-              {inner}
-            </button>
-          ) : (
-            <span key={t.id} className={cls}>
-              {inner}
-            </span>
-          )
-        })}
-      </div>
-      {/* a chave refaz só o conteúdo ao trocar de aba (e dispara o fade); a barra de abas é a mesma, então o foco do teclado não se perde */}
-      <div key={`${active}:${control?.epoch ?? 0}`} id={control ? TAB_PANEL_ID : undefined} role={control ? 'tabpanel' : undefined} aria-labelledby={control ? `aba-${active}` : undefined} className="tab-screen-in min-h-0 flex-1 space-y-3 overflow-hidden p-4">
-        {children}
-      </div>
+  const bar = (
+    <div key="barra" role={control ? 'tablist' : undefined} aria-label={control ? 'Telas do app' : undefined} onKeyDown={onKeyDown} className={compact ? 'grid shrink-0 grid-cols-4 border-t border-slate-200 bg-white px-1 pb-1 dark:border-slate-800 dark:bg-slate-900' : 'flex shrink-0 items-center gap-1 border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-900'}>
+      {!compact && <span role={control ? 'presentation' : undefined} className="mr-3 rounded-lg px-2 py-1 text-sm font-bold">Carlog</span>}
+      {TABS.map((t) => {
+        const layout = compact ? 'flex flex-col items-center gap-0.5 px-0.5 py-2 text-[11px] whitespace-nowrap min-[360px]:text-xs' : 'flex items-center gap-1.5 px-2.5 py-2.5 text-[13px]'
+        const cls = `${layout} font-medium ${t.id === active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`
+        const inner = (
+          <>
+            <span aria-hidden="true" className={compact ? 'text-lg leading-none' : undefined}>{t.icon}</span>
+            {t.label}
+          </>
+        )
+        // aba ainda não clicada na demonstração: fosca; a que o cursor está alcançando pulsa
+        const lockCls = control?.locked.has(t.id) ? 'opacity-60 blur-[1.5px]' : ''
+        const ring = control?.heading === t.id ? 'tab-next' : ''
+        return control ? (
+          <button key={t.id} id={`aba-${t.id}`} type="button" role="tab" aria-selected={t.id === active} aria-controls={TAB_PANEL_ID} tabIndex={t.id === active ? 0 : -1} ref={(el) => control.setTabEl(t.id, el)} onClick={() => control.onSelect(t.id)} className={`${cls} cursor-pointer rounded-lg border transition-all duration-500 hover:text-slate-900 dark:hover:text-slate-100 border-transparent ${lockCls} ${ring}`}>
+            {inner}
+          </button>
+        ) : (
+          <span key={t.id} className={cls}>
+            {inner}
+          </span>
+        )
+      })}
     </div>
   )
+  // a chave refaz só o conteúdo ao trocar de aba (e dispara o fade); a barra de abas é a mesma, então o foco do teclado não se perde
+  const panel = (
+    <div key={`${active}:${control?.epoch ?? 0}`} id={control ? TAB_PANEL_ID : undefined} role={control ? 'tabpanel' : undefined} aria-labelledby={control ? `aba-${active}` : undefined} className="tab-screen-in min-h-0 flex-1 space-y-3 overflow-hidden p-4">
+      {children}
+    </div>
+  )
+  return (
+    <div className="flex h-full w-full flex-col overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      {compact ? panel : bar}
+      {compact ? bar : panel}
+    </div>
+  )
+}
+
+/** `compact`: versão de celular (largura de uns 300 px), com menos elementos por linha. */
+interface ScreenProps {
+  compact: boolean
 }
 
 const Stat = ({ label, value }: { label: string; value: string }) => (
@@ -95,17 +111,17 @@ const Stat = ({ label, value }: { label: string; value: string }) => (
 
 const MONTHS = [28, 46, 37, 63, 50, 86, 69, 44, 60, 79, 53, 100]
 
-function Overview() {
+function Overview({ compact }: ScreenProps) {
   return (
     <>
-      <div className="grid grid-cols-3 gap-3">
+      <div className={`grid gap-3 ${compact ? 'grid-cols-2' : 'grid-cols-3'}`}>
         <Stat label="Total gasto" value={formatCurrency(18742.3)} />
         <Stat label="Este mês" value={formatCurrency(1230)} />
-        <Stat label="Custo por km" value={formatCurrency(0.38)} />
+        {!compact && <Stat label="Custo por km" value={formatCurrency(0.38)} />}
       </div>
       <section className="card !p-3">
         <h2 className="mb-2 text-sm font-semibold">Gasto por mês (últimos 12 meses)</h2>
-        <div className="flex h-24 items-end gap-2">
+        <div className={`flex items-end gap-2 ${compact ? 'h-20' : 'h-24'}`}>
           {MONTHS.map((h, i) => (
             <div key={i} className="bar-grow flex-1 rounded-t" style={{ height: `${h}%`, background: 'var(--series-1)', animationDelay: `${150 + i * 40}ms` }} />
           ))}
@@ -131,25 +147,25 @@ function Overview() {
   )
 }
 
-function ExpenseRow({ title, meta, amount, type }: { title: string; meta: string; amount: number; type: 'maintenance' | 'upgrade' | 'routine' }) {
+function ExpenseRow({ title, meta, amount, type, compact }: { title: string; meta: string; amount: number; type: 'maintenance' | 'upgrade' | 'routine'; compact: boolean }) {
   return (
     <article className="card !p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-sm font-semibold">{title}</h3>
-          <p className="muted !text-xs">{meta}</p>
+          <p className={`muted !text-xs ${compact ? 'truncate' : ''}`}>{meta}</p>
         </div>
         <p className="shrink-0 text-base font-bold tabular-nums">{formatCurrency(amount)}</p>
       </div>
       <div className="mt-2 flex items-center justify-between">
         <TypeBadge type={type} />
-        <span className="text-xs text-slate-400">Editar · Excluir</span>
+        {!compact && <span className="text-xs text-slate-400">Editar · Excluir</span>}
       </div>
     </article>
   )
 }
 
-function Expenses() {
+function Expenses({ compact }: ScreenProps) {
   return (
     <>
       <div className="flex items-end justify-between">
@@ -160,20 +176,20 @@ function Expenses() {
         </p>
       </div>
       <div className="flex gap-2 text-xs">
-        {['Todas as categorias', 'Todos os tipos', 'Este ano'].map((f) => (
+        {(compact ? ['Categoria', 'Este ano'] : ['Todas as categorias', 'Todos os tipos', 'Este ano']).map((f) => (
           <span key={f} className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
             {f}
           </span>
         ))}
       </div>
-      <ExpenseRow title="Troca de óleo e filtro" meta={`${formatDate(daysAgoISO(1))} · Manutenção · ${formatKm(48200)}`} amount={389.9} type="maintenance" />
-      <ExpenseRow title="Polimento técnico" meta={`${formatDate(daysAgoISO(9))} · Lavagem/Estética`} amount={450} type="upgrade" />
-      <ExpenseRow title="Abastecimento" meta={`${formatDate(daysAgoISO(14))} · Combustível · ${formatKm(47900)}`} amount={210} type="routine" />
+      <ExpenseRow title="Troca de óleo e filtro" meta={`${formatDate(daysAgoISO(1))} · Manutenção · ${formatKm(48200)}`} amount={389.9} type="maintenance" compact={compact} />
+      <ExpenseRow title="Polimento técnico" meta={`${formatDate(daysAgoISO(9))} · Lavagem/Estética`} amount={450} type="upgrade" compact={compact} />
+      <ExpenseRow title="Abastecimento" meta={`${formatDate(daysAgoISO(14))} · Combustível · ${formatKm(47900)}`} amount={210} type="routine" compact={compact} />
     </>
   )
 }
 
-function Planned() {
+function Planned({ compact }: ScreenProps) {
   return (
     <>
       <h1 className="text-xl font-bold">Planejados</h1>
@@ -194,7 +210,7 @@ function Planned() {
             <TypeBadge type="upgrade" />
             <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-950 dark:text-red-300">Prioridade alta</span>
           </div>
-          <span className="btn-primary pointer-events-none !px-2.5 !py-1.5 !text-xs">Marcar como realizado</span>
+          {!compact && <span className="btn-primary pointer-events-none !px-2.5 !py-1.5 !text-xs">Marcar como realizado</span>}
         </div>
       </article>
       <article className="card !p-3">
@@ -234,7 +250,7 @@ function Settings() {
   )
 }
 
-const SCREENS: Record<TabId, () => ReactNode> = {
+const SCREENS: Record<TabId, (props: ScreenProps) => ReactNode> = {
   visao: Overview,
   gastos: Expenses,
   planejados: Planned,
@@ -243,18 +259,21 @@ const SCREENS: Record<TabId, () => ReactNode> = {
 
 export type ScreenKey = keyof typeof SCREENS
 
+/** Altura da janela no celular (px): cabe o título, os cartões da tela e a barra de abas embaixo. */
+const COMPACT_HEIGHT = 480
+
 /**
  * Mostra a réplica ajustada ao espaço disponível. Com 560 px ou mais ela é desenhada na largura do espaço, em tamanho natural (e mostra
  * mais conteúdo, que as telas já trazem e o quadro recorta quando falta lugar); com menos, é desenhada em 560x360 e reduzida (tudo é DOM,
  * então continua nítida). A altura acompanha.
  */
-export const FitScreen = memo(function FitScreen({ screen }: { screen: TabId }) {
+export const FitScreen = memo(function FitScreen({ screen, compact = false }: { screen: TabId; compact?: boolean }) {
   const Screen = SCREENS[screen]
   const box = useRef<HTMLDivElement>(null)
   const [dims, setDims] = useState({ scale: 1, w: 560, h: 360 })
   useLayoutEffect(() => {
     const el = box.current
-    if (!el) return
+    if (!el || compact) return // no celular a janela não é reduzida: nada a medir
     // largura 0 (ainda sem layout ou escondida) daria escala 0 e a tela sumiria: ignora; e arredonda para não renderizar por fração de pixel
     const fit = () => {
       const cw = el.clientWidth
@@ -268,12 +287,22 @@ export const FitScreen = memo(function FitScreen({ screen }: { screen: TabId }) 
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(fit)
     observer?.observe(el)
     return () => observer?.disconnect()
-  }, [])
+  }, [compact])
+  // celular: sem reduzir (a escala de 0,64 deixava o texto minúsculo); a janela ocupa a largura toda, numa altura fixa de aparelho
+  if (compact) {
+    return (
+      <div ref={box} className="relative w-full overflow-hidden" style={{ height: COMPACT_HEIGHT }}>
+        <AppWindow active={screen} compact>
+          <Screen compact />
+        </AppWindow>
+      </div>
+    )
+  }
   return (
     <div ref={box} className="relative w-full overflow-hidden" style={{ height: dims.h * dims.scale }}>
       <div className="origin-top-left" style={{ width: dims.w, height: dims.h, transform: `scale(${dims.scale})` }}>
-        <AppWindow active={screen}>
-          <Screen />
+        <AppWindow active={screen} compact={false}>
+          <Screen compact={false} />
         </AppWindow>
       </div>
     </div>
