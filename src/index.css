@@ -442,8 +442,9 @@ body {
     background: rgb(15 23 42);
   }
 }
-/* os pedaços da cena que entram por `transform` e `opacity` (aplicados direto no DOM): cada um em camada própria, para o conteúdo ser desenhado
-   uma vez e só composto a cada quadro, em vez de repintar o cartão inteiro */
+/* camada própria (`will-change`) nos campos que voam: DESLIGADA por padrão. Medido no WebKit, com ela o ritmo ficou em ~23 ms por quadro
+   (~43 fps) e sem ela em ~17-21 ms; no iPhone os campos de cima e de baixo começam fora da tela e a camada paga o desenho na primeira
+   aparição. `?camadas=1` na URL liga, só para comparar no aparelho (ver `SCENE_LAYER` em `FeatureDemo.tsx`). */
 .scene-layer {
   will-change: transform, opacity;
 }

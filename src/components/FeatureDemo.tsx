@@ -69,6 +69,13 @@ const photo =
     el.style.transform = `scale(${0.7 + a * 0.3})`
   }
 
+/*
+ * Camadas próprias (`will-change`) nos campos que voam: a hipótese é que cada uma paga o custo de ser desenhada na PRIMEIRA vez que entra na
+ * vista (os campos de cima e de baixo começam fora da tela), e que isso trava os passos com campos voando no iPhone. Para comparar no aparelho,
+ * o padrão é SEM camadas e `?camadas=1` na URL liga. (Teste temporário: sai assim que a comparação decidir.)
+ */
+const SCENE_LAYER = typeof location !== 'undefined' && new URLSearchParams(location.search).has('camadas') ? 'scene-layer' : ''
+
 /** O que depende da posição mas só muda de vez em quando: é o que passa pelo React. */
 interface Discrete {
   step: number // -1 antes de a demonstração começar: nenhum passo marcado ainda
@@ -104,7 +111,7 @@ const sameDiscrete = (a: Discrete, b: Discrete) => (Object.keys(a) as (keyof Dis
 
 function Field({ label, focus = false, innerRef, children }: { label: string; focus?: boolean; innerRef?: Ref<HTMLDivElement>; children?: ReactNode }) {
   return (
-    <div ref={innerRef} className="scene-layer">
+    <div ref={innerRef} className={SCENE_LAYER}>
       <div className="mb-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300">{label}</div>
       <div
         className={`flex h-11 items-center rounded-[10px] border bg-white px-3.5 text-[15px] dark:bg-slate-900 ${focus ? 'border-blue-500 ring-4 ring-blue-500/20' : 'border-slate-300 dark:border-slate-700'}`}
@@ -289,7 +296,7 @@ export function FeatureDemo() {
                       <span ref={bind('categoria-valor', riseIn(1.28, 1.42, 6))}>Manutenção</span>
                       <span className="ml-auto text-slate-400">⌄</span>
                     </Field>
-                    <div ref={bind('tipo', flyIn('down', 1.3, 1.54))} className="scene-layer">
+                    <div ref={bind('tipo', flyIn('down', 1.3, 1.54))} className={SCENE_LAYER}>
                       <div className="mb-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300">Tipo</div>
                       <div className="flex gap-2 text-sm font-medium">
                         {['Manutenção', 'Valorização', 'Rotina'].map((t, i) => {
@@ -304,7 +311,7 @@ export function FeatureDemo() {
                       <Field label="Km (opcional)" innerRef={bind('km', flyIn('right', 1.55, 1.78))}>
                         <span ref={bind('km-valor', riseIn(1.8, 1.92, 6))}>48.200 km</span>
                       </Field>
-                      <div ref={bind('fotos', flyIn('down', 2.02, 2.26))} className="scene-layer">
+                      <div ref={bind('fotos', flyIn('down', 2.02, 2.26))} className={SCENE_LAYER}>
                         <div className="mb-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300">Fotos (até 5)</div>
                         <div className="flex gap-1.5 lg:gap-2">
                           {[0, 1].map((i) => (
@@ -319,7 +326,7 @@ export function FeatureDemo() {
                       </div>
                     </div>
                   </div>
-                  <div ref={bind('salvar', flyIn('down', 2.7, 2.94))} className="scene-layer px-5 pb-5 lg:px-7 lg:pb-7">
+                  <div ref={bind('salvar', flyIn('down', 2.7, 2.94))} className={`${SCENE_LAYER} px-5 pb-5 lg:px-7 lg:pb-7`}>
                     {/* o toque em "Salvar": o botão afunda um pouco e um anel aparece (por opacidade; animar um `box-shadow` por quadro repinta o cartão) */}
                     <div
                       ref={bind('salvar-botao', (el, pos) => (el.style.transform = `scale(${1 - ramp(pos, 3.45, 3.6) * 0.015})`))}
