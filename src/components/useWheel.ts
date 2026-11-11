@@ -51,7 +51,7 @@ export function useWheel({
       const dt = lastFrame ? Math.min(now - lastFrame, 64) : 16
       lastFrame = now
       current += (target - current) * (1 - Math.exp(-dt / tau))
-      if (Math.abs(target - current) < 0.0005) current = target
+      if (Math.abs(target - current) < 0.002) current = target // ~2 px de rolagem: além disso o fim da curva só gastaria quadros sem se ver
       draw(true)
       if (current !== target) raf = requestAnimationFrame(frame)
       else lastFrame = 0
@@ -82,7 +82,8 @@ export function useWheel({
       target = read()
       if (!raf) raf = requestAnimationFrame(frame)
     }
-    const onResize = () => {
+    // mede de novo e vai para a posição certa (animando)
+    const refresh = () => {
       measure()
       target = read()
       if (!raf) raf = requestAnimationFrame(frame)
@@ -90,25 +91,41 @@ export function useWheel({
     measure()
     target = current = read() // ao carregar, já na posição certa (sem deslizar)
     draw(false)
+    // `--sh` (de onde vêm as alturas) é atualizado um quadro DEPOIS do evento `resize`, e fontes e quebras de linha também mudam as alturas sem
+    // `resize`: quem avisa é um ResizeObserver na seção e no palco (sem ele, as medidas guardadas ficariam velhas)
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(refresh)
+    ro?.observe(el)
+    if (stage) ro?.observe(stage)
     const io =
       typeof IntersectionObserver === 'undefined'
         ? null
         : new IntersectionObserver(
-            ([entry]) => {
-              near = entry.isIntersecting
-              // ao chegar perto a página pode ter mudado de altura desde a última medida; ao sair, a cena assenta no estado certo (começo ou
-              // fim), e não no meio do caminho onde o último evento de rolagem a deixou numa passada rápida
-              onResize()
+            (entries) => {
+              // se vierem vários avisos juntos (rolagem rápida, página ocupada), vale o mais recente
+              near = entries[entries.length - 1].isIntersecting
+              if (near) {
+                refresh() // acabou de chegar perto: a página pode ter mudado de altura desde a última medida
+              } else {
+                // saiu de perto: a cena assenta no estado certo (começo ou fim) de uma vez, fora da vista, e não no meio do caminho onde o
+                // último evento de rolagem a deixou numa passada rápida
+                measure()
+                target = current = read()
+                if (raf) cancelAnimationFrame(raf)
+                raf = 0
+                lastFrame = 0
+                draw(false)
+              }
             },
             { rootMargin: '100% 0px 100% 0px' },
           )
     io?.observe(el)
     window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('resize', onResize)
+    if (!ro) window.addEventListener('resize', refresh)
     return () => {
       io?.disconnect()
+      ro?.disconnect()
       window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('resize', onResize)
+      window.removeEventListener('resize', refresh)
       if (raf) cancelAnimationFrame(raf)
     }
   }, [tau, dwell, weights, staticPosition])
