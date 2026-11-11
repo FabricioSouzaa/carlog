@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { flushSync } from 'react-dom'
 import { scrollTargetFor, weightedPosition, wheelProgress } from '../lib/wheel'
 
 /**
@@ -36,7 +37,14 @@ export function useWheel({
     let target = 0 // posição pedida pela rolagem (em itens)
     let current = 0 // posição desenhada: vai atrás da pedida, para o movimento deslizar
     let raf = 0
-    const draw = () => onPositionRef.current?.(current)
+    // a cada quadro a cena é atualizada e confirmada NO MESMO quadro (`flushSync`): sem isso o React agenda a renderização para depois do
+    // desenho e a cena chega um quadro atrasada em relação à rolagem, de forma irregular quando a página está ocupada
+    const draw = (sync: boolean) => {
+      const fn = onPositionRef.current
+      if (!fn) return
+      if (sync) flushSync(() => fn(current))
+      else fn(current)
+    }
     let lastFrame = 0 // instante do frame anterior, para o amortecimento depender do tempo e não da taxa de quadros
     const frame = (now: number) => {
       raf = 0
@@ -44,7 +52,7 @@ export function useWheel({
       lastFrame = now
       current += (target - current) * (1 - Math.exp(-dt / tau))
       if (Math.abs(target - current) < 0.0005) current = target
-      draw()
+      draw(true)
       if (current !== target) raf = requestAnimationFrame(frame)
       else lastFrame = 0
     }
@@ -52,23 +60,55 @@ export function useWheel({
     // momentos diferentes quando a barra de endereço some, e a conta desencontrava nas pontas
     const stage = el.firstElementChild as HTMLElement | null
     // sem o palco fixo (movimento reduzido ou sem suporte) a seção é um bloco comum e não há o que acompanhar
-    const pinned = () => !!stage && getComputedStyle(stage).position === 'sticky'
+    // o que só muda ao redimensionar (se o palco é fixo e as alturas) fica guardado: ler `getComputedStyle` e `offsetHeight` a cada evento de
+    // rolagem obrigava o navegador a recalcular estilo e layout várias vezes por quadro
+    let isPinned = false
+    let sectionH = 0
+    let stageH = 0
+    const measure = () => {
+      isPinned = !!stage && getComputedStyle(stage).position === 'sticky'
+      sectionH = el.offsetHeight
+      stageH = stage ? stage.offsetHeight : 0
+    }
     const read = () => {
-      if (!pinned()) return staticPosition
-      const p = wheelProgress(el.getBoundingClientRect().top, el.offsetHeight, stage!.offsetHeight)
+      if (!isPinned) return staticPosition
+      const p = wheelProgress(el.getBoundingClientRect().top, sectionH, stageH)
       return weightedPosition(p, weights, dwell)
     }
+    // só acompanha a rolagem enquanto a seção está a até uma tela de distância: longe dela não há nada a desenhar e cada leitura de layout custa
+    let near = typeof IntersectionObserver === 'undefined'
     const onScroll = () => {
+      if (!near) return
       target = read()
       if (!raf) raf = requestAnimationFrame(frame)
     }
+    const onResize = () => {
+      measure()
+      target = read()
+      if (!raf) raf = requestAnimationFrame(frame)
+    }
+    measure()
     target = current = read() // ao carregar, já na posição certa (sem deslizar)
-    draw()
+    draw(false)
+    const io =
+      typeof IntersectionObserver === 'undefined'
+        ? null
+        : new IntersectionObserver(
+            ([entry]) => {
+              near = entry.isIntersecting
+              // ao chegar perto a página pode ter mudado de altura desde a última medida; ao sair, a cena assenta no estado certo (começo ou
+              // fim), e não no meio do caminho onde o último evento de rolagem a deixou numa passada rápida
+              onResize()
+            },
+            { rootMargin: '100% 0px 100% 0px' },
+          )
+    io?.observe(el)
     window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('resize', onScroll)
+    window.addEventListener('resize', onResize)
     return () => {
+      io?.disconnect()
       window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('resize', onScroll)
+      window.removeEventListener('resize', onResize)
       if (raf) cancelAnimationFrame(raf)
     }
   }, [tau, dwell, weights, staticPosition])

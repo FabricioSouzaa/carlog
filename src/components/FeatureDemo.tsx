@@ -60,8 +60,9 @@ const Caret = () => <span className="caret ml-0.5 h-5 w-0.5 shrink-0 bg-blue-600
  */
 export function FeatureDemo() {
   const [pos, setPos] = useState(0)
-  // a cena só precisa de ~1 mudança por centésimo; evita renderizar a cada pixel de rolagem
-  const { ref, goTo } = useWheel({ tau: 200, dwell: 0.2, weights: WEIGHTS, staticPosition: SAVED, onPosition: (p) => setPos(Math.round(p * 100) / 100) })
+  // a posição vai sem arredondar: arredondada a 0,01 (uns 12 px de rolagem) os pedaços que voam de fora da tela andavam 30 a 70 px por passo,
+  // e quem rola devagar via a cena aos saltos. O `useWheel` já entrega no máximo uma posição por quadro.
+  const { ref, goTo } = useWheel({ tau: 200, dwell: 0.2, weights: WEIGHTS, staticPosition: SAVED, onPosition: setPos })
   // -1 antes de a demonstração começar: nenhum passo marcado ainda
   const step = pos < 0.06 ? -1 : Math.max(0, Math.min(STEPS.length - 1, Math.round(pos) - 1))
   const saved = pos >= SAVED - 0.1
@@ -146,17 +147,19 @@ export function FeatureDemo() {
             {/* a trilha: os 5 passos lado a lado; o rastro azul cresce com a rolagem */}
             <ol ref={track} className="demo-track relative mb-3 justify-between lg:mb-6" aria-label="Passos">
               <span aria-hidden="true" className="absolute top-3.5 right-3.5 left-3.5 h-0.5 rounded-full bg-white/15" />
+              {/* o rastro e a bolinha andam só por `transform` (largura e `left` forçariam layout a cada quadro de rolagem) */}
               <span
                 aria-hidden="true"
-                className="absolute top-3.5 left-3.5 h-0.5 rounded-full bg-linear-to-r from-blue-600 to-blue-300"
-                style={{ width: `calc((100% - 28px) * ${r(1, SAVED)})` }}
+                className="absolute top-3.5 right-3.5 left-3.5 h-0.5 origin-left rounded-full bg-linear-to-r from-blue-600 to-blue-300"
+                style={{ transform: `scaleX(${r(1, SAVED)})` }}
               />
               {r(1, SAVED) > 0 && r(1, SAVED) < 1 && (
-                <span
-                  aria-hidden="true"
-                  className="absolute top-[9px] size-3 -translate-x-1/2 rounded-full bg-blue-200 shadow-[0_0_14px_4px_rgb(96_165_250_/_0.9)]"
-                  style={{ left: `calc(14px + (100% - 28px) * ${r(1, SAVED)})` }}
-                />
+                <span aria-hidden="true" className="pointer-events-none absolute top-[9px] right-3.5 left-3.5 h-3">
+                  {/* a faixa de largura total desliza para a esquerda; a bolinha fica na ponta direita dela */}
+                  <span className="absolute inset-0" style={{ transform: `translateX(${(r(1, SAVED) - 1) * 100}%)` }}>
+                    <span className="absolute top-0 right-0 size-3 translate-x-1/2 rounded-full bg-blue-200 shadow-[0_0_14px_4px_rgb(96_165_250_/_0.9)]" />
+                  </span>
+                </span>
               )}
               {STEPS.map((label, i) => {
                 const done = i < step || (i === step && pos >= (i === STEPS.length - 1 ? SAVED - 0.1 : i + 1.95))
@@ -183,6 +186,8 @@ export function FeatureDemo() {
             {/* a janela ocupa a largura disponível (até 680 px); só encolhe se a tela for baixa demais */}
             <div ref={win} className="demo-window absolute top-0 left-0 origin-top-left" style={{ width: `${100 / scale}%`, transform: `scale(${scale})` }}>
               <div className="relative w-full" style={{ height: 'var(--demo-h)' }}>
+                {/* a sombra do cartão, numa camada própria (ver `.demo-shadow` no CSS) */}
+                <div className="demo-shadow absolute inset-0" aria-hidden="true" />
                 {/* cena 1: janela "Novo gasto" — começa vazia */}
                 <div
                   className="demo-card absolute inset-0 flex flex-col"
