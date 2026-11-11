@@ -14,6 +14,10 @@ const STOPS = [
 /** Quanto da primeira tela já foi rolado (fração da altura da janela) até o "Você está aqui" sumir. */
 const START_ZONE = 0.2
 
+/** `ScrollTimeline` (animação ligada à rolagem, no compositor): Chrome e Safari 26+. Fora do `lib.dom` do TypeScript, então o tipo é local. */
+type ScrollTimelineCtor = new (options: { source: Element }) => AnimationTimeline
+const scrollTimelineCtor = (): ScrollTimelineCtor | undefined => (window as unknown as { ScrollTimeline?: ScrollTimelineCtor }).ScrollTimeline
+
 /** O carrinho visto de cima, de frente para baixo (é para onde ele anda). Desenhado em código, como o logo. */
 function Car() {
   return (
@@ -70,21 +74,66 @@ export function SectionRail() {
     // as medidas só mudam ao redimensionar ou quando o conteúdo carrega (a altura da página muda): ficam guardadas e a rolagem só lê `scrollY`
     let tops: number[] = []
     let docHeight = 0
+    let anims: Animation[] = []
+    let builtView = 0 // altura da janela com que a animação foi montada: se mudar sem `resize` (acontece), ela é refeita
+    /*
+     * Onde houver `ScrollTimeline`, o carrinho e o trecho percorrido andam por uma animação LIGADA À ROLAGEM, que o navegador resolve no
+     * compositor, no mesmo passo da página, sem passar pela thread principal. Medido em vídeo de iPhone: a página rolava lisa (60 → 22 px por
+     * quadro) e o carrinho, movido por JavaScript, alternava entre andar 0 e 3,5 px por quadro. Os pontos-chave são os mesmos de `railPosition`
+     * (o topo de cada seção, em fração da rolagem total); entre eles a posição é linear. Sem suporte, vale o JavaScript abaixo.
+     */
+    const buildTimeline = () => {
+      anims.forEach((a) => a.cancel())
+      anims = []
+      const Timeline = scrollTimelineCtor()
+      const pinEl = pin.current
+      const fillEl = fill.current
+      // a faixa de rolagem da linha do tempo é `scrollHeight - clientHeight` do documento: é essa a conta que precisa bater
+      const maxScroll = docHeight - document.documentElement.clientHeight
+      builtView = window.innerHeight
+      const last = tops.length - 1
+      if (!Timeline || !pinEl || !fillEl || maxScroll <= 0 || last < 1 || typeof KeyframeEffect === 'undefined') return
+      try {
+        const points = tops.slice()
+        points[last] = Math.max(Math.min(tops[last], maxScroll), tops[last - 1] + 1) // mesma regra de `railPosition` para a última seção curta
+        const stops = points.map((p, k) => ({ offset: Math.min(1, Math.max(0, p / maxScroll)), k }))
+        for (let i = 1; i < stops.length; i++) stops[i].offset = Math.max(stops[i].offset, stops[i - 1].offset) // os deslocamentos não podem voltar
+        if (stops[0].offset > 0) stops.unshift({ offset: 0, k: 0 })
+        if (stops[stops.length - 1].offset < 1) stops.push({ offset: 1, k: last })
+        const timeline = new Timeline({ source: document.scrollingElement ?? document.documentElement })
+        const run = (el: HTMLElement, frames: Keyframe[]) => {
+          const anim = new Animation(new KeyframeEffect(el, frames, { fill: 'both', easing: 'linear' }), timeline)
+          anim.play()
+          return anim
+        }
+        anims = [
+          run(pinEl, stops.map(({ offset, k }) => ({ offset, transform: `translate(-50%, calc(${k} * (var(--d) + var(--gap)) + var(--d) / 2 - 50%))` }))),
+          run(fillEl, stops.map(({ offset, k }) => ({ offset, transform: `scaleY(${k / last})` }))),
+        ]
+      } catch {
+        anims.forEach((a) => a.cancel())
+        anims = [] // qualquer falha: fica o JavaScript
+      }
+    }
     const measure = () => {
       tops = STOPS.map(({ id }) => {
         const el = document.getElementById(id)
         return el ? el.getBoundingClientRect().top + window.scrollY : 0
       })
       docHeight = document.documentElement.scrollHeight
+      buildTimeline()
     }
     let frame = 0
     const update = () => {
       frame = 0
+      if (anims.length > 0 && window.innerHeight !== builtView) measure() // a janela mudou de altura sem avisar: refaz as medidas e a animação
       const pos = railPosition(tops, window.scrollY, window.innerHeight, docHeight)
       // a posição vai só para os dois elementos que a usam: escrever na `nav` obrigaria o navegador a revisar o estilo do trilho inteiro a cada frame
-      const value = pos.toFixed(3)
-      pin.current?.style.setProperty('--pos', value)
-      fill.current?.style.setProperty('--pos', value)
+      if (anims.length === 0) {
+        const value = pos.toFixed(3)
+        pin.current?.style.setProperty('--pos', value)
+        fill.current?.style.setProperty('--pos', value)
+      }
       const next = { near: Math.round(pos), passed: Math.floor(pos + 0.001), atStart: window.scrollY < window.innerHeight * START_ZONE }
       if (next.near !== seen.current.near) setNear(next.near)
       if (next.passed !== seen.current.passed) setPassed(next.passed)
@@ -102,13 +151,17 @@ export function SectionRail() {
     update()
     window.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', onResize)
-    // as seções fixas e as fontes mudam a altura da página depois de carregar
+    // as seções fixas, as seções que carregam depois e as fontes mudam a altura da página depois de carregar
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(onResize)
     observer?.observe(document.documentElement)
+    // o <html> não cresce quando as últimas seções carregam (a altura da página vive no <body>): sem observar o <body> a altura total e os topos
+    // ficavam como eram na primeira medida (medido: 10.758 px guardados para 11.131 reais) e o carrinho chegava ao fim antes da hora
+    observer?.observe(document.body)
     return () => {
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onResize)
       observer?.disconnect()
+      anims.forEach((a) => a.cancel())
       if (frame) cancelAnimationFrame(frame)
     }
   }, [])

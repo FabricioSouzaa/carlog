@@ -193,8 +193,11 @@ body {
     .demo-track {
       display: flex;
     }
+    /* as legendas trocam de opacidade e posição a cada quadro (uma entra enquanto a outra sai): em camada própria o texto grande é desenhado
+       uma vez e só é composto; sem isso era redesenhado a cada quadro do passo 3 -> 4 */
     .demo-legend {
       display: block;
+      will-change: transform, opacity;
     }
     .demo-stopwatch {
       display: flex;
@@ -465,6 +468,7 @@ body {
   font-size: 14px;
   font-weight: 600;
   box-shadow: 0 8px 24px rgb(2 6 23 / 0.35);
+  will-change: transform, opacity; /* entra por opacidade e posição, junto com o toque em salvar */
 }
 @media (prefers-color-scheme: dark) {
   .demo-toast {

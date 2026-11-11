@@ -156,7 +156,7 @@ export function FeatureDemo() {
               {r(1, SAVED) > 0 && r(1, SAVED) < 1 && (
                 <span aria-hidden="true" className="pointer-events-none absolute top-[9px] right-3.5 left-3.5 h-3">
                   {/* a faixa de largura total desliza para a esquerda; a bolinha fica na ponta direita dela */}
-                  <span className="absolute inset-0" style={{ transform: `translateX(${(r(1, SAVED) - 1) * 100}%)` }}>
+                  <span className="absolute inset-0 will-change-transform" style={{ transform: `translateX(${(r(1, SAVED) - 1) * 100}%)` }}>
                     <span className="absolute top-0 right-0 size-3 translate-x-1/2 rounded-full bg-blue-200 shadow-[0_0_14px_4px_rgb(96_165_250_/_0.9)]" />
                   </span>
                 </span>
