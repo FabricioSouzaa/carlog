@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react'
 import { formatDate, todayISO } from '../lib/format'
 import { demoSeconds } from '../lib/stopwatch'
 import { ramp } from '../lib/wheel'
@@ -24,22 +24,87 @@ const LEN = WEIGHTS.reduce((a, b) => a + b, 0)
  */
 const SAVED = 4 // posição em que o gasto está salvo
 
-/** Chegada "de fora da tela": o pedaço vem de além da borda (cima, direita ou baixo) e desacelera ao chegar no card. */
-type From = 'up' | 'down' | 'right' | 'downright'
-const fly = (r: number, from: From): CSSProperties => {
-  const k = Math.pow(1 - r, 3) // 1 longe, 0 no lugar (desacelera no fim)
-  const x = from === 'right' || from === 'downright' ? k * 60 : 0 // vw
-  const y = from === 'up' ? -k * 70 : from === 'down' || from === 'downright' ? k * 60 : 0 // vh
-  return { opacity: Math.min(1, r * 2.4), transform: `translate(${x}vw, ${y}vh)` }
-}
-/** Entrada de um pedaço pequeno da cena: sobe um pouco e aparece. */
-const show = (r: number, px = 10): CSSProperties => ({ opacity: r, transform: `translateY(${(1 - r) * px}px)` })
-/** Quantos caracteres de `text` já foram "digitados" com o progresso `r` (0 a 1). */
-const typedOf = (text: string, r: number) => text.slice(0, Math.round(r * text.length))
+/*
+ * Como a cena anda: a posição (`pos`) chega a cada quadro de rolagem e é APLICADA DIRETO NO DOM (`transform` e `opacity` de cada pedaço,
+ * por `ref`), sem renderizar o componente. Renderizar o React a cada quadro era o gargalo no iPhone (a cena atualizava a ~40 quadros por
+ * segundo); o padrão que a comunidade e as bibliotecas de animação por rolagem usam é escrever o estilo por referência. O React só é
+ * chamado quando algo DISCRETO muda (o passo, os caracteres digitados, o "salvo", os segundos): umas dezenas de vezes na seção inteira.
+ */
+type Apply = (el: HTMLElement, pos: number) => void
 
-function Field({ label, focus = false, style, children }: { label: string; focus?: boolean; style?: CSSProperties; children?: ReactNode }) {
+type From = 'up' | 'down' | 'right' | 'downright'
+/** Chegada "de fora da tela": o pedaço vem de além da borda (cima, direita ou baixo) e desacelera ao chegar no card. */
+const flyIn =
+  (from: From, a: number, b: number): Apply =>
+  (el, pos) => {
+    const r = ramp(pos, a, b)
+    const k = Math.pow(1 - r, 3) // 1 longe, 0 no lugar (desacelera no fim)
+    const x = from === 'right' || from === 'downright' ? k * 60 : 0 // vw
+    const y = from === 'up' ? -k * 70 : from === 'down' || from === 'downright' ? k * 60 : 0 // vh
+    el.style.opacity = String(Math.min(1, r * 2.4))
+    el.style.transform = `translate(${x}vw, ${y}vh)`
+  }
+/** Entrada de um pedaço pequeno da cena: sobe um pouco e aparece. */
+const riseIn =
+  (a: number, b: number, px = 10): Apply =>
+  (el, pos) => {
+    const r = ramp(pos, a, b)
+    el.style.opacity = String(r)
+    el.style.transform = `translateY(${(1 - r) * px}px)`
+  }
+/** A legenda do passo `i`: entra enquanto a anterior sai (a do último passo fica até o fim). */
+const legend =
+  (i: number): Apply =>
+  (el, pos) => {
+    const d = pos - (i + 1)
+    el.style.opacity = String(i === STEPS.length - 1 && d > 0 ? 1 : Math.max(0, 1 - Math.abs(d) * 1.7))
+    el.style.transform = `translateY(${-d * 22}px)`
+  }
+/** Miniatura de foto `i`: cresce e aparece. */
+const photo =
+  (i: number): Apply =>
+  (el, pos) => {
+    const a = ramp(pos, 2.3 + i * 0.14, 2.5 + i * 0.14)
+    el.style.opacity = String(a)
+    el.style.transform = `scale(${0.7 + a * 0.3})`
+  }
+
+/** O que depende da posição mas só muda de vez em quando: é o que passa pelo React. */
+interface Discrete {
+  step: number // -1 antes de a demonstração começar: nenhum passo marcado ainda
+  doneCount: number // quantos passos já têm o "✓"
+  saved: boolean
+  seconds: number
+  descLen: number
+  amountLen: number
+  tipoOn: boolean
+  focusDesc: boolean
+  caretDesc: boolean
+  focusAmount: boolean
+  caretAmount: boolean
+}
+const discreteOf = (pos: number): Discrete => {
+  const step = pos < 0.06 ? -1 : Math.max(0, Math.min(STEPS.length - 1, Math.round(pos) - 1))
+  const stepDone = step >= 0 && pos >= (step === STEPS.length - 1 ? SAVED - 0.1 : step + 1.95)
+  return {
+    step,
+    doneCount: step < 0 ? 0 : step + (stepDone ? 1 : 0),
+    saved: pos >= SAVED - 0.1,
+    seconds: demoSeconds(pos, 0.06, SAVED - 0.1),
+    descLen: Math.round(ramp(pos, 0.26, 0.7) * DESCRIPTION.length),
+    amountLen: Math.round(ramp(pos, 0.74, 0.88) * AMOUNT.length),
+    tipoOn: ramp(pos, 1.56, 1.62) > 0.5,
+    focusDesc: pos > 0.26 && pos < 0.74,
+    caretDesc: pos > 0.26 && pos < 0.76,
+    focusAmount: pos > 0.74 && pos < 0.9,
+    caretAmount: pos > 0.74 && pos < 0.92,
+  }
+}
+const sameDiscrete = (a: Discrete, b: Discrete) => (Object.keys(a) as (keyof Discrete)[]).every((k) => a[k] === b[k])
+
+function Field({ label, focus = false, innerRef, children }: { label: string; focus?: boolean; innerRef?: Ref<HTMLDivElement>; children?: ReactNode }) {
   return (
-    <div style={style}>
+    <div ref={innerRef} className="scene-layer">
       <div className="mb-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300">{label}</div>
       <div
         className={`flex h-11 items-center rounded-[10px] border bg-white px-3.5 text-[15px] dark:bg-slate-900 ${focus ? 'border-blue-500 ring-4 ring-blue-500/20' : 'border-slate-300 dark:border-slate-700'}`}
@@ -59,14 +124,23 @@ const Caret = () => <span className="caret ml-0.5 h-5 w-0.5 shrink-0 bg-blue-600
  * Sem movimento, mostra a cena pronta.
  */
 export function FeatureDemo() {
-  const [pos, setPos] = useState(0)
-  // a posição vai sem arredondar: arredondada a 0,01 (uns 12 px de rolagem) os pedaços que voam de fora da tela andavam 30 a 70 px por passo,
-  // e quem rola devagar via a cena aos saltos. O `useWheel` já entrega no máximo uma posição por quadro.
-  const { ref, goTo } = useWheel({ tau: 200, dwell: 0.2, weights: WEIGHTS, staticPosition: SAVED, onPosition: setPos })
-  // -1 antes de a demonstração começar: nenhum passo marcado ainda
-  const step = pos < 0.06 ? -1 : Math.max(0, Math.min(STEPS.length - 1, Math.round(pos) - 1))
-  const saved = pos >= SAVED - 0.1
-  const seconds = demoSeconds(pos, 0.06, SAVED - 0.1)
+  const [d, setD] = useState<Discrete>(() => discreteOf(0))
+  // os pedaços da cena que andam por `transform` e `opacity`, aplicados direto no DOM (ver o comentário no topo do arquivo)
+  const nodes = useRef(new Map<string, { el: HTMLElement; apply: Apply }>())
+  const posRef = useRef(0)
+  const bind = (key: string, apply: Apply) => (el: HTMLElement | null) => {
+    if (el) {
+      nodes.current.set(key, { el, apply })
+      apply(el, posRef.current) // já na posição certa ao entrar na tela, sem um quadro "cru"
+    } else nodes.current.delete(key)
+  }
+  const onPosition = (pos: number) => {
+    posRef.current = pos
+    for (const { el, apply } of nodes.current.values()) apply(el, pos)
+    const next = discreteOf(pos)
+    setD((prev) => (sameDiscrete(prev, next) ? prev : next))
+  }
+  const { ref, goTo } = useWheel({ tau: 200, dwell: 0.2, weights: WEIGHTS, staticPosition: SAVED, onPosition })
 
   const intro = useRef<HTMLDivElement>(null)
   const fit = useRef<HTMLDivElement>(null)
@@ -100,14 +174,7 @@ export function FeatureDemo() {
     }
   }, [ref])
 
-  const r = (from: number, to: number) => ramp(pos, from, to)
   const today = formatDate(todayISO())
-
-  // fotos e botão de salvar chegam até o momento 3; tocar em salvar e o aviso só vêm no trecho final (3 a 4)
-  const typedDesc = typedOf(DESCRIPTION, r(0.26, 0.7))
-  const typedAmount = typedOf(AMOUNT, r(0.74, 0.88))
-  const pressSave = r(3.45, 3.6)
-  const toastIn = r(3.68, 3.9)
 
   return (
     <section ref={ref} id="cadastrar" aria-labelledby="cadastrar-titulo" className="demo-section demo-bg relative" style={{ '--len': LEN } as CSSProperties}>
@@ -119,22 +186,23 @@ export function FeatureDemo() {
             <p className="mt-3 hidden text-base text-slate-300 sm:block lg:text-[17px]">{SUBTITLE}</p>
 
             {/* o cronômetro: corre conforme a rolagem e para (verde) quando o gasto é salvo */}
-            <DemoStopwatch seconds={seconds} done={saved} />
+            <DemoStopwatch seconds={d.seconds} done={d.saved} />
 
             {/* o passo em foco: número, nome e uma frase; cada um aparece quando chega a sua vez */}
             <div className="relative mt-3 h-[72px] lg:mt-6 lg:h-28">
-              {STEPS.map((label, i) => {
-                const d = pos - (i + 1)
-                const o = i === STEPS.length - 1 && d > 0 ? 1 : Math.max(0, 1 - Math.abs(d) * 1.7) // a do último passo fica até o fim
-                return (
-                  <div key={label} className="demo-legend absolute inset-x-0 top-0" style={{ opacity: o, transform: `translateY(${-d * 22}px)` }}>
-                    <p className="font-display text-sm font-bold text-blue-300">0{i + 1} / 0{STEPS.length}</p>
-                    <p className="font-display mt-0.5 text-xl font-bold text-white lg:mt-1 lg:text-[28px]">{label}</p>
-                    <p className="mt-0.5 text-sm text-slate-300 lg:mt-1 lg:text-[15px]">{STEP_TEXT[i]}</p>
-                  </div>
-                )
-              })}
-              <div aria-hidden="true" className="demo-hint absolute inset-x-0 top-0" style={{ '--hint': 1 - r(0.02, 0.22) } as CSSProperties}>
+              {STEPS.map((label, i) => (
+                <div key={label} ref={bind(`legenda${i}`, legend(i))} className="demo-legend absolute inset-x-0 top-0">
+                  <p className="font-display text-sm font-bold text-blue-300">0{i + 1} / 0{STEPS.length}</p>
+                  <p className="font-display mt-0.5 text-xl font-bold text-white lg:mt-1 lg:text-[28px]">{label}</p>
+                  <p className="mt-0.5 text-sm text-slate-300 lg:mt-1 lg:text-[15px]">{STEP_TEXT[i]}</p>
+                </div>
+              ))}
+              {/* dica de rolagem no espaço da legenda (vazia no começo); some quando a legenda do passo 1 entra */}
+              <div
+                aria-hidden="true"
+                ref={bind('dica', (el, pos) => el.style.setProperty('--hint', String(1 - ramp(pos, 0.02, 0.22))))}
+                className="demo-hint absolute inset-x-0 top-0"
+              >
                 <span>Role para ver</span>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="demo-hint-arrow">
                   <path d="M6 9l6 6 6-6" />
@@ -150,20 +218,25 @@ export function FeatureDemo() {
               {/* o rastro e a bolinha andam só por `transform` (largura e `left` forçariam layout a cada quadro de rolagem) */}
               <span
                 aria-hidden="true"
+                ref={bind('rastro', (el, pos) => (el.style.transform = `scaleX(${ramp(pos, 1, SAVED)})`))}
                 className="absolute top-3.5 right-3.5 left-3.5 h-0.5 origin-left rounded-full bg-linear-to-r from-blue-600 to-blue-300"
-                style={{ transform: `scaleX(${r(1, SAVED)})` }}
               />
-              {r(1, SAVED) > 0 && r(1, SAVED) < 1 && (
-                <span aria-hidden="true" className="pointer-events-none absolute top-[9px] right-3.5 left-3.5 h-3">
-                  {/* a faixa de largura total desliza para a esquerda; a bolinha fica na ponta direita dela */}
-                  <span className="absolute inset-0 will-change-transform" style={{ transform: `translateX(${(r(1, SAVED) - 1) * 100}%)` }}>
-                    <span className="absolute top-0 right-0 size-3 translate-x-1/2 rounded-full bg-blue-200 shadow-[0_0_14px_4px_rgb(96_165_250_/_0.9)]" />
-                  </span>
+              <span aria-hidden="true" className="pointer-events-none absolute top-[9px] right-3.5 left-3.5 h-3">
+                {/* a faixa de largura total desliza para a esquerda; a bolinha fica na ponta direita dela. Só aparece no meio do caminho. */}
+                <span
+                  ref={bind('bolinha', (el, pos) => {
+                    const r = ramp(pos, 1, SAVED)
+                    el.style.opacity = r > 0 && r < 1 ? '1' : '0'
+                    el.style.transform = `translateX(${(r - 1) * 100}%)`
+                  })}
+                  className="absolute inset-0 will-change-transform"
+                >
+                  <span className="absolute top-0 right-0 size-3 translate-x-1/2 rounded-full bg-blue-200 shadow-[0_0_14px_4px_rgb(96_165_250_/_0.9)]" />
                 </span>
-              )}
+              </span>
               {STEPS.map((label, i) => {
-                const done = i < step || (i === step && pos >= (i === STEPS.length - 1 ? SAVED - 0.1 : i + 1.95))
-                const now = i === step
+                const done = i < d.doneCount
+                const now = i === d.step
                 return (
                   <li key={label} className="relative z-10 flex w-14 flex-col items-center">
                     <button
@@ -199,28 +272,28 @@ export function FeatureDemo() {
                     <span className="text-slate-400">✕</span>
                   </div>
                   <div className="flex-1 space-y-3.5 px-5 pt-4 lg:space-y-[18px] lg:px-7 lg:pt-5">
-                    <Field label="Descrição" focus={r(0.26, 0.28) > 0 && pos < 0.74} style={fly(r(0.02, 0.24), 'up')}>
-                      <span>{typedDesc}</span>
-                      {r(0.26, 0.28) > 0 && pos < 0.76 && <Caret />}
+                    <Field label="Descrição" focus={d.focusDesc} innerRef={bind('descricao', flyIn('up', 0.02, 0.24))}>
+                      <span>{DESCRIPTION.slice(0, d.descLen)}</span>
+                      {d.caretDesc && <Caret />}
                     </Field>
                     <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                      <Field label="Valor" focus={r(0.74, 0.76) > 0 && pos < 0.9} style={fly(r(0.5, 0.72), 'right')}>
-                        <span>{typedAmount}</span>
-                        {r(0.74, 0.76) > 0 && pos < 0.92 && <Caret />}
+                      <Field label="Valor" focus={d.focusAmount} innerRef={bind('valor', flyIn('right', 0.5, 0.72))}>
+                        <span>{AMOUNT.slice(0, d.amountLen)}</span>
+                        {d.caretAmount && <Caret />}
                       </Field>
-                      <Field label="Data" style={fly(r(0.66, 0.9), 'downright')}>
+                      <Field label="Data" innerRef={bind('data', flyIn('downright', 0.66, 0.9))}>
                         {today}
                       </Field>
                     </div>
-                    <Field label="Categoria" style={fly(r(1.02, 1.26), 'right')}>
-                      <span style={show(r(1.28, 1.42), 6)}>Manutenção</span>
+                    <Field label="Categoria" innerRef={bind('categoria', flyIn('right', 1.02, 1.26))}>
+                      <span ref={bind('categoria-valor', riseIn(1.28, 1.42, 6))}>Manutenção</span>
                       <span className="ml-auto text-slate-400">⌄</span>
                     </Field>
-                    <div style={fly(r(1.3, 1.54), 'down')}>
+                    <div ref={bind('tipo', flyIn('down', 1.3, 1.54))} className="scene-layer">
                       <div className="mb-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300">Tipo</div>
                       <div className="flex gap-2 text-sm font-medium">
                         {['Manutenção', 'Valorização', 'Rotina'].map((t, i) => {
-                          const on = i === 0 && r(1.56, 1.62) > 0.5
+                          const on = i === 0 && d.tipoOn
                           return (
                             <span key={t} className={`rounded-full px-3.5 py-1.5 transition-colors ${on ? 'bg-blue-100 text-blue-700 ring-[1.5px] ring-blue-500 dark:bg-blue-950 dark:text-blue-300' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>{t}</span>
                           )
@@ -228,32 +301,42 @@ export function FeatureDemo() {
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 lg:gap-4">
-                      <Field label="Km (opcional)" style={fly(r(1.55, 1.78), 'right')}>
-                        <span style={show(r(1.8, 1.92), 6)}>48.200 km</span>
+                      <Field label="Km (opcional)" innerRef={bind('km', flyIn('right', 1.55, 1.78))}>
+                        <span ref={bind('km-valor', riseIn(1.8, 1.92, 6))}>48.200 km</span>
                       </Field>
-                      <div style={fly(r(2.02, 2.26), 'down')}>
+                      <div ref={bind('fotos', flyIn('down', 2.02, 2.26))} className="scene-layer">
                         <div className="mb-1.5 text-[13px] font-medium text-slate-600 dark:text-slate-300">Fotos (até 5)</div>
                         <div className="flex gap-1.5 lg:gap-2">
-                          {[0, 1].map((i) => {
-                            const a = r(2.3 + i * 0.14, 2.5 + i * 0.14)
-                            return a > 0 ? (
-                              <span key={i} className={`h-11 w-11 rounded-[10px] bg-linear-to-br lg:h-16 lg:w-16 ${i === 0 ? 'from-blue-700 to-blue-500' : 'from-slate-900 to-blue-700'}`} style={{ opacity: a, transform: `scale(${0.7 + a * 0.3})` }} />
-                            ) : null
-                          })}
+                          {[0, 1].map((i) => (
+                            <span
+                              key={i}
+                              ref={bind(`foto${i}`, photo(i))}
+                              className={`h-11 w-11 rounded-[10px] bg-linear-to-br lg:h-16 lg:w-16 ${i === 0 ? 'from-blue-700 to-blue-500' : 'from-slate-900 to-blue-700'}`}
+                            />
+                          ))}
                           <span className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-dashed border-slate-300 text-2xl text-slate-400 lg:h-16 lg:w-16 dark:border-slate-600">+</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div className="px-5 pb-5 lg:px-7 lg:pb-7" style={fly(r(2.7, 2.94), 'down')}>
+                  <div ref={bind('salvar', flyIn('down', 2.7, 2.94))} className="scene-layer px-5 pb-5 lg:px-7 lg:pb-7">
+                    {/* o toque em "Salvar": o botão afunda um pouco e um anel aparece (por opacidade; animar um `box-shadow` por quadro repinta o cartão) */}
                     <div
-                      className="flex h-[50px] items-center justify-center rounded-xl bg-blue-600 text-base font-semibold text-white"
-                      style={{ boxShadow: `0 0 0 ${pressSave * 4}px rgb(59 130 246 / ${pressSave * 0.35})`, transform: `scale(${1 - pressSave * 0.015})` }}
+                      ref={bind('salvar-botao', (el, pos) => (el.style.transform = `scale(${1 - ramp(pos, 3.45, 3.6) * 0.015})`))}
+                      className="relative flex h-[50px] items-center justify-center rounded-xl bg-blue-600 text-base font-semibold text-white"
                     >
+                      <span aria-hidden="true" ref={bind('salvar-anel', (el, pos) => (el.style.opacity = String(ramp(pos, 3.45, 3.6))))} className="pointer-events-none absolute inset-0 rounded-xl opacity-0 ring-4 ring-blue-500/35" />
                       Salvar gasto
                     </div>
                   </div>
-                  <div className="demo-toast" style={{ opacity: toastIn, transform: `translate(-50%, ${(1 - toastIn) * -16}px)` }}>
+                  <div
+                    ref={bind('aviso', (el, pos) => {
+                      const t = ramp(pos, 3.68, 3.9)
+                      el.style.opacity = String(t)
+                      el.style.transform = `translate(-50%, ${(1 - t) * -16}px)`
+                    })}
+                    className="demo-toast"
+                  >
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-[11px] font-bold text-white">✓</span>
                     Gasto salvo
                   </div>

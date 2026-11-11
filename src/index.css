@@ -442,6 +442,11 @@ body {
     background: rgb(15 23 42);
   }
 }
+/* os pedaços da cena que entram por `transform` e `opacity` (aplicados direto no DOM): cada um em camada própria, para o conteúdo ser desenhado
+   uma vez e só composto a cada quadro, em vez de repintar o cartão inteiro */
+.scene-layer {
+  will-change: transform, opacity;
+}
 .demo-glow {
   position: absolute;
   inset: 4% -10%;
