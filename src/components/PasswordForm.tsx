@@ -3,7 +3,8 @@ import { passwordProblem, passwordUpdateError } from '../lib/password'
 import { supabase } from '../supabase'
 
 interface Props {
-  onSuccess: () => void
+  /** `othersSignedOut`: false se a senha mudou mas não foi possível desconectar os outros aparelhos */
+  onSuccess: (result: { othersSignedOut: boolean }) => void
   onCancel?: () => void
   cancelLabel?: string
 }
@@ -23,7 +24,12 @@ export function PasswordForm({ onSuccess, onCancel, cancelLabel = 'Cancelar' }: 
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password })
       if (updateError) setError(passwordUpdateError(updateError))
-      else onSuccess()
+      else {
+        // quem ficou com uma sessão aberta (ou roubada) em outro aparelho perde o acesso; esta sessão continua
+        // (o supabase-js devolve o erro em vez de lançar; rede fora do ar lança)
+        const others = await supabase.auth.signOut({ scope: 'others' }).catch(() => ({ error: new Error('offline') }))
+        onSuccess({ othersSignedOut: !others.error })
+      }
     } catch {
       setError('Não foi possível falar com o servidor. Verifique a conexão e tente novamente.')
     } finally {

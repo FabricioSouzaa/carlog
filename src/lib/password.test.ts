@@ -18,7 +18,13 @@ describe('passwordUpdateError', () => {
     expect(passwordUpdateError({ code: 'same_password' })).toMatch(/diferente/)
   })
   it('sessão expirada', () => {
-    expect(passwordUpdateError({ code: 'session_expired' })).toMatch(/sessão expirou/)
+    expect(passwordUpdateError({ code: 'session_expired' })).toMatch(/sessão não está mais ativa/)
+  })
+  it('sessão encerrada no servidor (a biblioteca não manda `code`)', () => {
+    expect(passwordUpdateError({ name: 'AuthSessionMissingError', status: 400 })).toMatch(/Sair/)
+  })
+  it('exige entrar de novo (troca segura de senha)', () => {
+    expect(passwordUpdateError({ code: 'reauthentication_needed' })).toMatch(/entre de novo/)
   })
   it('erro desconhecido', () => {
     expect(passwordUpdateError({})).toMatch(/Não foi possível/)
