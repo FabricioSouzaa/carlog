@@ -25,6 +25,11 @@ if (supabaseConfigured) {
   })
 }
 
+/** Encerra o fluxo de recuperação: uma nova montagem do app não reabre a tela de nova senha. */
+export function clearPasswordRecovery(): void {
+  recoveryConfirmed = false
+}
+
 /** Chama `fn` quando a recuperação de senha for confirmada (na hora, se já foi). Devolve a função que cancela. */
 export function onPasswordRecovery(fn: () => void): () => void {
   if (recoveryConfirmed) fn()

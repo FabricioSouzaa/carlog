@@ -148,9 +148,13 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
         <p className="muted">Conectado como {email}</p>
         {changingPassword ? (
           <PasswordForm
-            onSuccess={() => {
+            onSuccess={({ othersSignedOut }) => {
               setChangingPassword(false)
-              setMessage('Senha alterada com sucesso. Os outros aparelhos foram desconectados.')
+              setMessage(
+                othersSignedOut
+                  ? 'Senha alterada com sucesso. Os outros aparelhos foram desconectados.'
+                  : 'Senha alterada, mas não foi possível desconectar os outros aparelhos. Se desconfia de algum acesso, tente de novo: Alterar senha.',
+              )
               window.scrollTo({ top: 0 })
             }}
             onCancel={() => setChangingPassword(false)}

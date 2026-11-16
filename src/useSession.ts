@@ -1,9 +1,10 @@
 import type { Session } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
-import { onPasswordRecovery, startupLink, supabase, supabaseConfigured } from './supabase'
+import { clearPasswordRecovery, onPasswordRecovery, startupLink, supabase, supabaseConfigured } from './supabase'
 
-// Quanto esperar pela confirmação de um link de recuperação (a URL indica que veio um) antes de seguir como login normal.
-const RECOVERY_WAIT_MS = 1500
+// Depois que a biblioteca termina de iniciar (inclusive a troca do código do link, que depende da rede), o evento
+// PASSWORD_RECOVERY já está na fila do navegador: esta folga curta só deixa ele chegar antes de mostrar o app.
+const RECOVERY_GRACE_MS = 100
 
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null)
@@ -14,12 +15,17 @@ export function useSession() {
 
   useEffect(() => {
     if (!supabaseConfigured) return
+    let grace: number | undefined
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
       setSessionLoaded(true)
+      grace = window.setTimeout(() => setWaitingRecovery(false), RECOVERY_GRACE_MS)
     })
     const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next))
-    return () => data.subscription.unsubscribe()
+    return () => {
+      data.subscription.unsubscribe()
+      window.clearTimeout(grace)
+    }
   }, [])
 
   useEffect(() => {
@@ -27,16 +33,13 @@ export function useSession() {
       setRecovering(true)
       setWaitingRecovery(false)
     })
-    const timer = window.setTimeout(() => setWaitingRecovery(false), RECOVERY_WAIT_MS)
-    return () => {
-      off()
-      window.clearTimeout(timer)
-    }
+    return off
   }, [])
 
   /** Termina o fluxo de recuperação e limpa o código da URL. */
   const finishRecovery = () => {
     setRecovering(false)
+    clearPasswordRecovery()
     window.history.replaceState(null, '', window.location.pathname)
   }
 
