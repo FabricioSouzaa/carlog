@@ -28,7 +28,7 @@ export function recoveryErrorMessage(error: AuthLikeError): string {
   if (error.status === 429 || error.code === 'over_email_send_rate_limit' || error.code === 'over_request_rate_limit') {
     return 'Muitos pedidos de e-mail em pouco tempo. Aguarde alguns minutos e tente de novo.'
   }
-  if (error.code === 'email_address_invalid' || error.code === 'validation_failed') {
+  if (error.code === 'email_address_invalid') {
     return 'Confira o e-mail digitado.'
   }
   if (error.name === 'AuthRetryableFetchError' || error.status === 0 || error.status === undefined) {

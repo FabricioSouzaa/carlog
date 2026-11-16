@@ -12,25 +12,33 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState(notice ?? '')
   const [info, setInfo] = useState('')
-  const [cooldown, setCooldown] = useState(0) // segundos até poder pedir outro link de recuperação
+  const [cooling, setCooling] = useState(false) // botão de recuperação travado por 60 s depois de um envio (só nesta tela; o Supabase também limita no servidor)
 
   useEffect(() => {
-    if (cooldown <= 0) return
-    const timer = window.setTimeout(() => setCooldown((s) => s - 1), 1000)
+    if (!cooling) return
+    const timer = window.setTimeout(() => setCooling(false), 60_000)
     return () => window.clearTimeout(timer)
-  }, [cooldown])
+  }, [cooling])
+
+  function changeEmail(value: string) {
+    setEmail(value)
+    // outro e-mail = outro pedido: some a confirmação do anterior e o botão volta a funcionar
+    setInfo('')
+    setCooling(false)
+  }
 
   async function handleForgot() {
     setMessage('')
     setInfo('')
     if (!email.trim()) return setMessage('Digite seu e-mail acima e toque em "Esqueci minha senha".')
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setMessage(recoveryErrorMessage({ code: 'email_address_invalid' }))
     setBusy(true)
     try {
       // a resposta é a mesma exista a conta ou não (o Supabase também não revela); o cadastro público segue fechado
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/` })
       if (error) return setMessage(recoveryErrorMessage(error))
       setInfo(RECOVERY_SENT)
-      setCooldown(60)
+      setCooling(true)
     } catch {
       setMessage(recoveryErrorMessage({ status: 0 }))
     } finally {
@@ -71,7 +79,7 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label" htmlFor="email">E-mail</label>
-              <input id="email" type="email" autoComplete="email" placeholder="voce@email.com" required className="input !py-3" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input id="email" type="email" autoComplete="email" placeholder="voce@email.com" required className="input !py-3" value={email} onChange={(e) => changeEmail(e.target.value)} />
             </div>
             <div>
               <div className="mb-1 flex items-center justify-between gap-3">
@@ -80,9 +88,10 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
                   type="button"
                   className="btn-outline !px-2.5 !py-1 !text-xs"
                   onClick={handleForgot}
-                  disabled={busy || cooldown > 0}
+                  disabled={busy || cooling}
+                  title={cooling ? 'Link enviado. Aguarde um minuto para pedir outro.' : undefined}
                 >
-                  {cooldown > 0 ? `Reenviar em ${cooldown}s` : 'Esqueci minha senha'}
+                  Esqueci minha senha
                 </button>
               </div>
               <div className="relative">
