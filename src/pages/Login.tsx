@@ -74,11 +74,11 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
               <input id="email" type="email" autoComplete="email" placeholder="voce@email.com" required className="input !py-3" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div>
-              <div className="flex items-baseline justify-between">
-                <label className="label" htmlFor="password">Senha</label>
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <label className="label !mb-0" htmlFor="password">Senha</label>
                 <button
                   type="button"
-                  className="mb-1 text-[13px] font-medium text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:text-blue-400"
+                  className="btn-outline !px-2.5 !py-1 !text-xs"
                   onClick={handleForgot}
                   disabled={busy || cooldown > 0}
                 >
@@ -99,7 +99,11 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
             </div>
             {info && <p role="status" className="text-sm text-green-700 dark:text-green-400">{info}</p>}
             {message && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{message}</p>}
-            <button type="submit" className="btn-primary w-full !py-3 !text-base !font-semibold" disabled={busy}>
+            <button
+              type="submit"
+              className="btn-primary w-full !rounded-xl !py-3.5 !text-base !font-semibold bg-linear-to-b from-blue-500 to-blue-700 shadow-md shadow-blue-600/30 transition-all hover:from-blue-600 hover:to-blue-800 hover:shadow-lg active:translate-y-px active:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              disabled={busy}
+            >
               {busy ? 'Aguarde…' : 'Entrar'}
             </button>
           </form>
