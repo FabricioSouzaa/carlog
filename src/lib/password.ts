@@ -8,14 +8,20 @@ export function passwordProblem(password: string, confirm: string): string | nul
 }
 
 /** Traduz o erro do Supabase ao trocar a senha. */
-export function passwordUpdateError(error: { code?: string; status?: number }): string {
+export function passwordUpdateError(error: { code?: string; status?: number; name?: string }): string {
   if (error.code === 'same_password') return 'A nova senha precisa ser diferente da atual.'
   if (error.code === 'weak_password') return 'Senha fraca. Use uma mais longa e variada.'
   if (error.code === 'reauthentication_needed' || error.code === 'reauthentication_not_valid') {
     return 'Por segurança, entre de novo (Sair e Entrar) e depois altere a senha.'
   }
-  if (error.code === 'session_expired' || error.code === 'session_not_found' || error.status === 401) {
-    return 'Sua sessão expirou. Entre novamente e tente de novo.'
+  // a biblioteca transforma `session_not_found` em AuthSessionMissingError, que chega SEM `code`
+  if (
+    error.code === 'session_expired' ||
+    error.code === 'session_not_found' ||
+    error.name === 'AuthSessionMissingError' ||
+    error.status === 401
+  ) {
+    return 'Sua sessão não está mais ativa (pode ter sido encerrada por uma troca de senha em outro aparelho). Toque em Sair, entre de novo e tente outra vez.'
   }
   return 'Não foi possível alterar a senha. Tente novamente.'
 }
