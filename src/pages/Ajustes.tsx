@@ -150,7 +150,7 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
           <PasswordForm
             onSuccess={() => {
               setChangingPassword(false)
-              setMessage('Senha alterada com sucesso.')
+              setMessage('Senha alterada com sucesso. Os outros aparelhos foram desconectados.')
               window.scrollTo({ top: 0 })
             }}
             onCancel={() => setChangingPassword(false)}

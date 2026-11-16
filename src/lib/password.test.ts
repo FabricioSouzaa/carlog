@@ -20,6 +20,9 @@ describe('passwordUpdateError', () => {
   it('sessão expirada', () => {
     expect(passwordUpdateError({ code: 'session_expired' })).toMatch(/sessão expirou/)
   })
+  it('exige entrar de novo (troca segura de senha)', () => {
+    expect(passwordUpdateError({ code: 'reauthentication_needed' })).toMatch(/entre de novo/)
+  })
   it('erro desconhecido', () => {
     expect(passwordUpdateError({})).toMatch(/Não foi possível/)
   })

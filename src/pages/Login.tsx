@@ -15,7 +15,6 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setMessage('')
-    if (password.length < 6) return setMessage('A senha precisa ter pelo menos 6 caracteres.')
     setBusy(true)
     try {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })

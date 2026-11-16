@@ -23,7 +23,11 @@ export function PasswordForm({ onSuccess, onCancel, cancelLabel = 'Cancelar' }: 
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password })
       if (updateError) setError(passwordUpdateError(updateError))
-      else onSuccess()
+      else {
+        // quem ficou com uma sessão aberta (ou roubada) em outro aparelho perde o acesso; esta sessão continua
+        await supabase.auth.signOut({ scope: 'others' }).catch(() => {})
+        onSuccess()
+      }
     } catch {
       setError('Não foi possível falar com o servidor. Verifique a conexão e tente novamente.')
     } finally {

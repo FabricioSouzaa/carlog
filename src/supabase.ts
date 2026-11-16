@@ -12,3 +12,23 @@ export const supabaseConfigured = Boolean(url && anonKey)
 // Sem as variáveis o app mostra uma tela de configuração (ver App.tsx) em vez de quebrar.
 export const supabase = createClient(url ?? 'http://localhost', anonKey ?? 'missing-key')
 
+// O evento PASSWORD_RECOVERY é disparado pela biblioteca logo depois de validar o link do e-mail, possivelmente antes de
+// o React montar. Por isso ouvimos aqui, na criação do cliente, e guardamos: a tela de "nova senha" só abre com esse
+// evento (link realmente validado), não por causa de um `type=recovery` solto na URL.
+let recoveryConfirmed = false
+const recoveryListeners = new Set<() => void>()
+if (supabaseConfigured) {
+  supabase.auth.onAuthStateChange((event) => {
+    if (event !== 'PASSWORD_RECOVERY') return
+    recoveryConfirmed = true
+    recoveryListeners.forEach((fn) => fn())
+  })
+}
+
+/** Chama `fn` quando a recuperação de senha for confirmada (na hora, se já foi). Devolve a função que cancela. */
+export function onPasswordRecovery(fn: () => void): () => void {
+  if (recoveryConfirmed) fn()
+  recoveryListeners.add(fn)
+  return () => void recoveryListeners.delete(fn)
+}
+
