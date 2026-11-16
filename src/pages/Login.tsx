@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Logo } from '../components/Logo'
 import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME, APP_SLOGAN } from '../config'
-import { loginErrorMessage } from '../lib/authErrors'
+import { loginErrorMessage, RECOVERY_SENT, recoveryErrorMessage } from '../lib/authErrors'
 import { whatsappLink } from '../lib/whatsapp'
 import { supabase } from '../supabase'
 
@@ -11,10 +11,37 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
   const [showPassword, setShowPassword] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState(notice ?? '')
+  const [info, setInfo] = useState('')
+  const [cooldown, setCooldown] = useState(0) // segundos até poder pedir outro link de recuperação
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = window.setTimeout(() => setCooldown((s) => s - 1), 1000)
+    return () => window.clearTimeout(timer)
+  }, [cooldown])
+
+  async function handleForgot() {
+    setMessage('')
+    setInfo('')
+    if (!email.trim()) return setMessage('Digite seu e-mail acima e toque em "Esqueci minha senha".')
+    setBusy(true)
+    try {
+      // a resposta é a mesma exista a conta ou não (o Supabase também não revela); o cadastro público segue fechado
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/` })
+      if (error) return setMessage(recoveryErrorMessage(error))
+      setInfo(RECOVERY_SENT)
+      setCooldown(60)
+    } catch {
+      setMessage(recoveryErrorMessage({ status: 0 }))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setMessage('')
+    setInfo('')
     setBusy(true)
     try {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
@@ -47,7 +74,17 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
               <input id="email" type="email" autoComplete="email" placeholder="voce@email.com" required className="input !py-3" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div>
-              <label className="label" htmlFor="password">Senha</label>
+              <div className="flex items-baseline justify-between">
+                <label className="label" htmlFor="password">Senha</label>
+                <button
+                  type="button"
+                  className="mb-1 text-[13px] font-medium text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60 dark:text-blue-400"
+                  onClick={handleForgot}
+                  disabled={busy || cooldown > 0}
+                >
+                  {cooldown > 0 ? `Reenviar em ${cooldown}s` : 'Esqueci minha senha'}
+                </button>
+              </div>
               <div className="relative">
                 <input id="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required className="input !py-3 !pr-20" value={password} onChange={(e) => setPassword(e.target.value)} />
                 <button
@@ -60,6 +97,7 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
                 </button>
               </div>
             </div>
+            {info && <p role="status" className="text-sm text-green-700 dark:text-green-400">{info}</p>}
             {message && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{message}</p>}
             <button type="submit" className="btn-primary w-full !py-3 !text-base !font-semibold" disabled={busy}>
               {busy ? 'Aguarde…' : 'Entrar'}
