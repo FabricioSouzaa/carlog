@@ -31,6 +31,12 @@ security invoker
 set search_path = public
 as $$
 begin
+  -- repetir a chamada (resposta perdida) não é erro: se este mesmo gasto já foi ligado ao planejado, não há o que fazer
+  perform 1 from public.planned_expenses where id = p_planned_id and status = 'done' and expense_id = p_expense_id;
+  if found then
+    return;
+  end if;
+
   -- trava a linha do planejado: duas chamadas ao mesmo tempo não criam dois gastos
   perform 1 from public.planned_expenses where id = p_planned_id and status = 'planned' for update;
   if not found then
@@ -54,6 +60,10 @@ as $$
 begin
   update public.planned_expenses set status = 'planned', expense_id = null where expense_id = p_id;
   delete from public.expenses where id = p_id;
+  -- nada apagado (id velho, ou já apagado em outro aparelho): avisa, para o app não apagar as fotos à toa
+  if not found then
+    raise exception 'Gasto não encontrado.' using errcode = 'P0002';
+  end if;
 end;
 $$;
 
@@ -67,7 +77,7 @@ as $$
 declare
   v_fallback uuid;
 begin
-  perform 1 from public.categories where id = p_id and not is_fallback;
+  perform 1 from public.categories where id = p_id and not is_fallback for update;
   if not found then
     raise exception 'Categoria não encontrada ou protegida ("Outros" não pode ser removida).' using errcode = 'P0002';
   end if;
