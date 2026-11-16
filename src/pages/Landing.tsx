@@ -35,7 +35,7 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
               <span aria-hidden="true" className="hidden h-[18px] w-px bg-white/30 sm:block" />
               <span className="hidden text-sm text-slate-300 sm:block">{APP_TAGLINE}</span>
             </span>
-            <button type="button" className="btn-ghost !text-slate-200 hover:!bg-white/10" onClick={onLogin}>Entrar</button>
+            <button type="button" className="btn border border-white/40 bg-white/10 !px-5 !py-2 !font-semibold text-white hover:bg-white/20" onClick={onLogin}>Entrar</button>
           </header>
 
           <section aria-labelledby="pitch" className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 pb-20 md:pl-40">

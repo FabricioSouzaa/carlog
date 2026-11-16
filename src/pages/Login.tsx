@@ -101,13 +101,8 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
             </div>
             {info && <p role="status" className="text-sm text-green-700 dark:text-green-400">{info}</p>}
             {message && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{message}</p>}
-            <button
-              type="submit"
-              className="btn w-full !gap-2 !rounded-xl !bg-slate-900 !py-3.5 !text-base !font-semibold !text-white shadow-sm hover:!bg-slate-700 dark:!bg-white dark:!text-slate-900 dark:hover:!bg-slate-200"
-              disabled={busy}
-            >
+            <button type="submit" className="btn-primary w-full !py-3 !text-base !font-semibold" disabled={busy}>
               {busy ? 'Aguarde…' : 'Entrar'}
-              {!busy && <span aria-hidden="true">→</span>}
             </button>
             {/* só aparece depois de errar a senha (ou de pedir o link) */}
             {(wrongPassword || info) && (
