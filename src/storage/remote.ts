@@ -42,9 +42,8 @@ export async function updateExpense(e: Expense): Promise<void> {
 }
 
 export async function deleteExpense(id: string): Promise<void> {
-  // o planejado que originou o gasto volta a ficar pendente
-  check(await supabase.from('planned_expenses').update({ status: 'planned', expense_id: null }).eq('expense_id', id))
-  check(await supabase.from('expenses').delete().eq('id', id))
+  // função do banco (atômica): o planejado que originou o gasto volta a ficar pendente e o gasto é apagado
+  check(await supabase.rpc('delete_expense', { p_id: id }))
 }
 
 export async function insertPlanned(list: PlannedExpense[]): Promise<void> {
@@ -61,9 +60,23 @@ export async function deletePlanned(id: string): Promise<void> {
   check(await supabase.from('planned_expenses').delete().eq('id', id))
 }
 
-export async function completePlanned(plannedId: string, expense: Expense): Promise<void> {
-  await insertExpenses([expense])
-  check(await supabase.from('planned_expenses').update({ status: 'done', expense_id: expense.id }).eq('id', plannedId))
+export async function completePlanned(plannedId: string, e: Expense): Promise<void> {
+  // função do banco (atômica): cria o gasto e liga ao planejado; se falhar, nada muda (e repetir não duplica)
+  check(
+    await supabase.rpc('complete_planned', {
+      p_planned_id: plannedId,
+      p_expense_id: e.id,
+      p_description: e.description,
+      p_amount: e.amount,
+      p_date: e.date,
+      p_category_id: e.categoryId,
+      p_type: e.type,
+      p_odometer: e.odometer ?? null,
+      p_notes: e.notes ?? null,
+      p_attachments: e.attachments ?? [],
+      p_created_at: e.createdAt,
+    }),
+  )
 }
 
 export async function insertCategories(list: Category[]): Promise<void> {
@@ -75,9 +88,7 @@ export async function renameCategory(id: string, name: string): Promise<void> {
   check(await supabase.from('categories').update({ name }).eq('id', id))
 }
 
-/** Move os lançamentos para a categoria "Outros" e remove a categoria. */
-export async function removeCategory(id: string, fallbackId: string): Promise<void> {
-  check(await supabase.from('expenses').update({ category_id: fallbackId }).eq('category_id', id))
-  check(await supabase.from('planned_expenses').update({ category_id: fallbackId }).eq('category_id', id))
-  check(await supabase.from('categories').delete().eq('id', id))
+/** Move os lançamentos para a categoria "Outros" e remove a categoria (tudo numa função do banco, que acha o "Outros"). */
+export async function removeCategory(id: string): Promise<void> {
+  check(await supabase.rpc('remove_category', { p_id: id }))
 }

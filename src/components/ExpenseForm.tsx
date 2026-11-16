@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'r
 import { compressImage } from '../lib/image'
 import { parseMoney, todayISO } from '../lib/format'
 import { newId } from '../lib/id'
-import { deleteImage, saveImage } from '../storage/images'
+import { saveImage } from '../storage/images'
 import type { ExpenseInput } from '../useData'
 import { EXPENSE_TYPE_HINT, EXPENSE_TYPE_LABEL, type Category, type ExpenseType } from '../types'
 import { StoredImage } from './StoredImage'
@@ -102,8 +102,7 @@ export function ExpenseForm({ title, submitLabel = 'Salvar', categories, initial
       notes: notes.trim() || undefined,
       attachments: attachments.length > 0 ? attachments : undefined,
     })
-    // fotos removidas na edição são apagadas só depois de salvar
-    for (const id of initial?.attachments ?? []) if (!kept.includes(id)) void deleteImage(id).catch(() => {})
+    // as fotos removidas na edição são apagadas por useData.updateExpense, só depois de o banco confirmar
     onClose()
   }
 
