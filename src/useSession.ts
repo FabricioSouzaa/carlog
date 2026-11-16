@@ -10,7 +10,7 @@ export function useSession() {
   const [session, setSession] = useState<Session | null>(null)
   const [sessionLoaded, setSessionLoaded] = useState(!supabaseConfigured)
   const [recovering, setRecovering] = useState(false)
-  // a URL só é uma dica: segura a tela de carregamento até a biblioteca confirmar (ou o tempo acabar), sem piscar o app
+  // a URL só é uma dica: segura a tela de carregamento até a biblioteca confirmar (ou terminar de iniciar sem evento), sem piscar o app
   const [waitingRecovery, setWaitingRecovery] = useState(supabaseConfigured && startupLink.recovery)
 
   useEffect(() => {
