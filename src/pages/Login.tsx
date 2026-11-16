@@ -12,6 +12,7 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState(notice ?? '')
   const [info, setInfo] = useState('')
+  const [wrongPassword, setWrongPassword] = useState(false) // errou a senha ao menos uma vez: só então oferece "Esqueci minha senha"
   const [cooling, setCooling] = useState(false) // botão de recuperação travado por 60 s depois de um envio (só nesta tela; o Supabase também limita no servidor)
 
   useEffect(() => {
@@ -53,7 +54,10 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
     setBusy(true)
     try {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-      if (error) setMessage(loginErrorMessage(error))
+      if (error) {
+        setMessage(loginErrorMessage(error))
+        if (error.code === 'invalid_credentials') setWrongPassword(true)
+      }
     } catch {
       setMessage('Não foi possível falar com o servidor. Verifique a conexão e tente novamente.')
     } finally {
@@ -73,7 +77,7 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
       </aside>
       <main className="flex flex-col justify-center p-6 md:p-12">
         <div className="mx-auto w-full max-w-sm">
-          {onBack && <button type="button" className="btn-ghost -ml-3 mb-6" onClick={onBack}>← Voltar</button>}
+          {onBack && <button type="button" className="btn-outline mb-6 !px-4 !py-2 !font-semibold" onClick={onBack}>← Voltar</button>}
           <h1 className="font-display text-4xl leading-tight font-bold tracking-tight">Bem-vindo de volta</h1>
           <p className="muted mt-2 mb-7 !text-[15px]">Entre no {APP_NAME} para ver seus gastos e planejar os próximos.</p>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -82,18 +86,7 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
               <input id="email" type="email" autoComplete="email" placeholder="voce@email.com" required className="input !py-3" value={email} onChange={(e) => changeEmail(e.target.value)} />
             </div>
             <div>
-              <div className="mb-1 flex items-center justify-between gap-3">
-                <label className="label !mb-0" htmlFor="password">Senha</label>
-                <button
-                  type="button"
-                  className="btn-outline !px-2.5 !py-1 !text-xs"
-                  onClick={handleForgot}
-                  disabled={busy || cooling}
-                  title={cooling ? 'Link enviado. Aguarde um minuto para pedir outro.' : undefined}
-                >
-                  Esqueci minha senha
-                </button>
-              </div>
+              <label className="label" htmlFor="password">Senha</label>
               <div className="relative">
                 <input id="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required className="input !py-3 !pr-20" value={password} onChange={(e) => setPassword(e.target.value)} />
                 <button
@@ -110,11 +103,18 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
             {message && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{message}</p>}
             <button
               type="submit"
-              className="btn-primary w-full !rounded-xl !py-3.5 !text-base !font-semibold bg-linear-to-b from-blue-500 to-blue-700 shadow-md shadow-blue-600/30 transition-all hover:from-blue-600 hover:to-blue-800 hover:shadow-lg active:translate-y-px active:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              className="btn w-full !gap-2 !rounded-xl !bg-slate-900 !py-3.5 !text-base !font-semibold !text-white shadow-sm hover:!bg-slate-700 dark:!bg-white dark:!text-slate-900 dark:hover:!bg-slate-200"
               disabled={busy}
             >
               {busy ? 'Aguarde…' : 'Entrar'}
+              {!busy && <span aria-hidden="true">→</span>}
             </button>
+            {/* só aparece depois de errar a senha (ou de pedir o link) */}
+            {(wrongPassword || info) && (
+              <button type="button" className="btn-outline w-full !py-3 !text-[15px] !font-semibold" onClick={handleForgot} disabled={busy || cooling}>
+                Esqueci minha senha
+              </button>
+            )}
           </form>
           {/* o cadastro público está desativado: quem não tem conta pede acesso pelo WhatsApp */}
           <div className="my-6 flex items-center gap-3 text-[13px] text-slate-400 dark:text-slate-500">
