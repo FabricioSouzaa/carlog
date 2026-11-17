@@ -129,6 +129,7 @@ public/          # ícones do PWA, favicon, fonte Space Grotesk
 - Trabalhar valores monetários com cuidado de arredondamento (somar em centavos ou arredondar na exibição).
 - Layout responsivo, pensado primeiro para celular (o uso típico é registrar o gasto logo após pagar).
 - Não adicionar dependências sem necessidade; manter o projeto simples (por isso fonte hospedada em `public/`, animações em CSS/IntersectionObserver e logo desenhado em código).
+- Limites de tamanho (descrição 200, observações 2000, 5 fotos por gasto) ficam em `src/lib/limits.ts` e são repetidos no banco (`check` em `schema.sql`; migração com `not valid`, que só vale para gravações novas). A importação de backup passa por `lib/backup.ts` (`validateBackup`: formato, tipos, tamanhos, mensagem em pt-BR com o número da linha) antes de qualquer envio.
 - Dados do usuário nunca são apagados sem confirmação. Incluir exportar/importar JSON como backup, mesmo com os dados na nuvem.
 - Chaves e URL do Supabase ficam em variáveis de ambiente (`.env.local`, fora do git). Só a chave pública (anon) vai para o front-end; nunca a `service_role`.
 

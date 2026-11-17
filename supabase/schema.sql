@@ -27,14 +27,14 @@ create unique index categories_user_id_id_idx on public.categories (user_id, id)
 create table public.expenses (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  description text not null check (length(trim(description)) > 0),
+  description text not null check (length(trim(description)) > 0 and char_length(description) <= 200),
   amount numeric(12, 2) not null check (amount > 0),
   date date not null,
   category_id uuid not null,
   type text not null check (type in ('maintenance', 'upgrade', 'routine')),
   odometer integer check (odometer >= 0),
-  notes text,
-  attachments text[] not null default '{}', -- ids das fotos no Storage
+  notes text check (char_length(notes) <= 2000),
+  attachments text[] not null default '{}' check (cardinality(attachments) <= 5), -- ids das fotos no Storage (máx. 5)
   created_at timestamptz not null default now(),
   -- chave composta: só aceita categoria do mesmo usuário (o RLS não vale dentro da checagem de uma FK simples)
   constraint expenses_user_category_fk foreign key (user_id, category_id) references public.categories (user_id, id) on delete restrict
@@ -47,13 +47,13 @@ create index expenses_user_category_idx on public.expenses (user_id, category_id
 create table public.planned_expenses (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  description text not null check (length(trim(description)) > 0),
+  description text not null check (length(trim(description)) > 0 and char_length(description) <= 200),
   estimated_amount numeric(12, 2) not null check (estimated_amount > 0),
   estimated_max numeric(12, 2) check (estimated_max >= estimated_amount),
   category_id uuid not null,
   type text not null check (type in ('maintenance', 'upgrade', 'routine')),
   priority text not null check (priority in ('low', 'medium', 'high')),
-  notes text,
+  notes text check (char_length(notes) <= 2000),
   status text not null default 'planned' check (status in ('planned', 'done')),
   expense_id uuid,
   created_at timestamptz not null default now(),

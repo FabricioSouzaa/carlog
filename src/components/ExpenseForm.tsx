@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'r
 import { compressImage } from '../lib/image'
 import { parseMoney, todayISO } from '../lib/format'
 import { newId } from '../lib/id'
+import { DESCRIPTION_MAX, MAX_ATTACHMENTS, NOTES_MAX } from '../lib/limits'
 import { saveImage } from '../storage/images'
 import type { ExpenseInput } from '../useData'
 import { EXPENSE_TYPE_HINT, EXPENSE_TYPE_LABEL, type Category, type ExpenseType } from '../types'
@@ -9,7 +10,7 @@ import { StoredImage } from './StoredImage'
 import { Modal } from './ui'
 
 const TYPES: ExpenseType[] = ['maintenance', 'upgrade', 'routine']
-const MAX_PHOTOS = 5
+const MAX_PHOTOS = MAX_ATTACHMENTS
 
 interface NewPhoto {
   id: string
@@ -111,7 +112,7 @@ export function ExpenseForm({ title, submitLabel = 'Salvar', categories, initial
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
           <label className="label" htmlFor="desc">Descrição</label>
-          <input id="desc" className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex.: Troca de óleo" autoFocus />
+          <input id="desc" className="input" maxLength={DESCRIPTION_MAX} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex.: Troca de óleo" autoFocus />
         </div>
         <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
           <div>
@@ -158,7 +159,7 @@ export function ExpenseForm({ title, submitLabel = 'Salvar', categories, initial
         </div>
         <div>
           <label className="label" htmlFor="notes">Observações (opcional)</label>
-          <textarea id="notes" className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <textarea id="notes" className="input" rows={2} maxLength={NOTES_MAX} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
         <div>
           <span className="label">Fotos / nota fiscal (opcional)</span>

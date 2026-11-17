@@ -4,6 +4,7 @@ import { PlannedForm } from '../components/PlannedForm'
 import { EmptyState, Fab, TypeBadge } from '../components/ui'
 import { plannedTotals } from '../lib/calc'
 import { formatCurrency } from '../lib/format'
+import { safeHttpUrl } from '../lib/url'
 import type { DataApi } from '../useData'
 import { PRIORITY_LABEL, type PlannedExpense, type Priority } from '../types'
 
@@ -18,9 +19,9 @@ const estimate = (p: PlannedExpense) =>
   p.estimatedMax ? `${formatCurrency(p.estimatedAmount)} – ${formatCurrency(p.estimatedMax)}` : formatCurrency(p.estimatedAmount)
 
 function Notes({ text }: { text: string }) {
-  const isUrl = /^https?:\/\/\S+$/.test(text)
-  return isUrl ? (
-    <a href={text} target="_blank" rel="noreferrer" className="mt-2 block truncate text-sm text-blue-600 underline dark:text-blue-400">{text}</a>
+  const href = safeHttpUrl(text)
+  return href ? (
+    <a href={href} target="_blank" rel="noreferrer" className="mt-2 block truncate text-sm text-blue-600 underline dark:text-blue-400">{text}</a>
   ) : (
     <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{text}</p>
   )

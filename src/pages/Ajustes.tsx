@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { PasswordForm } from '../components/PasswordForm'
-import { isAppData } from '../storage/backup'
+import { validateBackup } from '../lib/backup'
+import { MAX_BACKUP_BYTES } from '../lib/limits'
 import { loadLegacyData, markLegacyMigrated } from '../storage/legacy'
 import { supabase } from '../supabase'
 import { todayISO } from '../lib/format'
@@ -55,14 +56,24 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
   }
 
   async function importJson(file: File) {
+    if (file.size > MAX_BACKUP_BYTES) {
+      if (fileRef.current) fileRef.current.value = ''
+      return setMessage(`Arquivo grande demais para um backup (máximo ${MAX_BACKUP_BYTES / 1024 / 1024} MB).`)
+    }
     setBusy(true)
     try {
-      const parsed: unknown = JSON.parse(await file.text())
-      if (!isAppData(parsed)) throw new Error('formato')
-      const r = await api.importData(parsed)
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(await file.text())
+      } catch {
+        return setMessage('Esse arquivo não é um JSON válido. Use um backup exportado por este app.')
+      }
+      const check = validateBackup(parsed)
+      if (!check.ok) return setMessage(`Não foi possível importar. ${check.error}`)
+      const r = await api.importData(check.data)
       setMessage(`Backup importado: ${r.expenses} gastos e ${r.planned} planejados adicionados.`)
     } catch {
-      setMessage('Não foi possível importar. Use um backup exportado por este app.')
+      setMessage('Não foi possível importar. Tente de novo; se persistir, use um backup exportado por este app.')
     } finally {
       setBusy(false)
       if (fileRef.current) fileRef.current.value = ''
