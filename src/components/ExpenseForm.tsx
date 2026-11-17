@@ -10,7 +10,6 @@ import { StoredImage } from './StoredImage'
 import { Modal } from './ui'
 
 const TYPES: ExpenseType[] = ['maintenance', 'upgrade', 'routine']
-const MAX_PHOTOS = MAX_ATTACHMENTS
 
 interface NewPhoto {
   id: string
@@ -51,8 +50,8 @@ export function ExpenseForm({ title, submitLabel = 'Salvar', categories, initial
   async function handleFiles(e: ChangeEvent<HTMLInputElement>) {
     const files = [...(e.target.files ?? [])]
     e.target.value = ''
-    const room = MAX_PHOTOS - kept.length - added.length
-    if (files.length > room) setError(`Máximo de ${MAX_PHOTOS} fotos por gasto.`)
+    const room = MAX_ATTACHMENTS - kept.length - added.length
+    if (files.length > room) setError(`Máximo de ${MAX_ATTACHMENTS} fotos por gasto.`)
     else setError('')
     setBusy(true)
     try {
@@ -81,6 +80,8 @@ export function ExpenseForm({ title, submitLabel = 'Salvar', categories, initial
     if (busy) return
     const value = parseMoney(amount)
     if (!description.trim()) return setError('Informe uma descrição.')
+    if (description.trim().length > DESCRIPTION_MAX) return setError(`Descrição muito longa (máximo ${DESCRIPTION_MAX} caracteres).`)
+    if (notes.length > NOTES_MAX) return setError(`Observações muito longas (máximo ${NOTES_MAX} caracteres).`)
     if (value === null || value <= 0) return setError('Informe um valor maior que zero.')
     if (!date) return setError('Informe a data.')
     const km = odometer.trim() ? Number(odometer.replace(/\./g, '')) : undefined
@@ -176,7 +177,7 @@ export function ExpenseForm({ title, submitLabel = 'Salvar', categories, initial
                 <button type="button" onClick={() => removeAdded(p.id)} aria-label={`Remover nova foto ${i + 1}`} className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs text-white">✕</button>
               </div>
             ))}
-            {kept.length + added.length < MAX_PHOTOS && (
+            {kept.length + added.length < MAX_ATTACHMENTS && (
               <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className="flex h-16 w-16 flex-col items-center justify-center rounded-lg border border-dashed border-slate-400 text-xs text-slate-500 disabled:opacity-50 dark:border-slate-600 dark:text-slate-400">
                 <span className="text-xl leading-none">{busy ? '…' : '📷'}</span>
                 {busy ? 'Lendo' : 'Adicionar'}
@@ -184,7 +185,7 @@ export function ExpenseForm({ title, submitLabel = 'Salvar', categories, initial
             )}
           </div>
           <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
-          <p className="muted mt-1">Tire uma foto ou escolha da galeria. Até {MAX_PHOTOS} imagens, reduzidas automaticamente.</p>
+          <p className="muted mt-1">Tire uma foto ou escolha da galeria. Até {MAX_ATTACHMENTS} imagens, reduzidas automaticamente.</p>
         </div>
         {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
         <div className="sticky bottom-0 -mx-5 -mb-5 flex justify-end gap-2 border-t border-slate-200 bg-white px-5 py-3 dark:border-slate-800 dark:bg-slate-900">

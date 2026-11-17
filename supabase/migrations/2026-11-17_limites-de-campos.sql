@@ -4,7 +4,7 @@
 --
 -- Por que: hoje `description` e `notes` aceitam texto de qualquer tamanho e `attachments` qualquer quantidade de itens.
 -- O impacto é só no próprio usuário (erro, lentidão), mas é fácil de fechar. Limites (iguais aos de src/lib/limits.ts):
---   descrição: 200 caracteres · observações: 2000 caracteres · fotos por gasto: 5
+--   descrição: 200 caracteres · observações: 2000 caracteres · fotos por gasto: 5 · nome de categoria: 100 caracteres
 --
 -- `not valid`: a regra vale para TODA gravação nova (insert e update), mas o banco NÃO confere as linhas que já existem.
 -- Assim a migração nunca falha por causa de um registro antigo grande. Consequência: editar um registro antigo que passe
@@ -25,11 +25,13 @@ alter table public.expenses drop constraint if exists expenses_notes_len;
 alter table public.expenses drop constraint if exists expenses_attachments_max;
 alter table public.planned_expenses drop constraint if exists planned_description_len;
 alter table public.planned_expenses drop constraint if exists planned_notes_len;
+alter table public.categories drop constraint if exists categories_name_len;
 
 alter table public.expenses add constraint expenses_description_len check (char_length(description) <= 200) not valid;
 alter table public.expenses add constraint expenses_notes_len check (char_length(notes) <= 2000) not valid;
 alter table public.expenses add constraint expenses_attachments_max check (cardinality(attachments) <= 5) not valid;
 alter table public.planned_expenses add constraint planned_description_len check (char_length(description) <= 200) not valid;
 alter table public.planned_expenses add constraint planned_notes_len check (char_length(notes) <= 2000) not valid;
+alter table public.categories add constraint categories_name_len check (char_length(name) <= 100) not valid;
 
 commit;

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { PasswordForm } from '../components/PasswordForm'
 import { validateBackup } from '../lib/backup'
-import { MAX_BACKUP_BYTES } from '../lib/limits'
+import { CATEGORY_NAME_MAX, MAX_BACKUP_BYTES } from '../lib/limits'
 import { loadLegacyData, markLegacyMigrated } from '../storage/legacy'
 import { supabase } from '../supabase'
 import { todayISO } from '../lib/format'
@@ -73,7 +73,7 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
       const r = await api.importData(check.data)
       setMessage(`Backup importado: ${r.expenses} gastos e ${r.planned} planejados adicionados.`)
     } catch {
-      setMessage('Não foi possível importar. Tente de novo; se persistir, use um backup exportado por este app.')
+      setMessage('A importação falhou e pode ter ficado pela metade. Confira Gastos e Planejados antes de tentar de novo, para não duplicar.')
     } finally {
       setBusy(false)
       if (fileRef.current) fileRef.current.value = ''
@@ -82,9 +82,11 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
 
   async function migrateLegacy() {
     if (!legacy) return
+    const check = validateBackup(legacy)
+    if (!check.ok) return setMessage(`Não foi possível enviar os dados antigos. ${check.error} Nada foi apagado deste navegador.`)
     setBusy(true)
     try {
-      const r = await api.importData(legacy, { withLegacyImages: true })
+      const r = await api.importData(check.data, { withLegacyImages: true })
       markLegacyMigrated()
       setLegacy(null)
       setMessage(
@@ -92,7 +94,7 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
           (r.photosSkipped ? ` ${r.photosSkipped} foto(s) não puderam ser enviadas (acima de 3 MB ou fora do formato JPEG).` : ''),
       )
     } catch {
-      setMessage('Não foi possível enviar os dados. Nada foi apagado deste navegador; tente de novo.')
+      setMessage('Não foi possível enviar os dados e o envio pode ter ficado pela metade. Nada foi apagado deste navegador; confira Gastos e Planejados antes de tentar de novo, para não duplicar.')
     } finally {
       setBusy(false)
     }
@@ -110,7 +112,7 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
             <li key={c.id} className="flex items-center justify-between gap-2 py-2">
               {editingId === c.id ? (
                 <>
-                  <input className="input" value={editName} onChange={(e) => setEditName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && saveRename(c.id)} aria-label="Novo nome" autoFocus />
+                  <input className="input" maxLength={CATEGORY_NAME_MAX} value={editName} onChange={(e) => setEditName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && saveRename(c.id)} aria-label="Novo nome" autoFocus />
                   <button type="button" className="btn-primary" onClick={() => saveRename(c.id)}>Salvar</button>
                   <button type="button" className="btn-ghost" onClick={() => setEditingId(null)}>Cancelar</button>
                 </>
@@ -129,7 +131,7 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
           ))}
         </ul>
         <div className="flex gap-2">
-          <input className="input" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCategory()} placeholder="Nova categoria" aria-label="Nova categoria" />
+          <input className="input" maxLength={CATEGORY_NAME_MAX} value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addCategory()} placeholder="Nova categoria" aria-label="Nova categoria" />
           <button type="button" className="btn-primary" onClick={addCategory}>Adicionar</button>
         </div>
       </section>

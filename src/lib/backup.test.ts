@@ -20,9 +20,14 @@ const error = (v: unknown) => {
 }
 
 describe('validateBackup', () => {
-  it('aceita um backup válido (e só devolve os dados)', () => {
-    const r = validateBackup(backup())
-    expect(r.ok).toBe(true)
+  it('aceita um backup válido e devolve os dados', () => {
+    const input = backup()
+    const r = validateBackup(input)
+    expect(r.ok && r.data).toEqual(input)
+  })
+  it('conta caracteres como o banco (emoji vale 1)', () => {
+    expect(validateBackup(backup({ expenses: [expense({ description: '🚗'.repeat(DESCRIPTION_MAX) })] })).ok).toBe(true)
+    expect(error(backup({ expenses: [expense({ description: '🚗'.repeat(DESCRIPTION_MAX + 1) })] }))).toMatch(/descrição com mais de 200/)
   })
   it('aceita campos opcionais ausentes ou nulos', () => {
     expect(validateBackup(backup({ expenses: [expense({ odometer: null, notes: null, attachments: undefined })] })).ok).toBe(true)
@@ -56,6 +61,7 @@ describe('validateBackup', () => {
     expect(error(backup({ planned: [planned({ priority: 'urgente' })] }))).toBe('Planejado 1: prioridade inválida.')
     expect(error(backup({ planned: [planned({ estimatedMax: 100 })] }))).toBe('Planejado 1: valor máximo inválido.')
     expect(error(backup({ planned: [planned({ status: 'feito' })] }))).toBe('Planejado 1: situação inválida.')
+    expect(error(backup({ planned: [planned({ estimatedMax: 0 })] }))).toBe('Planejado 1: valor máximo inválido.')
     expect(validateBackup(backup({ planned: [planned({ estimatedMax: 500 })] })).ok).toBe(true)
   })
   it('valida as categorias', () => {

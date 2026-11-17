@@ -17,6 +17,8 @@ const MAX_ID = 100
 const MAX_MONEY = 1e10 // numeric(12,2) no banco
 const MAX_INT = 2_147_483_647 // integer no banco (quilometragem)
 
+// o banco conta caracteres (code points), não unidades UTF-16: um emoji vale 1
+const len = (s: string) => [...s].length
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 const isId = (v: unknown) => typeof v === 'string' && v.length > 0 && v.length <= MAX_ID
 const isMoney = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0 && v < MAX_MONEY
@@ -30,14 +32,14 @@ function isIsoDate(v: unknown): boolean {
 
 function textProblem(v: unknown, label: string, max: number): string | null {
   if (typeof v !== 'string' || v.trim() === '') return `${label} vazia ou inválida`
-  if (v.length > max) return `${label} com mais de ${max} caracteres`
+  if (len(v) > max) return `${label} com mais de ${max} caracteres`
   return null
 }
 
 function notesProblem(v: unknown): string | null {
   if (absent(v)) return null
   if (typeof v !== 'string') return 'observações inválidas'
-  return v.length > NOTES_MAX ? `observações com mais de ${NOTES_MAX} caracteres` : null
+  return len(v) > NOTES_MAX ? `observações com mais de ${NOTES_MAX} caracteres` : null
 }
 
 function attachmentsProblem(v: unknown): string | null {

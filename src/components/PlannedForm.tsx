@@ -38,6 +38,8 @@ export function PlannedForm({ categories, initial, onSubmit, onClose }: Props) {
     const min = parseMoney(estimated)
     const hi = max.trim() ? parseMoney(max) : null
     if (!description.trim()) return setError('Informe uma descrição.')
+    if (description.trim().length > DESCRIPTION_MAX) return setError(`Descrição muito longa (máximo ${DESCRIPTION_MAX} caracteres).`)
+    if (notes.length > NOTES_MAX) return setError(`Observações muito longas (máximo ${NOTES_MAX} caracteres).`)
     if (min === null || min <= 0) return setError('Informe o valor estimado.')
     if (max.trim() && (hi === null || hi < min)) return setError('O valor máximo deve ser maior ou igual ao estimado.')
     onSubmit({
