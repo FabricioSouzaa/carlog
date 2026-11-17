@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Logo } from '../components/Logo'
 import { ACCESS_MESSAGE, ACCESS_WHATSAPP, APP_NAME, APP_SLOGAN } from '../config'
-import { loginErrorMessage } from '../lib/authErrors'
+import { loginErrorMessage, RECOVERY_SENT, recoveryErrorMessage } from '../lib/authErrors'
 import { whatsappLink } from '../lib/whatsapp'
 import { supabase } from '../supabase'
 
@@ -11,14 +11,53 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
   const [showPassword, setShowPassword] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState(notice ?? '')
+  const [info, setInfo] = useState('')
+  const [wrongPassword, setWrongPassword] = useState(false) // errou a senha ao menos uma vez: só então oferece "Esqueci minha senha"
+  const [cooling, setCooling] = useState(false) // botão de recuperação travado por 60 s depois de um envio (só nesta tela; o Supabase também limita no servidor)
+
+  useEffect(() => {
+    if (!cooling) return
+    const timer = window.setTimeout(() => setCooling(false), 60_000)
+    return () => window.clearTimeout(timer)
+  }, [cooling])
+
+  function changeEmail(value: string) {
+    setEmail(value)
+    // outro e-mail = outro pedido: some a confirmação do anterior e o botão volta a funcionar
+    setInfo('')
+    setCooling(false)
+  }
+
+  async function handleForgot() {
+    setMessage('')
+    setInfo('')
+    if (!email.trim()) return setMessage('Digite seu e-mail acima e toque em "Esqueci minha senha".')
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return setMessage(recoveryErrorMessage({ code: 'email_address_invalid' }))
+    setBusy(true)
+    try {
+      // a resposta é a mesma exista a conta ou não (o Supabase também não revela); o cadastro público segue fechado
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/` })
+      if (error) return setMessage(recoveryErrorMessage(error))
+      setInfo(RECOVERY_SENT)
+      setCooling(true)
+    } catch {
+      setMessage(recoveryErrorMessage({ status: 0 }))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setMessage('')
+    setInfo('')
     setBusy(true)
     try {
       const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-      if (error) setMessage(loginErrorMessage(error))
+      if (error) {
+        setMessage(loginErrorMessage(error))
+        if (error.code === 'invalid_credentials') setWrongPassword(true)
+      }
     } catch {
       setMessage('Não foi possível falar com o servidor. Verifique a conexão e tente novamente.')
     } finally {
@@ -38,13 +77,13 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
       </aside>
       <main className="flex flex-col justify-center p-6 md:p-12">
         <div className="mx-auto w-full max-w-sm">
-          {onBack && <button type="button" className="btn-ghost -ml-3 mb-6" onClick={onBack}>← Voltar</button>}
+          {onBack && <button type="button" className="btn mb-6 border border-slate-200 !bg-white !px-4 !py-2 !font-semibold !text-slate-900 shadow-sm hover:!bg-slate-100" onClick={onBack}>← Voltar</button>}
           <h1 className="font-display text-4xl leading-tight font-bold tracking-tight">Bem-vindo de volta</h1>
           <p className="muted mt-2 mb-7 !text-[15px]">Entre no {APP_NAME} para ver seus gastos e planejar os próximos.</p>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label" htmlFor="email">E-mail</label>
-              <input id="email" type="email" autoComplete="email" placeholder="voce@email.com" required className="input !py-3" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input id="email" type="email" autoComplete="email" placeholder="voce@email.com" required className="input !py-3" value={email} onChange={(e) => changeEmail(e.target.value)} />
             </div>
             <div>
               <label className="label" htmlFor="password">Senha</label>
@@ -60,10 +99,17 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
                 </button>
               </div>
             </div>
+            {info && <p role="status" className="text-sm text-green-700 dark:text-green-400">{info}</p>}
             {message && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{message}</p>}
             <button type="submit" className="btn-primary w-full !py-3 !text-base !font-semibold" disabled={busy}>
               {busy ? 'Aguarde…' : 'Entrar'}
             </button>
+            {/* só aparece depois de errar a senha (ou de pedir o link) */}
+            {(wrongPassword || info) && (
+              <button type="button" className="btn-outline w-full !py-3 !text-[15px] !font-semibold" onClick={handleForgot} disabled={busy || cooling}>
+                Esqueci minha senha
+              </button>
+            )}
           </form>
           {/* o cadastro público está desativado: quem não tem conta pede acesso pelo WhatsApp */}
           <div className="my-6 flex items-center gap-3 text-[13px] text-slate-400 dark:text-slate-500">
