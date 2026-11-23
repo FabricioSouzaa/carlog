@@ -17,7 +17,8 @@ create table public.categories (
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   name text not null check (length(trim(name)) > 0),
   is_fallback boolean not null default false, -- "Outros": recebe os lançamentos de categorias removidas
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  constraint categories_name_len check (char_length(name) <= 100)
 );
 create unique index categories_user_name_idx on public.categories (user_id, lower(name));
 create unique index categories_one_fallback_idx on public.categories (user_id) where is_fallback;
@@ -34,10 +35,14 @@ create table public.expenses (
   type text not null check (type in ('maintenance', 'upgrade', 'routine')),
   odometer integer check (odometer >= 0),
   notes text,
-  attachments text[] not null default '{}', -- ids das fotos no Storage
+  attachments text[] not null default '{}', -- ids das fotos no Storage (máx. 5)
   created_at timestamptz not null default now(),
   -- chave composta: só aceita categoria do mesmo usuário (o RLS não vale dentro da checagem de uma FK simples)
-  constraint expenses_user_category_fk foreign key (user_id, category_id) references public.categories (user_id, id) on delete restrict
+  constraint expenses_user_category_fk foreign key (user_id, category_id) references public.categories (user_id, id) on delete restrict,
+  -- limites de tamanho (iguais aos de src/lib/limits.ts; mesmos nomes da migração 2026-11-17)
+  constraint expenses_description_len check (char_length(description) <= 200),
+  constraint expenses_notes_len check (char_length(notes) <= 2000),
+  constraint expenses_attachments_max check (cardinality(attachments) <= 5)
 );
 create unique index expenses_user_id_id_idx on public.expenses (user_id, id);
 create index expenses_user_date_idx on public.expenses (user_id, date desc);
@@ -59,7 +64,9 @@ create table public.planned_expenses (
   created_at timestamptz not null default now(),
   constraint planned_user_category_fk foreign key (user_id, category_id) references public.categories (user_id, id) on delete restrict,
   -- set null só em expense_id: um set null simples também zeraria user_id (obrigatório). Postgres 15+.
-  constraint planned_user_expense_fk foreign key (user_id, expense_id) references public.expenses (user_id, id) on delete set null (expense_id)
+  constraint planned_user_expense_fk foreign key (user_id, expense_id) references public.expenses (user_id, id) on delete set null (expense_id),
+  constraint planned_description_len check (char_length(description) <= 200),
+  constraint planned_notes_len check (char_length(notes) <= 2000)
 );
 create index planned_user_idx on public.planned_expenses (user_id);
 create index planned_user_category_idx on public.planned_expenses (user_id, category_id);

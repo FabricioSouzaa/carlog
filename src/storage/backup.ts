@@ -4,11 +4,6 @@ import { saveImage } from './images'
 import { getLegacyImage } from './legacy'
 import * as remote from './remote'
 
-export function isAppData(value: unknown): value is AppData {
-  const v = value as AppData
-  return !!v && Array.isArray(v.categories) && Array.isArray(v.expenses) && Array.isArray(v.planned)
-}
-
 export interface ImportResult {
   expenses: number
   planned: number

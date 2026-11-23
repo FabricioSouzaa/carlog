@@ -65,3 +65,21 @@ export function Fab({ onClick, children }: { onClick: () => void; children: Reac
 export function EmptyState({ children }: { children: ReactNode }) {
   return <p className="card py-10 text-center text-slate-500 dark:text-slate-400">{children}</p>
 }
+
+/** Aviso em destaque: vermelho para erro (lido na hora por leitores de tela), verde para sucesso. */
+export function Notice({ tone, children }: { tone: 'ok' | 'error'; children: ReactNode }) {
+  const error = tone === 'error'
+  return (
+    <div
+      role={error ? 'alert' : 'status'}
+      className={`flex items-start gap-3 rounded-xl border p-4 text-sm font-medium ${
+        error
+          ? 'border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200'
+          : 'border-green-300 bg-green-50 text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-200'
+      }`}
+    >
+      <span aria-hidden="true" className="mt-px">{error ? '⚠️' : '✅'}</span>
+      <p>{children}</p>
+    </div>
+  )
+}
