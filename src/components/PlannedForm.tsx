@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { parseMoney } from '../lib/format'
+import { DESCRIPTION_MAX, NOTES_MAX } from '../lib/limits'
 import type { PlannedInput } from '../useData'
 import {
   EXPENSE_TYPE_LABEL,
@@ -37,6 +38,8 @@ export function PlannedForm({ categories, initial, onSubmit, onClose }: Props) {
     const min = parseMoney(estimated)
     const hi = max.trim() ? parseMoney(max) : null
     if (!description.trim()) return setError('Informe uma descrição.')
+    if (description.trim().length > DESCRIPTION_MAX) return setError(`Descrição muito longa (máximo ${DESCRIPTION_MAX} caracteres).`)
+    if (notes.length > NOTES_MAX) return setError(`Observações muito longas (máximo ${NOTES_MAX} caracteres).`)
     if (min === null || min <= 0) return setError('Informe o valor estimado.')
     if (max.trim() && (hi === null || hi < min)) return setError('O valor máximo deve ser maior ou igual ao estimado.')
     onSubmit({
@@ -56,7 +59,7 @@ export function PlannedForm({ categories, initial, onSubmit, onClose }: Props) {
       <form onSubmit={handleSubmit} className="space-y-3">
         <div>
           <label className="label" htmlFor="p-desc">O que você quer fazer?</label>
-          <input id="p-desc" className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex.: Trocar faróis para LED" autoFocus />
+          <input id="p-desc" className="input" maxLength={DESCRIPTION_MAX} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex.: Trocar faróis para LED" autoFocus />
         </div>
         <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
           <div>
@@ -108,7 +111,7 @@ export function PlannedForm({ categories, initial, onSubmit, onClose }: Props) {
         </div>
         <div>
           <label className="label" htmlFor="p-notes">Observações ou link (opcional)</label>
-          <textarea id="p-notes" className="input" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <textarea id="p-notes" className="input" rows={2} maxLength={NOTES_MAX} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
         {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
         <div className="sticky bottom-0 -mx-5 -mb-5 flex justify-end gap-2 border-t border-slate-200 bg-white px-5 py-3 dark:border-slate-800 dark:bg-slate-900">
