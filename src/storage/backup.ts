@@ -1,6 +1,7 @@
 import { newId } from '../lib/id'
 import type { AppData, Category, Expense, PlannedExpense } from '../types'
-import { saveImage } from './images'
+import { cleanupOnError } from './cleanup'
+import { deleteImage, saveImage } from './images'
 import { getLegacyImage } from './legacy'
 import * as remote from './remote'
 
@@ -38,32 +39,41 @@ export async function importInto(source: AppData, opts: { withLegacyImages?: boo
   const mapCategory = (old: string) => categoryMap.get(old) ?? fallback.id
 
   let photos = 0
+  const uploaded: string[] = [] // fotos já no Storage: se o servidor recusar os gastos, saem de lá (não ficam órfãs nem duplicam na nova tentativa)
   let photosSkipped = 0
   const expenseMap = new Map<string, string>()
   const expenses: Expense[] = []
-  for (const e of source.expenses) {
-    const id = newId()
-    expenseMap.set(e.id, id)
-    const attachments: string[] = []
-    if (opts.withLegacyImages) {
-      for (const oldId of e.attachments ?? []) {
-        const blob = await getLegacyImage(oldId)
-        if (!blob) continue
-        const imgId = newId()
-        try {
-          await saveImage(imgId, blob)
-        } catch {
-          // o servidor recusa fotos fora do limite (3 MB, JPEG): pula só essa foto, em vez de abortar a migração inteira
-          photosSkipped++
-          continue
+  const dropUploaded = () => Promise.allSettled(uploaded.map((id) => deleteImage(id)))
+  try {
+    for (const e of source.expenses) {
+      const id = newId()
+      expenseMap.set(e.id, id)
+      const attachments: string[] = []
+      if (opts.withLegacyImages) {
+        for (const oldId of e.attachments ?? []) {
+          const blob = await getLegacyImage(oldId)
+          if (!blob) continue
+          const imgId = newId()
+          try {
+            await saveImage(imgId, blob)
+          } catch {
+            // o servidor recusa fotos fora do limite (3 MB, JPEG): pula só essa foto, em vez de abortar a migração inteira
+            photosSkipped++
+            continue
+          }
+          uploaded.push(imgId)
+          attachments.push(imgId)
+          photos++
         }
-        attachments.push(imgId)
-        photos++
       }
+      expenses.push({ ...e, id, categoryId: mapCategory(e.categoryId), attachments: attachments.length ? attachments : undefined })
     }
-    expenses.push({ ...e, id, categoryId: mapCategory(e.categoryId), attachments: attachments.length ? attachments : undefined })
+  } catch (e) {
+    // qualquer falha no meio do envio das fotos: as que já subiram saem do Storage antes de repassar o erro
+    await dropUploaded()
+    throw e
   }
-  await remote.insertExpenses(expenses)
+  await cleanupOnError(remote.insertExpenses(expenses), dropUploaded)
 
   const planned: PlannedExpense[] = source.planned.map((p) => ({
     ...p,

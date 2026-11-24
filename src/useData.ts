@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { diffAttachments } from './lib/attachments'
 import { newId } from './lib/id'
 import { importInto, type ImportResult } from './storage/backup'
 import { cleanupOnError, thenCleanup } from './storage/cleanup'
@@ -9,7 +10,7 @@ import type { AppData, Expense, PlannedExpense } from './types'
 export type ExpenseInput = Omit<Expense, 'id' | 'createdAt'>
 export type PlannedInput = Omit<PlannedExpense, 'id' | 'status' | 'expenseId'>
 
-const dropPhotos = (ids: string[] = []) => Promise.allSettled(ids.map(deleteImage))
+const dropPhotos = (ids: string[] = []) => Promise.allSettled(ids.map((id) => deleteImage(id)))
 
 const EMPTY: AppData = { categories: [], expenses: [], planned: [] }
 
@@ -76,9 +77,8 @@ export function useData() {
       const next: Expense = { ...prev, ...input }
       setData((d) => ({ ...d, expenses: d.expenses.map((e) => (e.id === id ? next : e)) }))
       // fotos tiradas do gasto só são apagadas depois de o banco confirmar a gravação
-      const removed = (prev.attachments ?? []).filter((img) => !(next.attachments ?? []).includes(img))
+      const { added, removed } = diffAttachments(prev.attachments, next.attachments)
       // fotos novas (enviadas antes de gravar) saem se o banco recusar; as tiradas só saem se ele aceitar
-      const added = (next.attachments ?? []).filter((img) => !(prev.attachments ?? []).includes(img))
       persist(thenCleanup(cleanupOnError(remote.updateExpense(next), () => dropPhotos(added)), () => dropPhotos(removed)))
     },
     [persist],
