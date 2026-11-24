@@ -199,7 +199,7 @@ export function FeatureDemo() {
     const io = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting || posRef.current > 0.3) return
       io.disconnect()
-      const layered = [...nodes.current.values()].filter(({ el }) => el.classList.contains('scene-layer'))
+      const layered = [...nodes.current.values()].filter(({ el }) => el.classList.contains(SCENE_LAYER))
       for (const { el } of layered) {
         el.style.opacity = '0.02'
         el.style.transform = 'none'
