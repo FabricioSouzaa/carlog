@@ -1,0 +1,10 @@
+# Quem é dono de cada área sensível: o GitHub pede o dono como revisor nos PRs que mexem nesses caminhos.
+# Foco no que muda a segurança: CI/automação, banco (regras de acesso, funções, migrações), cabeçalhos/CSP e dependências.
+#
+# ATENÇÃO: com um dono só (o próprio autor dos PRs), NÃO ligue "Require review from Code Owners" na proteção de branch:
+# o GitHub não deixa o autor aprovar o próprio PR e o merge ficaria bloqueado. Para um segundo dono, troque/adicione aqui.
+/.github/          @FabricioSouzaa
+/supabase/         @FabricioSouzaa
+/vercel.json       @FabricioSouzaa
+/package.json      @FabricioSouzaa
+/package-lock.json @FabricioSouzaa
