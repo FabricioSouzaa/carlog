@@ -10,7 +10,7 @@ import type { AppData, Expense, PlannedExpense } from './types'
 export type ExpenseInput = Omit<Expense, 'id' | 'createdAt'>
 export type PlannedInput = Omit<PlannedExpense, 'id' | 'status' | 'expenseId'>
 
-const dropPhotos = (ids: string[] = []) => Promise.allSettled(ids.map(deleteImage))
+const dropPhotos = (ids: string[] = []) => Promise.allSettled(ids.map((id) => deleteImage(id)))
 
 const EMPTY: AppData = { categories: [], expenses: [], planned: [] }
 

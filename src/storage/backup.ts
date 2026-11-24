@@ -43,30 +43,37 @@ export async function importInto(source: AppData, opts: { withLegacyImages?: boo
   let photosSkipped = 0
   const expenseMap = new Map<string, string>()
   const expenses: Expense[] = []
-  for (const e of source.expenses) {
-    const id = newId()
-    expenseMap.set(e.id, id)
-    const attachments: string[] = []
-    if (opts.withLegacyImages) {
-      for (const oldId of e.attachments ?? []) {
-        const blob = await getLegacyImage(oldId)
-        if (!blob) continue
-        const imgId = newId()
-        try {
-          await saveImage(imgId, blob)
-        } catch {
-          // o servidor recusa fotos fora do limite (3 MB, JPEG): pula só essa foto, em vez de abortar a migração inteira
-          photosSkipped++
-          continue
+  const dropUploaded = () => Promise.allSettled(uploaded.map((id) => deleteImage(id)))
+  try {
+    for (const e of source.expenses) {
+      const id = newId()
+      expenseMap.set(e.id, id)
+      const attachments: string[] = []
+      if (opts.withLegacyImages) {
+        for (const oldId of e.attachments ?? []) {
+          const blob = await getLegacyImage(oldId)
+          if (!blob) continue
+          const imgId = newId()
+          try {
+            await saveImage(imgId, blob)
+          } catch {
+            // o servidor recusa fotos fora do limite (3 MB, JPEG): pula só essa foto, em vez de abortar a migração inteira
+            photosSkipped++
+            continue
+          }
+          uploaded.push(imgId)
+          attachments.push(imgId)
+          photos++
         }
-        uploaded.push(imgId)
-        attachments.push(imgId)
-        photos++
       }
+      expenses.push({ ...e, id, categoryId: mapCategory(e.categoryId), attachments: attachments.length ? attachments : undefined })
     }
-    expenses.push({ ...e, id, categoryId: mapCategory(e.categoryId), attachments: attachments.length ? attachments : undefined })
+  } catch (e) {
+    // qualquer falha no meio do envio das fotos: as que já subiram saem do Storage antes de repassar o erro
+    await dropUploaded()
+    throw e
   }
-  await cleanupOnError(remote.insertExpenses(expenses), () => Promise.allSettled(uploaded.map(deleteImage)))
+  await cleanupOnError(remote.insertExpenses(expenses), dropUploaded)
 
   const planned: PlannedExpense[] = source.planned.map((p) => ({
     ...p,

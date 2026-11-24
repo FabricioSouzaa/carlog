@@ -8,6 +8,9 @@ describe('diffAttachments', () => {
   it('sem mudança, nada nos dois lados', () => {
     expect(diffAttachments(['a'], ['a'])).toEqual({ added: [], removed: [] })
   })
+  it('não repete ids duplicados', () => {
+    expect(diffAttachments(['a', 'a'], ['b', 'b'])).toEqual({ added: ['b'], removed: ['a'] })
+  })
   it('aceita gasto sem fotos (undefined)', () => {
     expect(diffAttachments(undefined, ['a'])).toEqual({ added: ['a'], removed: [] })
     expect(diffAttachments(['a'], undefined)).toEqual({ added: [], removed: ['a'] })
