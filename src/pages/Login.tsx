@@ -77,7 +77,7 @@ export function Login({ notice = null, onBack }: { notice?: string | null; onBac
       </aside>
       <main className="flex flex-col justify-center p-6 md:p-12">
         <div className="mx-auto w-full max-w-sm">
-          {onBack && <button type="button" className="btn mb-6 border border-slate-200 !bg-white !px-4 !py-2 !font-semibold !text-slate-900 shadow-sm hover:!bg-slate-100" onClick={onBack}>← Voltar</button>}
+          {onBack && <button type="button" className="btn-light mb-6 border border-slate-200 px-4 shadow-sm" onClick={onBack}>← Voltar</button>}
           <h1 className="font-display text-4xl leading-tight font-bold tracking-tight">Bem-vindo de volta</h1>
           <p className="muted mt-2 mb-7 !text-[15px]">Entre no {APP_NAME} para ver seus gastos e planejar os próximos.</p>
           <form onSubmit={handleSubmit} className="space-y-4">

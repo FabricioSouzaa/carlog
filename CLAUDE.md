@@ -124,6 +124,7 @@ public/          # ícones do PWA, favicon, fonte Space Grotesk
 
 ## Convenções
 
+- Botões: definidos uma vez em `src/index.css` (`btn`, `btn-primary`, `btn-outline`, `btn-ghost`, `btn-danger` e o branco `btn-light`, com tamanhos `btn-lg` e `btn-xl`); telas combinam essas classes em vez de repetir `!bg-… !px-…` na mão. Variações pontuais (`px-5`, borda) entram como utilitários normais, sem `!`, porque o CSS gerado põe os utilitários do Tailwind depois dos botões.
 - Cálculos de totais e agrupamentos ficam em funções puras em `src/lib/`, com testes. Componentes só exibem.
 - Formatação de moeda e data centralizada em um único helper (`Intl.NumberFormat` / `Intl.DateTimeFormat` com `pt-BR`).
 - Trabalhar valores monetários com cuidado de arredondamento (somar em centavos ou arredondar na exibição).
