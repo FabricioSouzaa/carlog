@@ -5,9 +5,8 @@ import { supabase } from '../supabase'
 
 const BUCKET = 'receipts'
 export const MAX_GALLERY_PHOTOS = 60
-// O limite de 60 é do app (o uso é individual e o cadastro é fechado; o Storage não conta arquivos por pasta). A listagem
-// pede muito mais que isso (1000 é o máximo do Storage) para que, se passar de 60 por outra via, nenhuma foto fique escondida.
-const LIST_LIMIT = 1000
+// O limite de 60 é do app (uso individual, cadastro fechado; o Storage não conta arquivos por pasta). A listagem tem folga até 100.
+const LIST_LIMIT = 100
 
 export interface GalleryPhoto {
   name: string // nome do arquivo dentro da pasta da galeria

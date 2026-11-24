@@ -26,10 +26,19 @@ describe('thenCleanup', () => {
 })
 
 describe('cleanupOnError', () => {
-  it('limpa e repassa o erro quando a gravação falha', async () => {
+  const refused = () => Object.assign(new Error('violates check constraint'), { code: '23514' })
+
+  it('limpa e repassa o erro quando o servidor recusa', async () => {
     const cleanup = vi.fn(async () => {})
-    await expect(cleanupOnError(Promise.reject(new Error('rede')), cleanup)).rejects.toThrow('rede')
+    await expect(cleanupOnError(Promise.reject(refused()), cleanup)).rejects.toThrow('violates')
     expect(cleanup).toHaveBeenCalledOnce()
+  })
+
+  it('NÃO limpa quando o erro é ambíguo (rede): o gasto pode ter sido gravado', async () => {
+    const cleanup = vi.fn(async () => {})
+    await expect(cleanupOnError(Promise.reject(new Error('TypeError: Failed to fetch')), cleanup)).rejects.toThrow('Failed to fetch')
+    await expect(cleanupOnError(Promise.reject(Object.assign(new Error('x'), { code: '' })), cleanup)).rejects.toThrow()
+    expect(cleanup).not.toHaveBeenCalled()
   })
 
   it('não limpa nada quando a gravação dá certo', async () => {
@@ -39,6 +48,6 @@ describe('cleanupOnError', () => {
   })
 
   it('o erro original vence mesmo se a limpeza falhar', async () => {
-    await expect(cleanupOnError(Promise.reject(new Error('rede')), () => Promise.reject(new Error('storage')))).rejects.toThrow('rede')
+    await expect(cleanupOnError(Promise.reject(refused()), () => Promise.reject(new Error('storage')))).rejects.toThrow('violates')
   })
 })

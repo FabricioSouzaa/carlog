@@ -153,7 +153,7 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
       {migratedCopy && !legacy && (
         <section className="card space-y-3">
           <h2 className="font-semibold">Cópia dos dados antigos</h2>
-          <p className="muted">Depois do envio, este navegador guardou uma cópia dos dados antigos (em texto, sem fotos). Se você já confere tudo na sua conta, pode apagá-la daqui. Isso não mexe nos dados da conta.</p>
+          <p className="muted">Depois do envio, este navegador guardou uma cópia em texto dos dados antigos (as fotos antigas deste aparelho não entram aqui e não são apagadas). É a única volta caso algo tenha ficado de fora do envio, então só apague depois de conferir tudo na sua conta.</p>
           <button
             type="button"
             className="btn-outline"
