@@ -35,7 +35,7 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
               <span aria-hidden="true" className="hidden h-[18px] w-px bg-white/30 sm:block" />
               <span className="hidden text-sm text-slate-300 sm:block">{APP_TAGLINE}</span>
             </span>
-            <button type="button" className="btn !bg-white !px-5 !py-2 !font-semibold !text-slate-900 hover:!bg-slate-100" onClick={onLogin}>Entrar</button>
+            <button type="button" className="btn-light px-5" onClick={onLogin}>Entrar</button>
           </header>
 
           <section aria-labelledby="pitch" className="relative mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 pb-20 md:pl-40">
@@ -62,10 +62,10 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
             </div>
             <div className="scrub-exit" style={{ '--shift': '-84px' } as CSSProperties}>
               <Reveal delay={TYPED_MS + 3 * CHECK_STEP_MS + 300} className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <a href={whatsappLink(ACCESS_WHATSAPP, ACCESS_MESSAGE)} target="_blank" rel="noopener noreferrer" className="btn !bg-white !px-6 !py-3.5 !text-[15px] !font-semibold !text-slate-900 hover:!bg-slate-100">
+                <a href={whatsappLink(ACCESS_WHATSAPP, ACCESS_MESSAGE)} target="_blank" rel="noopener noreferrer" className="btn-light btn-lg">
                   Solicitar acesso pelo WhatsApp
                 </a>
-                <button type="button" className="btn border border-white/40 !px-6 !py-3.5 !text-[15px] !font-semibold text-white hover:bg-white/10" onClick={onLogin}>Já tenho conta</button>
+                <button type="button" className="btn btn-lg border border-white/40 font-semibold text-white hover:bg-white/10" onClick={onLogin}>Já tenho conta</button>
               </Reveal>
             </div>
           </section>
