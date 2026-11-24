@@ -40,8 +40,8 @@ const flyIn =
   (el, pos) => {
     const r = ramp(pos, a, b)
     const k = Math.pow(1 - r, 3) // 1 longe, 0 no lugar (desacelera no fim)
-    const x = from === 'right' || from === 'downright' ? k * (SHORT_FLIGHT ? 35 : 60) : 0 // vw
-    const y = from === 'up' ? -k * (SHORT_FLIGHT ? 35 : 70) : from === 'down' || from === 'downright' ? k * (SHORT_FLIGHT ? 35 : 60) : 0 // vh
+    const x = from === 'right' || from === 'downright' ? k * 60 : 0 // vw
+    const y = from === 'up' ? -k * 70 : from === 'down' || from === 'downright' ? k * 60 : 0 // vh
     el.style.opacity = String(Math.min(1, r * 2.4))
     el.style.transform = `translate(${x}vw, ${y}vh)`
   }
@@ -71,15 +71,11 @@ const photo =
   }
 
 /*
- * Camadas próprias (`will-change`) nos campos que voam: padrão LIGADO (comparado no iPhone: com elas o passo 3 -> 4 fica liso; sem elas trava).
- * Testes por URL, temporários: `?camadas=nenhuma` desliga as camadas; `?aquecer=0` desliga o aquecimento (ao entrar na tela, cada campo com camada
- * aparece por 2 quadros a 2% de opacidade, para o navegador criar e desenhar as camadas ANTES de elas aparecerem de verdade); `?voo=curto` encurta
- * a distância de que os campos de cima e de baixo chegam.
+ * Camadas próprias (`will-change`, classe `scene-layer`) nos campos que voam: comparado no iPhone, com elas o passo 3 -> 4 fica liso; sem elas trava.
+ * Ao entrar na tela, cada campo com camada aparece por 2 quadros a 2% de opacidade (aquecimento), para o navegador criar e desenhar as camadas
+ * ANTES de elas aparecerem de verdade.
  */
-const QUERY = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams()
-const SCENE_LAYER = QUERY.get('camadas') === 'nenhuma' ? '' : 'scene-layer'
-const PREWARM = QUERY.get('aquecer') !== '0'
-const SHORT_FLIGHT = QUERY.get('voo') === 'curto'
+const SCENE_LAYER = 'scene-layer'
 
 /** Classes de cada estado (por extenso aqui para o Tailwind enxergá-las; o código troca as classes direto no elemento). */
 const BOX = 'flex h-11 items-center rounded-[10px] border bg-white px-3.5 text-[15px] dark:bg-slate-900'
@@ -195,15 +191,15 @@ export function FeatureDemo() {
   }
   const { ref, goTo } = useWheel({ tau: 200, dwell: 0.2, weights: WEIGHTS, staticPosition: SAVED, onPosition })
 
-  // aquecimento das camadas (teste `?aquecer=1`): ao entrar na tela, os pedaços com camada aparecem por 2 quadros a 2% e voltam à posição certa
+  // aquecimento das camadas: ao entrar na tela, os pedaços com camada aparecem por 2 quadros a 2% e voltam à posição certa
   useEffect(() => {
     const section = ref.current
-    if (!PREWARM || !section || typeof IntersectionObserver === 'undefined') return
+    if (!section || typeof IntersectionObserver === 'undefined') return
     let raf = 0
     const io = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting || posRef.current > 0.3) return
       io.disconnect()
-      const layered = [...nodes.current.values()].filter(({ el }) => el.classList.contains('scene-layer'))
+      const layered = [...nodes.current.values()].filter(({ el }) => el.classList.contains(SCENE_LAYER))
       for (const { el } of layered) {
         el.style.opacity = '0.02'
         el.style.transform = 'none'
