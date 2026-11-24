@@ -60,7 +60,10 @@ body {
 @utility btn-outline {
   @apply btn border border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800;
 }
-/* Botão branco: destaque sobre fundo escuro e navegação (landing, login). Tamanhos: sem modificador (compacto), btn-lg e btn-xl. */
+/* Botão branco: destaque sobre fundo escuro e navegação (landing, login).
+ * Tamanhos (btn-lg, btn-xl) são só medidas e se juntam a qualquer botão (btn, btn-light...). Eles e os utilitários do Tailwind
+ * (px-5, font-bold, hover:...) vencem o padrão do botão SEM `!` porque o CSS gerado os emite depois; se o Tailwind mudar essa
+ * ordem, o sintoma é um botão menor que o esperado (conferir no CSS do build). */
 @utility btn-light {
   @apply btn bg-white font-semibold text-slate-900 hover:bg-slate-100;
 }
@@ -68,7 +71,7 @@ body {
   @apply px-6 py-3.5 text-[15px];
 }
 @utility btn-xl {
-  @apply gap-2.5 rounded-2xl px-8 py-4 text-lg font-bold hover:bg-blue-50;
+  @apply gap-2.5 rounded-2xl px-8 py-4 text-lg;
 }
 @utility muted {
   @apply text-sm text-slate-500 dark:text-slate-400;

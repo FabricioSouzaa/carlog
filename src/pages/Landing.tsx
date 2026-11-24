@@ -65,7 +65,7 @@ export function Landing({ onLogin }: { onLogin: () => void }) {
                 <a href={whatsappLink(ACCESS_WHATSAPP, ACCESS_MESSAGE)} target="_blank" rel="noopener noreferrer" className="btn-light btn-lg">
                   Solicitar acesso pelo WhatsApp
                 </a>
-                <button type="button" className="btn border border-white/40 !px-6 !py-3.5 !text-[15px] !font-semibold text-white hover:bg-white/10" onClick={onLogin}>Já tenho conta</button>
+                <button type="button" className="btn btn-lg border border-white/40 font-semibold text-white hover:bg-white/10" onClick={onLogin}>Já tenho conta</button>
               </Reveal>
             </div>
           </section>

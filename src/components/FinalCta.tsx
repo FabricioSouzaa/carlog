@@ -32,12 +32,12 @@ export function FinalCta({ onLogin }: { onLogin: () => void }) {
             href={whatsappLink(ACCESS_WHATSAPP, ACCESS_MESSAGE)}
             target="_blank"
             rel="noopener noreferrer"
-            className="cta-big btn-light btn-xl"
+            className="cta-big btn-light btn-xl font-bold hover:bg-blue-50"
           >
             Quero usar o {APP_NAME}
             <span aria-hidden="true">→</span>
           </a>
-          <button type="button" onClick={onLogin} className="btn !rounded-2xl border border-white/40 !px-6 !py-4 !text-base !font-semibold text-white hover:bg-white/10">
+          <button type="button" onClick={onLogin} className="btn rounded-2xl border border-white/40 px-6 py-4 text-base font-semibold text-white hover:bg-white/10">
             Já tenho conta
           </button>
         </Reveal>
