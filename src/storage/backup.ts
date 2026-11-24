@@ -1,6 +1,7 @@
 import { newId } from '../lib/id'
 import type { AppData, Category, Expense, PlannedExpense } from '../types'
-import { saveImage } from './images'
+import { cleanupOnError } from './cleanup'
+import { deleteImage, saveImage } from './images'
 import { getLegacyImage } from './legacy'
 import * as remote from './remote'
 
@@ -38,6 +39,7 @@ export async function importInto(source: AppData, opts: { withLegacyImages?: boo
   const mapCategory = (old: string) => categoryMap.get(old) ?? fallback.id
 
   let photos = 0
+  const uploaded: string[] = [] // fotos já no Storage: se o servidor recusar os gastos, saem de lá (não ficam órfãs nem duplicam na nova tentativa)
   let photosSkipped = 0
   const expenseMap = new Map<string, string>()
   const expenses: Expense[] = []
@@ -57,13 +59,14 @@ export async function importInto(source: AppData, opts: { withLegacyImages?: boo
           photosSkipped++
           continue
         }
+        uploaded.push(imgId)
         attachments.push(imgId)
         photos++
       }
     }
     expenses.push({ ...e, id, categoryId: mapCategory(e.categoryId), attachments: attachments.length ? attachments : undefined })
   }
-  await remote.insertExpenses(expenses)
+  await cleanupOnError(remote.insertExpenses(expenses), () => Promise.allSettled(uploaded.map(deleteImage)))
 
   const planned: PlannedExpense[] = source.planned.map((p) => ({
     ...p,
