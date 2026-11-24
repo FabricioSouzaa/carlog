@@ -1,0 +1,5 @@
+# Quem precisa aprovar mudanças nestes caminhos (vale quando a proteção de branch exige "revisão de code owners").
+# Foco no que muda a segurança: o CI/automação e o banco (regras de acesso, funções, migrações).
+/.github/   @FabricioSouzaa
+/supabase/  @FabricioSouzaa
+/vercel.json @FabricioSouzaa
