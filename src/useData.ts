@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { newId } from './lib/id'
 import { importInto, type ImportResult } from './storage/backup'
-import { thenCleanup } from './storage/cleanup'
+import { cleanupOnError, thenCleanup } from './storage/cleanup'
 import { deleteImage } from './storage/images'
 import * as remote from './storage/remote'
 import type { AppData, Expense, PlannedExpense } from './types'
 
 export type ExpenseInput = Omit<Expense, 'id' | 'createdAt'>
 export type PlannedInput = Omit<PlannedExpense, 'id' | 'status' | 'expenseId'>
+
+const dropPhotos = (ids: string[] = []) => Promise.allSettled(ids.map(deleteImage))
 
 const EMPTY: AppData = { categories: [], expenses: [], planned: [] }
 
@@ -62,7 +64,7 @@ export function useData() {
     (input: ExpenseInput) => {
       const expense: Expense = { ...input, id: newId(), createdAt: new Date().toISOString() }
       setData((d) => ({ ...d, expenses: [...d.expenses, expense] }))
-      persist(remote.insertExpenses([expense]))
+      persist(cleanupOnError(remote.insertExpenses([expense]), () => dropPhotos(expense.attachments)))
     },
     [persist],
   )
@@ -75,7 +77,9 @@ export function useData() {
       setData((d) => ({ ...d, expenses: d.expenses.map((e) => (e.id === id ? next : e)) }))
       // fotos tiradas do gasto só são apagadas depois de o banco confirmar a gravação
       const removed = (prev.attachments ?? []).filter((img) => !(next.attachments ?? []).includes(img))
-      persist(thenCleanup(remote.updateExpense(next), () => Promise.allSettled(removed.map(deleteImage))))
+      // fotos novas (enviadas antes de gravar) saem se o banco recusar; as tiradas só saem se ele aceitar
+      const added = (next.attachments ?? []).filter((img) => !(prev.attachments ?? []).includes(img))
+      persist(thenCleanup(cleanupOnError(remote.updateExpense(next), () => dropPhotos(added)), () => dropPhotos(removed)))
     },
     [persist],
   )
@@ -90,7 +94,7 @@ export function useData() {
       }))
       // as fotos só são apagadas depois de o banco confirmar que apagou o gasto
       const photos = target?.attachments ?? []
-      persist(thenCleanup(remote.deleteExpense(id), () => Promise.allSettled(photos.map(deleteImage))))
+      persist(thenCleanup(remote.deleteExpense(id), () => dropPhotos(photos)))
     },
     [persist],
   )
@@ -132,7 +136,7 @@ export function useData() {
         expenses: [...d.expenses, expense],
         planned: d.planned.map((p) => (p.id === plannedId ? { ...p, status: 'done', expenseId: expense.id } : p)),
       }))
-      persist(remote.completePlanned(plannedId, expense))
+      persist(cleanupOnError(remote.completePlanned(plannedId, expense), () => dropPhotos(expense.attachments)))
     },
     [persist],
   )

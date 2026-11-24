@@ -1,3 +1,4 @@
+import { isImageId } from '../lib/imageId'
 import { supabase } from '../supabase'
 
 // Fotos (notas fiscais etc.) no Supabase Storage, bucket privado "receipts",
@@ -6,7 +7,13 @@ import { supabase } from '../supabase'
 const BUCKET = 'receipts'
 const cache = new Map<string, Blob>() // evita baixar de novo a cada renderização
 
+// Ao sair da conta, as fotos baixadas somem da memória: quem entrar depois, na mesma aba, não herda imagens do anterior.
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') cache.clear()
+})
+
 async function pathFor(id: string): Promise<string> {
+  if (!isImageId(id)) throw new Error('Identificador de foto inválido')
   const { data } = await supabase.auth.getSession()
   const uid = data.session?.user.id
   if (!uid) throw new Error('Sem sessão')

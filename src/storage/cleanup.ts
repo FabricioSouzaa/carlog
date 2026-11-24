@@ -7,3 +7,16 @@ export async function thenCleanup(op: Promise<unknown>, cleanup: () => Promise<u
   await op
   await cleanup().catch(() => {})
 }
+
+/**
+ * O contrário de `thenCleanup`: roda `cleanup` (ex.: apagar fotos recém-enviadas) só se `op` FALHAR, e repassa o erro.
+ * As fotos sobem antes do registro no banco; se o banco recusar, elas ficariam no Storage sem nenhum gasto apontando para elas.
+ */
+export async function cleanupOnError(op: Promise<unknown>, cleanup: () => Promise<unknown>): Promise<void> {
+  try {
+    await op
+  } catch (e) {
+    await cleanup().catch(() => {})
+    throw e
+  }
+}

@@ -3,7 +3,7 @@ import { compressImage } from '../lib/image'
 import { parseMoney, todayISO } from '../lib/format'
 import { newId } from '../lib/id'
 import { DESCRIPTION_MAX, MAX_ATTACHMENTS, NOTES_MAX } from '../lib/limits'
-import { saveImage } from '../storage/images'
+import { deleteImage, saveImage } from '../storage/images'
 import type { ExpenseInput } from '../useData'
 import { EXPENSE_TYPE_HINT, EXPENSE_TYPE_LABEL, type Category, type ExpenseType } from '../types'
 import { StoredImage } from './StoredImage'
@@ -90,8 +90,10 @@ export function ExpenseForm({ title, submitLabel = 'Salvar', categories, initial
     try {
       for (const p of added) await saveImage(p.id, p.blob)
     } catch {
+      // se parou no meio, as que já subiram não ficam sozinhas no Storage
+      await Promise.allSettled(added.map((p) => deleteImage(p.id)))
       setBusy(false)
-      return setError('Não foi possível salvar as fotos neste navegador. Remova-as e tente de novo.')
+      return setError('Não foi possível enviar as fotos. Verifique a conexão, ou remova-as e tente de novo.')
     }
     const attachments = [...kept, ...added.map((p) => p.id)]
     onSubmit({
