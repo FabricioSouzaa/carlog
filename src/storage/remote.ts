@@ -13,8 +13,9 @@ import {
 
 // Única camada que fala com o banco. user_id é preenchido pelo próprio banco (auth.uid()).
 
-function check<T>(res: { data: T | null; error: { message: string } | null }): T {
-  if (res.error) throw new Error(res.error.message)
+function check<T>(res: { data: T | null; error: { message: string; code?: string } | null }): T {
+  // o `code` vem do servidor (Postgres/PostgREST); falha de rede não tem, e isso importa para decidir se apaga fotos
+  if (res.error) throw Object.assign(new Error(res.error.message), { code: res.error.code })
   return res.data as T
 }
 

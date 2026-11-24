@@ -45,3 +45,21 @@ export function getLegacyImage(id: string): Promise<Blob | undefined> {
     }
   })
 }
+
+/** Existe a cópia que sobrou depois de migrar (ainda com os dados antigos, em texto, neste navegador)? */
+export function hasMigratedCopy(): boolean {
+  try {
+    return localStorage.getItem(BACKUP_KEY) !== null
+  } catch {
+    return false
+  }
+}
+
+/** Apaga a cópia `:migrado` deste navegador. Só o usuário aciona: os dados já estão na conta. */
+export function clearMigratedCopy(): void {
+  try {
+    localStorage.removeItem(BACKUP_KEY)
+  } catch {
+    // ignora
+  }
+}

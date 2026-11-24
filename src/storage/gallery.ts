@@ -5,6 +5,8 @@ import { supabase } from '../supabase'
 
 const BUCKET = 'receipts'
 export const MAX_GALLERY_PHOTOS = 60
+// O limite de 60 é do app (uso individual, cadastro fechado; o Storage não conta arquivos por pasta). A listagem tem folga até 100.
+const LIST_LIMIT = 100
 
 export interface GalleryPhoto {
   name: string // nome do arquivo dentro da pasta da galeria
@@ -22,7 +24,7 @@ export async function listGallery(): Promise<GalleryPhoto[]> {
   const dir = await folder()
   const { data, error } = await supabase.storage
     .from(BUCKET)
-    .list(dir, { limit: 100, sortBy: { column: 'created_at', order: 'asc' } })
+    .list(dir, { limit: LIST_LIMIT, sortBy: { column: 'created_at', order: 'asc' } })
   if (error) throw new Error(error.message)
   const files = (data ?? []).filter((f) => f.id && !f.name.startsWith('.'))
   if (files.length === 0) return []

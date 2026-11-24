@@ -3,7 +3,7 @@ import { PasswordForm } from '../components/PasswordForm'
 import { Notice } from '../components/ui'
 import { validateBackup } from '../lib/backup'
 import { CATEGORY_NAME_MAX, MAX_BACKUP_BYTES } from '../lib/limits'
-import { loadLegacyData, markLegacyMigrated } from '../storage/legacy'
+import { clearMigratedCopy, hasMigratedCopy, loadLegacyData, markLegacyMigrated } from '../storage/legacy'
 import { supabase } from '../supabase'
 import { todayISO } from '../lib/format'
 import type { DataApi } from '../useData'
@@ -18,6 +18,7 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
   const [busy, setBusy] = useState(false)
   const [changingPassword, setChangingPassword] = useState(false)
   const [legacy, setLegacy] = useState(loadLegacyData)
+  const [migratedCopy, setMigratedCopy] = useState(hasMigratedCopy)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const nameTaken = (name: string, exceptId?: string) =>
@@ -91,6 +92,7 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
       const r = await api.importData(check.data, { withLegacyImages: true })
       markLegacyMigrated()
       setLegacy(null)
+      setMigratedCopy(hasMigratedCopy())
       setMessage(
         `Enviado para sua conta: ${r.expenses} gastos, ${r.planned} planejados e ${r.photos} fotos.` +
           (r.photosSkipped ? ` ${r.photosSkipped} foto(s) não puderam ser enviadas (acima de 3 MB ou fora do formato JPEG).` : ''),
@@ -145,6 +147,24 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
             Encontrei {legacy.expenses.length} gastos e {legacy.planned.length} planejados salvos só neste aparelho. Envie para a sua conta para vê-los em todos os dispositivos. Nada é apagado daqui.
           </p>
           <button type="button" className="btn-primary" onClick={migrateLegacy} disabled={busy}>{busy ? 'Enviando…' : 'Enviar para minha conta'}</button>
+        </section>
+      )}
+
+      {migratedCopy && !legacy && (
+        <section className="card space-y-3">
+          <h2 className="font-semibold">Cópia dos dados antigos</h2>
+          <p className="muted">Depois do envio, este navegador guardou uma cópia em texto dos dados antigos (as fotos antigas deste aparelho não entram aqui e não são apagadas). É a única volta caso algo tenha ficado de fora do envio, então só apague depois de conferir tudo na sua conta.</p>
+          <button
+            type="button"
+            className="btn-outline"
+            onClick={() => {
+              if (!window.confirm('Apagar a cópia dos dados antigos deste navegador? Os dados da sua conta não são afetados.')) return
+              clearMigratedCopy()
+              setMigratedCopy(false)
+            }}
+          >
+            Apagar a cópia deste navegador
+          </button>
         </section>
       )}
 
