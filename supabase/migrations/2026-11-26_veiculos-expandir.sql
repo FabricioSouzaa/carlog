@@ -4,10 +4,11 @@
 --
 -- Por que "expandir e depois contrair": entre você rodar este SQL e a Vercel publicar o app novo, o app ANTIGO continua
 -- inserindo gastos sem carro. Por isso `car_id` nasce permitindo vazio e um gatilho preenche com o carro da pessoa.
--- Só depois que o app novo estiver no ar vem o passo 3 ("contrair"): `car_id` vira obrigatório e o gatilho sai.
+-- Enquanto o gatilho existir, um insert sem carro cai no carro mais antigo SEM aviso: por isso a fase "expandir" deve durar pouco
+-- (aba antiga do app ou importação gravariam no carro errado depois que houver mais de um). Só depois que o app novo estiver no ar vem o passo 3 ("contrair"): `car_id` vira obrigatório e o gatilho sai.
 --
 -- O que muda:
---  1) tabela `cars` (cada usuário só enxerga os próprios carros; nunca fica sem nenhum);
+--  1) tabela `cars` (cada usuário só enxerga os próprios carros; nunca fica sem nenhum, nem por apagamentos simultâneos);
 --  2) `car_id` em gastos e planejados, com chave estrangeira composta (user_id, car_id): impede apontar para carro de outra conta;
 --  3) um carro "Meu carro" para cada usuário que já existe, e os gastos/planejados atuais passam para ele;
 --  4) gatilho que preenche `car_id` quando não vier informado; usuário novo já nasce com um carro;
@@ -45,16 +46,16 @@ create policy "own rows insert" on public.cars for insert to authenticated
   with check (user_id = (select auth.uid()));
 create policy "own rows update" on public.cars for update to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
--- nunca apagar o último carro (o app sempre precisa de um). Carro com gastos ou planejados também não sai: a chave
--- estrangeira abaixo é `on delete restrict`, então o banco recusa.
+-- o último carro não sai (gatilho `keep_last_car`, mais abaixo); carro com gastos ou planejados também não: a chave estrangeira
+-- abaixo recusa (`no action`).
 create policy "own rows delete" on public.cars for delete to authenticated
-  using (user_id = (select auth.uid()) and exists (select 1 from public.cars c where c.user_id = cars.user_id and c.id <> cars.id));
+  using (user_id = (select auth.uid()));
 
--- 2) Um carro para cada usuário que já existe (todos têm categorias, criadas no cadastro) e passagem dos dados atuais para ele
+-- 2) Um carro para cada usuário que já existe e passagem dos dados atuais para ele
 insert into public.cars (user_id, name)
-select distinct c.user_id, 'Meu carro'
-from public.categories c
-where not exists (select 1 from public.cars x where x.user_id = c.user_id);
+select u.id, 'Meu carro'
+from auth.users u
+where not exists (select 1 from public.cars x where x.user_id = u.id);
 
 alter table public.expenses add column if not exists car_id uuid;
 alter table public.planned_expenses add column if not exists car_id uuid;
@@ -66,15 +67,40 @@ update public.planned_expenses p
 set car_id = (select c.id from public.cars c where c.user_id = p.user_id order by c.created_at, c.id limit 1)
 where p.car_id is null;
 
--- 3) Chaves estrangeiras compostas e índices (apagar um carro procura quem ainda o usa)
+-- 3) Chaves estrangeiras compostas e índices (apagar um carro procura quem ainda o usa).
+--    `no action` (e não `restrict`): também recusa apagar carro em uso, mas só confere no FIM do comando, então apagar a conta
+--    (cascade de auth.users para carros e gastos, em qualquer ordem) continua funcionando.
 alter table public.expenses drop constraint if exists expenses_user_car_fk;
 alter table public.expenses add constraint expenses_user_car_fk
-  foreign key (user_id, car_id) references public.cars (user_id, id) on delete restrict;
+  foreign key (user_id, car_id) references public.cars (user_id, id) on delete no action;
 alter table public.planned_expenses drop constraint if exists planned_user_car_fk;
 alter table public.planned_expenses add constraint planned_user_car_fk
-  foreign key (user_id, car_id) references public.cars (user_id, id) on delete restrict;
+  foreign key (user_id, car_id) references public.cars (user_id, id) on delete no action;
 create index if not exists expenses_user_car_idx on public.expenses (user_id, car_id);
 create index if not exists planned_user_car_idx on public.planned_expenses (user_id, car_id);
+
+-- 3b) O último carro não pode ser apagado, nem por dois apagamentos simultâneos (um gatilho com trava, não só a política).
+create or replace function public.keep_last_car()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- apagar a CONTA (cascade de auth.users) leva todos os carros: aí a linha do usuário já não existe e tudo bem
+  if not exists (select 1 from auth.users where id = old.user_id) then
+    return old;
+  end if;
+  -- trava os carros do usuário: dois apagamentos ao mesmo tempo esperam um pelo outro e o segundo já enxerga o resultado do primeiro
+  perform 1 from public.cars where user_id = old.user_id for update;
+  if not exists (select 1 from public.cars where user_id = old.user_id and id <> old.id) then
+    raise exception 'O último carro não pode ser removido.' using errcode = 'P0002';
+  end if;
+  return old;
+end;
+$$;
+drop trigger if exists cars_keep_last on public.cars;
+create trigger cars_keep_last before delete on public.cars for each row execute function public.keep_last_car();
 
 -- 4) Gatilho: sem `car_id` informado, usa o carro mais antigo da pessoa (some no passo 3, quando `car_id` virar obrigatório).
 --    `security invoker`: lê `cars` com os direitos de quem insere, então o RLS continua valendo.

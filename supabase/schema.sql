@@ -54,7 +54,7 @@ create table public.expenses (
   created_at timestamptz not null default now(),
   -- chave composta: só aceita categoria do mesmo usuário (o RLS não vale dentro da checagem de uma FK simples)
   constraint expenses_user_category_fk foreign key (user_id, category_id) references public.categories (user_id, id) on delete restrict,
-  constraint expenses_user_car_fk foreign key (user_id, car_id) references public.cars (user_id, id) on delete restrict,
+  constraint expenses_user_car_fk foreign key (user_id, car_id) references public.cars (user_id, id) on delete no action,
   -- limites de tamanho (iguais aos de src/lib/limits.ts; mesmos nomes da migração 2026-11-17)
   constraint expenses_description_len check (char_length(description) <= 200),
   constraint expenses_notes_len check (char_length(notes) <= 2000),
@@ -81,7 +81,7 @@ create table public.planned_expenses (
   expense_id uuid,
   created_at timestamptz not null default now(),
   constraint planned_user_category_fk foreign key (user_id, category_id) references public.categories (user_id, id) on delete restrict,
-  constraint planned_user_car_fk foreign key (user_id, car_id) references public.cars (user_id, id) on delete restrict,
+  constraint planned_user_car_fk foreign key (user_id, car_id) references public.cars (user_id, id) on delete no action,
   -- set null só em expense_id: um set null simples também zeraria user_id (obrigatório). Postgres 15+.
   constraint planned_user_expense_fk foreign key (user_id, expense_id) references public.expenses (user_id, id) on delete set null (expense_id),
   constraint planned_description_len check (char_length(description) <= 200),
@@ -108,7 +108,7 @@ create policy "own rows update" on public.categories for update to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 create policy "own rows delete" on public.categories for delete to authenticated
   using (user_id = (select auth.uid()) and not is_fallback);
--- cars: nunca apagar o último carro; carro com gastos/planejados também não sai (FK on delete restrict)
+-- cars: o último carro não sai (gatilho keep_last_car); carro com gastos/planejados também não (FK no action)
 create policy "own rows select" on public.cars for select to authenticated
   using (user_id = (select auth.uid()));
 create policy "own rows insert" on public.cars for insert to authenticated
@@ -116,7 +116,7 @@ create policy "own rows insert" on public.cars for insert to authenticated
 create policy "own rows update" on public.cars for update to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 create policy "own rows delete" on public.cars for delete to authenticated
-  using (user_id = (select auth.uid()) and exists (select 1 from public.cars c where c.user_id = cars.user_id and c.id <> cars.id));
+  using (user_id = (select auth.uid()));
 create policy "own rows" on public.expenses for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 create policy "own rows" on public.planned_expenses for all to authenticated
@@ -255,6 +255,29 @@ begin
   return new;
 end;
 $$;
+
+create or replace function public.keep_last_car()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- apagar a CONTA (cascade de auth.users) leva todos os carros: aí a linha do usuário já não existe e tudo bem
+  if not exists (select 1 from auth.users where id = old.user_id) then
+    return old;
+  end if;
+  -- trava os carros do usuário: dois apagamentos ao mesmo tempo esperam um pelo outro e o segundo já enxerga o resultado do primeiro
+  perform 1 from public.cars where user_id = old.user_id for update;
+  if not exists (select 1 from public.cars where user_id = old.user_id and id <> old.id) then
+    raise exception 'O último carro não pode ser removido.' using errcode = 'P0002';
+  end if;
+  return old;
+end;
+$$;
+drop trigger if exists cars_keep_last on public.cars;
+create trigger cars_keep_last before delete on public.cars for each row execute function public.keep_last_car();
+
 create trigger expenses_fill_car before insert on public.expenses for each row execute function public.fill_car_id();
 create trigger planned_fill_car before insert on public.planned_expenses for each row execute function public.fill_car_id();
 
