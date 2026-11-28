@@ -14,11 +14,12 @@ export type PlannedInput = Omit<PlannedExpense, 'id' | 'status' | 'expenseId' | 
 export type CarInput = Omit<Car, 'id'>
 
 const NO_CAR = 'Os dados ainda estão carregando. Tente de novo em instantes.'
-const ACTIVE_CAR_KEY = 'carlog:active-car'
+// uma chave por usuário: em navegador compartilhado, a escolha de uma conta não vale para outra
+const activeCarKey = (userId: string) => `carlog:active-car:${userId}`
 // só uma conveniência deste aparelho: se o armazenamento falhar, vale o carro mais antigo
-const readActiveCar = (): string | null => {
+const readActiveCar = (userId: string): string | null => {
   try {
-    return localStorage.getItem(ACTIVE_CAR_KEY)
+    return localStorage.getItem(activeCarKey(userId))
   } catch {
     return null
   }
@@ -32,11 +33,11 @@ const EMPTY: AppData = { cars: [], categories: [], expenses: [], planned: [] }
  * Estado do app espelhando o banco. As alterações aparecem na hora (otimista) e são enviadas
  * ao Supabase; se o envio falhar, mostra o erro e recarrega o estado real do servidor.
  */
-export function useData() {
+export function useData(userId: string) {
   const [data, setData] = useState<AppData>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [storedCar, setStoredCar] = useState(readActiveCar)
+  const [storedCar, setStoredCar] = useState(() => readActiveCar(userId))
   const activeCarId = resolveActiveCarId(data.cars, storedCar)
 
   const dataRef = useRef(data)
@@ -53,6 +54,12 @@ export function useData() {
   // gravações de carro em andamento: um gasto num carro recém-criado espera o carro chegar ao banco (a chave estrangeira recusaria antes)
   const carWrites = useRef<Promise<unknown>>(Promise.resolve())
   const afterCars = useCallback(<T,>(run: () => Promise<T>): Promise<T> => carWrites.current.then(run), [])
+  /** Gravação de carro em fila: cada uma espera a anterior (inserir, renomear e apagar o mesmo carro seguem a ordem dos toques). */
+  const queueCar = useCallback(<T,>(run: () => Promise<T>): Promise<T> => {
+    const write = carWrites.current.then(run)
+    carWrites.current = write.catch(() => {})
+    return write
+  }, [])
 
   const activeCarRef = useRef(activeCarId)
   useEffect(() => {
@@ -62,11 +69,11 @@ export function useData() {
   const setActiveCar = useCallback((id: string) => {
     setStoredCar(id)
     try {
-      localStorage.setItem(ACTIVE_CAR_KEY, id)
+      localStorage.setItem(activeCarKey(userId), id)
     } catch {
       // sem armazenamento (janela privada etc.): vale só até recarregar
     }
-  }, [])
+  }, [userId])
 
   const refresh = useCallback(async () => {
     try {
@@ -192,19 +199,17 @@ export function useData() {
     (input: CarInput) => {
       const car: Car = { ...input, id: newId() }
       setData((d) => ({ ...d, cars: [...d.cars, car] }))
-      const write = remote.insertCars([car])
-      carWrites.current = write.catch(() => {})
-      persist(write)
+      persist(queueCar(() => remote.insertCars([car])))
     },
-    [persist],
+    [persist, queueCar],
   )
 
   const updateCar = useCallback(
     (id: string, input: CarInput) => {
       setData((d) => ({ ...d, cars: d.cars.map((c) => (c.id === id ? { ...c, ...input } : c)) }))
-      persist(remote.updateCar({ ...input, id }))
+      persist(queueCar(() => remote.updateCar({ ...input, id })))
     },
-    [persist],
+    [persist, queueCar],
   )
 
   /** Só apaga carro vazio e que não seja o último; devolve o motivo quando recusa (o banco confere de novo). */
@@ -214,10 +219,10 @@ export function useData() {
       const blocker = deleteCarBlocker(cars, id, { expenses, planned })
       if (blocker) return blocker
       setData((d) => ({ ...d, cars: d.cars.filter((c) => c.id !== id) }))
-      persist(remote.deleteCar(id))
+      persist(queueCar(() => remote.deleteCar(id)))
       return null
     },
-    [persist],
+    [persist, queueCar],
   )
 
   const addCategory = useCallback(

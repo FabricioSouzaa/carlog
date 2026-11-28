@@ -113,11 +113,11 @@ export default function App() {
       </ErrorBoundary>
     )
   }
-  return <Main email={session.user.email ?? ''} />
+  return <Main email={session.user.email ?? ''} userId={session.user.id} />
 }
 
-function Main({ email }: { email: string }) {
-  const api = useData()
+function Main({ email, userId }: { email: string; userId: string }) {
+  const api = useData(userId)
   const [tab, setTabNow] = useState<TabId | 'galeria'>('visao')
   // em transição, a tela atual continua visível até o pedaço da aba nova chegar (sem piscar "Carregando…")
   const setTab = (t: TabId | 'galeria') => startTransition(() => setTabNow(t))
@@ -184,6 +184,9 @@ function Main({ email }: { email: string }) {
               <Galeria onBack={() => setTab('visao')} />
             ) : api.loading ? (
               <p className="py-10 text-center muted">Carregando seus dados…</p>
+            ) : !api.activeCarId ? (
+              // a carga falhou (o erro está no aviso acima): sem carro nenhuma tela consegue gravar
+              <p className="py-10 text-center muted">Não foi possível carregar seus dados. Recarregue a página.</p>
             ) : (
               <>
                 {tab === 'visao' && <VisaoGeral api={api} />}

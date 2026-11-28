@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { deleteCarBlocker } from '../lib/cars'
 import { CAR_NAME_MAX } from '../lib/limits'
 import type { Car } from '../types'
 import type { DataApi } from '../useData'
@@ -60,9 +61,11 @@ export function CarsSection({ api, onMessage }: { api: DataApi; onMessage: (text
   }
 
   function remove(c: Car) {
+    // o motivo aparece antes de perguntar: não faz sentido confirmar algo que será recusado
+    const blocker = deleteCarBlocker(cars, c.id, api.allData)
+    if (blocker) return onMessage(blocker, true)
     if (!window.confirm(`Remover o carro "${c.name}"?`)) return
-    const blocker = api.deleteCar(c.id)
-    onMessage(blocker ?? '', Boolean(blocker))
+    onMessage(api.deleteCar(c.id) ?? '', false)
   }
 
   return (

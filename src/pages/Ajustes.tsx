@@ -175,7 +175,7 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
 
       <section className="card space-y-3">
         <h2 className="font-semibold">Backup dos dados</h2>
-        <p className="muted">Seus dados ficam na nuvem. O backup JSON é uma cópia extra (sem as fotos). Importar adiciona ao que já existe, sem apagar nada. Itens de backups sem carro entram em &quot;{activeCarName}&quot;.</p>
+        <p className="muted">Seus dados ficam na nuvem. O backup JSON é uma cópia extra (sem as fotos). Importar adiciona ao que já existe, sem apagar nada.{activeCarName && <> Itens de backups sem carro entram em &quot;{activeCarName}&quot;.</>}</p>
         <div className="flex flex-wrap gap-2">
           <button type="button" className="btn-outline" onClick={exportJson}>Exportar JSON</button>
           <button type="button" className="btn-outline" onClick={() => fileRef.current?.click()} disabled={busy}>Importar JSON</button>
