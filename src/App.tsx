@@ -138,7 +138,7 @@ function Main({ email, userId }: { email: string; userId: string }) {
       {APP_NAME}
     </button>
   )
-  const car = !api.loading && <CarSwitcher cars={api.data.cars} activeId={api.activeCarId} onChange={api.setActiveCar} />
+  const car = !api.loading && tab !== 'galeria' && <CarSwitcher cars={api.data.cars} activeId={api.activeCarId} onChange={api.setActiveCar} />
 
   return (
     <div className="min-h-dvh text-ink">

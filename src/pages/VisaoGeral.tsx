@@ -23,10 +23,13 @@ const MonthlyBars = lazy(() => import('../components/MonthlyBars'))
 /** Os três totais pequenos dentro do cartão de destaque. */
 function HeroStat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-white/15 bg-white/[0.07] p-4">
-      <p className="text-xs text-blue-300">{label}</p>
-      <p className="mt-0.5 font-display text-lg whitespace-nowrap tabular-nums sm:text-xl">{value}</p>
-      {hint && <p className="mt-0.5 text-[11px] text-blue-200">{hint}</p>}
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/15 bg-white/[0.07] px-4 py-3 sm:block sm:p-4">
+      <div className="min-w-0">
+        <p className="text-xs text-blue-300">{label}</p>
+        {hint && <p className="mt-0.5 text-[11px] text-blue-200 sm:hidden">{hint}</p>}
+      </div>
+      <p className="font-display text-lg whitespace-nowrap tabular-nums sm:mt-0.5 sm:text-xl">{value}</p>
+      {hint && <p className="mt-0.5 hidden text-[11px] text-blue-200 sm:block">{hint}</p>}
     </div>
   )
 }
@@ -80,7 +83,7 @@ export function VisaoGeral({ api }: { api: DataApi }) {
             {stats.perKm !== null && <> · custo de {formatCurrency(stats.perKm)} por km rodado</>}
           </p>
         </div>
-        <div className="grid grid-cols-3 gap-3 lg:w-[34rem]">
+        <div className="grid gap-3 sm:grid-cols-3 lg:w-[34rem]">
           <HeroStat label="Este mês" value={formatCurrency(stats.month)} />
           <HeroStat label="Este ano" value={formatCurrency(stats.year)} />
           <HeroStat label="Planejado" value={formatCurrency(stats.planned.min)} hint={plannedHint} />

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { readThemeChoice, startTheme, type ThemeChoice } from './lib/theme'
 
 /** Liga o tema do app (classe no <html>) enquanto o componente existe e devolve a escolha atual e como trocá-la. */
@@ -6,7 +6,8 @@ export function useTheme() {
   const [choice, setChoice] = useState<ThemeChoice>(readThemeChoice)
   const controller = useRef<ReturnType<typeof startTheme> | null>(null)
 
-  useEffect(() => {
+  // antes da primeira pintura: sem isso o app piscaria na paleta "clássica" antes de trocar para Areia ou Marinho
+  useLayoutEffect(() => {
     const c = startTheme(readThemeChoice())
     controller.current = c
     document.body.classList.add('app-shell')

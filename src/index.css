@@ -25,8 +25,18 @@
   --color-rule: #f1f5f9;
   --color-link: #2563eb;
 }
-/* variante para o interior do app: só vale com a classe `dark` no <html> (escolha explícita ou sistema já resolvido) */
-@custom-variant night (&:where(.dark, .dark *));
+/* variante para o interior do app: vale com a classe `dark` no <html> (escolha explícita ou sistema já resolvido) e, onde não há classe
+ * (reset de senha e outras telas de antes do login que reaproveitam componentes do app), acompanha o escuro do sistema */
+@custom-variant night {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light):not(.dark) & {
+      @slot;
+    }
+  }
+}
 
 :root {
   color-scheme: light dark;
