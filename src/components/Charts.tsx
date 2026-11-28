@@ -13,7 +13,7 @@ export function CategoryBars({ items }: { items: CategoryTotal[] }) {
             <span className="truncate">{i.name}</span>
             <span className="shrink-0 font-medium tabular-nums">{formatCurrency(i.total)}</span>
           </div>
-          <div className="h-2.5 rounded-full bg-slate-100 dark:bg-slate-800" role="presentation">
+          <div className="h-2.5 rounded-full bg-track" role="presentation">
             <div className="h-full rounded-full" style={{ width: `${(i.total / max) * 100}%`, background: 'var(--series-1)' }} />
           </div>
         </li>
@@ -43,7 +43,7 @@ export function TypeStack({ totals }: { totals: Record<ExpenseType, number> }) {
         {types.map((t) => (
           <li key={t} className="flex items-center justify-between gap-3 text-sm">
             <span className="flex items-center gap-2">
-              <span className="inline-block h-3 w-3 rounded-sm" style={{ background: TYPE_COLOR[t] }} />
+              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: TYPE_COLOR[t] }} />
               {EXPENSE_TYPE_LABEL[t]}
             </span>
             <span className="tabular-nums">

@@ -25,11 +25,11 @@ export function ExpenseCard({ expense, category, onEdit, onDelete }: Props) {
         </div>
         <p className="shrink-0 text-lg font-bold tabular-nums">{formatCurrency(expense.amount)}</p>
       </div>
-      {expense.notes && <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{expense.notes}</p>}
+      {expense.notes && <p className="mt-2 text-sm text-ink-soft">{expense.notes}</p>}
       {expense.attachments && expense.attachments.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {expense.attachments.map((id, i) => (
-            <button key={id} type="button" onClick={() => setViewing(id)} aria-label={`Ver foto ${i + 1}`} className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+            <button key={id} type="button" onClick={() => setViewing(id)} aria-label={`Ver foto ${i + 1}`} className="overflow-hidden rounded-lg border border-line">
               <StoredImage id={id} alt={`Foto ${i + 1} de ${expense.description}`} className="h-14 w-14 object-cover" />
             </button>
           ))}

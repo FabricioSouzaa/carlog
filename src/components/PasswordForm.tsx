@@ -47,7 +47,7 @@ export function PasswordForm({ onSuccess, onCancel, cancelLabel = 'Cancelar' }: 
         <label className="label" htmlFor="confirm-password">Repita a nova senha</label>
         <input id="confirm-password" type="password" autoComplete="new-password" className="input" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
       </div>
-      {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red-600 night:text-red-400">{error}</p>}
       <div className="flex gap-2">
         <button type="submit" className="btn-primary" disabled={busy}>{busy ? 'Salvando…' : 'Salvar nova senha'}</button>
         {onCancel && <button type="button" className="btn-ghost" onClick={onCancel}>{cancelLabel}</button>}

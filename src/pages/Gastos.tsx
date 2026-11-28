@@ -56,7 +56,7 @@ export function Gastos({ api }: { api: DataApi }) {
                   className={`rounded-full border px-3 py-1 text-sm ${
                     on
                       ? 'border-blue-600 bg-blue-600 text-white'
-                      : 'border-slate-300 text-slate-600 dark:border-slate-700 dark:text-slate-300'
+                      : 'border-line-strong text-ink-soft'
                   }`}
                 >
                   {c.name}

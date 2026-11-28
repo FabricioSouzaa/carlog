@@ -25,7 +25,7 @@ export function StoredImage({ id, alt, className }: { id: string; alt: string; c
 
   if (url) return <img src={url} alt={alt} className={className} />
   return (
-    <div className={`flex items-center justify-center bg-slate-100 text-xs text-slate-400 dark:bg-slate-800 ${className ?? ''}`}>
+    <div className={`flex items-center justify-center bg-track text-xs text-ink-soft ${className ?? ''}`}>
       {failed ? 'Sem foto' : '…'}
     </div>
   )

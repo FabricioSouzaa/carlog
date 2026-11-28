@@ -7,9 +7,11 @@ import { CATEGORY_NAME_MAX, MAX_BACKUP_BYTES } from '../lib/limits'
 import { clearMigratedCopy, hasMigratedCopy, loadLegacyData, markLegacyMigrated } from '../storage/legacy'
 import { supabase } from '../supabase'
 import { todayISO } from '../lib/format'
+import { THEME_LABEL, type ThemeChoice } from '../lib/theme'
 import type { DataApi } from '../useData'
+import type { ThemeApi } from '../useTheme'
 
-export function Ajustes({ api, email }: { api: DataApi; email: string }) {
+export function Ajustes({ api, email, theme }: { api: DataApi; email: string; theme: ThemeApi }) {
   const { data } = api
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -112,11 +114,29 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
       <h1 className="text-2xl font-bold">Ajustes</h1>
       {notice && <Notice tone={notice.error ? 'error' : 'ok'}>{notice.text}</Notice>}
 
+      <section className="card space-y-3">
+        <h2 className="font-semibold">Aparência</h2>
+        <p className="muted">“Sistema” acompanha o claro ou escuro do seu aparelho. A escolha vale só neste aparelho.</p>
+        <div role="group" aria-label="Tema do app" className="inline-flex rounded-xl border border-line-strong p-1">
+          {(['system', 'light', 'dark'] as ThemeChoice[]).map((c) => (
+            <button
+              key={c}
+              type="button"
+              aria-pressed={theme.choice === c}
+              onClick={() => theme.change(c)}
+              className={`rounded-lg px-4 py-1.5 text-sm font-medium ${theme.choice === c ? 'bg-wash text-wash-ink' : 'text-ink-soft hover:bg-track'}`}
+            >
+              {THEME_LABEL[c]}
+            </button>
+          ))}
+        </div>
+      </section>
+
       <CarsSection api={api} onMessage={setMessage} />
 
       <section className="card space-y-3">
         <h2 className="font-semibold">Categorias</h2>
-        <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+        <ul className="divide-y divide-rule">
           {data.categories.map((c) => (
             <li key={c.id} className="flex items-center justify-between gap-2 py-2">
               {editingId === c.id ? (
@@ -146,7 +166,7 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
       </section>
 
       {legacy && (
-        <section className="card space-y-3 border-blue-300 dark:border-blue-800">
+        <section className="card space-y-3 border-blue-300 night:border-blue-800">
           <h2 className="font-semibold">Dados deste navegador</h2>
           <p className="muted">
             Encontrei {legacy.expenses.length} gastos e {legacy.planned.length} planejados salvos só neste aparelho. Envie para a sua conta para vê-los em todos os dispositivos. Nada é apagado daqui.

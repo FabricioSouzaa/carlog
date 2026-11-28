@@ -72,7 +72,7 @@ export function CarsSection({ api, onMessage }: { api: DataApi; onMessage: (text
     <section className="card space-y-3">
       <h2 className="font-semibold">Carros</h2>
       <p className="muted">As telas mostram um carro por vez (o escolhido no topo, quando há mais de um). As categorias valem para todos.</p>
-      <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+      <ul className="divide-y divide-rule">
         {cars.map((c) => (
           <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
             {editingId === c.id ? (

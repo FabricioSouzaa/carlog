@@ -22,7 +22,7 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="flex max-h-[85dvh] w-full flex-col rounded-t-2xl bg-white shadow-xl sm:max-w-lg sm:rounded-2xl dark:bg-slate-900"
+        className="flex max-h-[85dvh] w-full flex-col rounded-t-3xl border border-line bg-surface shadow-xl sm:max-w-lg sm:rounded-3xl"
       >
         <div className="flex shrink-0 items-center justify-between px-5 pt-4 pb-2">
           <h2 className="text-lg font-semibold">{title}</h2>
@@ -37,9 +37,9 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
 }
 
 const TYPE_STYLE: Record<ExpenseType, string> = {
-  maintenance: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300',
-  upgrade: 'bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300',
-  routine: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300',
+  maintenance: 'bg-blue-100 text-blue-800 night:bg-blue-950 night:text-blue-300',
+  upgrade: 'bg-orange-100 text-orange-800 night:bg-orange-950 night:text-orange-300',
+  routine: 'bg-emerald-100 text-emerald-800 night:bg-emerald-950 night:text-emerald-300',
 }
 
 export function TypeBadge({ type }: { type: ExpenseType }) {
@@ -63,7 +63,7 @@ export function Fab({ onClick, children }: { onClick: () => void; children: Reac
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
-  return <p className="card py-10 text-center text-slate-500 dark:text-slate-400">{children}</p>
+  return <p className="card py-10 text-center text-ink-soft">{children}</p>
 }
 
 /** Aviso em destaque: vermelho para erro (lido na hora por leitores de tela), verde para sucesso. */
@@ -74,8 +74,8 @@ export function Notice({ tone, children }: { tone: 'ok' | 'error'; children: Rea
       role={error ? 'alert' : 'status'}
       className={`flex items-start gap-3 rounded-xl border p-4 text-sm font-medium ${
         error
-          ? 'border-red-300 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200'
-          : 'border-green-300 bg-green-50 text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-200'
+          ? 'border-red-300 bg-red-50 text-red-800 night:border-red-900 night:bg-red-950 night:text-red-200'
+          : 'border-green-300 bg-green-50 text-green-800 night:border-green-900 night:bg-green-950 night:text-green-200'
       }`}
     >
       <span aria-hidden="true" className="mt-px">{error ? '⚠️' : '✅'}</span>

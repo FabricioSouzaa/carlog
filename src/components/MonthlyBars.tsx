@@ -1,4 +1,4 @@
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { MonthTotal } from '../lib/calc'
 import { formatCurrency, formatMonth } from '../lib/format'
 
@@ -18,9 +18,13 @@ export default function MonthlyBars({ items }: { items: MonthTotal[] }) {
             cursor={{ fill: 'var(--grid)', opacity: 0.5 }}
             formatter={(v) => [formatCurrency(Number(v)), 'Gasto']}
             labelStyle={{ color: 'var(--axis)' }}
-            contentStyle={{ borderRadius: 8, border: '1px solid var(--grid)' }}
+            contentStyle={{ borderRadius: 12, border: '1px solid var(--grid)', background: 'var(--color-surface)', color: 'var(--color-ink)' }}
           />
-          <Bar dataKey="total" fill="var(--series-1)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+          <Bar dataKey="total" radius={[6, 6, 0, 0]} maxBarSize={28}>
+            {data.map((d, i) => (
+              <Cell key={d.month} fill={i === data.length - 1 ? 'var(--bar-hi)' : 'var(--bar)'} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>

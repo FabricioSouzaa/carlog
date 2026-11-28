@@ -10,6 +10,32 @@
 }
 @theme {
   --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  /* cores semânticas do app. Sem classe no <html> (landing e login) valem o claro/escuro "clássicos" do sistema;
+   * dentro do app o <html> ganha `light` (Areia) ou `dark` (Marinho), ver lib/theme.ts */
+  --color-page: #f8fafc;
+  --color-surface: #ffffff;
+  --color-bar: #ffffff;
+  --color-line: #e2e8f0;
+  --color-line-strong: #cbd5e1;
+  --color-track: #f1f5f9;
+  --color-wash: #eff6ff;
+  --color-wash-ink: #1d4ed8;
+  --color-ink: #0f172a;
+  --color-ink-soft: #64748b;
+  --color-rule: #f1f5f9;
+  --color-link: #2563eb;
+}
+/* variante para o interior do app: vale com a classe `dark` no <html> (escolha explícita ou sistema já resolvido) e, onde não há classe
+ * (reset de senha e outras telas de antes do login que reaproveitam componentes do app), acompanha o escuro do sistema */
+@custom-variant night {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light):not(.dark) & {
+      @slot;
+    }
+  }
 }
 
 :root {
@@ -18,6 +44,8 @@
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --series-3: #1baf7a;
+  --bar: #93c5fd;
+  --bar-hi: #1d4ed8;
   --grid: #e2e8f0;
   --axis: #64748b;
 }
@@ -30,6 +58,89 @@
     --grid: #334155;
     --axis: #94a3b8;
   }
+  /* landing e login (sem classe): o claro vira o escuro "clássico" quando o aparelho está no escuro */
+  :root:not(.light):not(.dark) {
+    --color-page: #020617;
+    --color-surface: #0f172a;
+    --color-bar: #0f172a;
+    --color-line: #1e293b;
+    --color-line-strong: #334155;
+    --color-track: #1e293b;
+    --color-wash: #1e3a8a;
+    --color-wash-ink: #93c5fd;
+    --color-ink: #f1f5f9;
+    --color-ink-soft: #94a3b8;
+    --color-rule: #1e293b;
+    --color-link: #60a5fa;
+  }
+}
+/* dentro do app: Areia (claro) e Marinho (escuro) */
+:root.light {
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --grid: #d6cfbf;
+  --axis: #5b6678;
+  --bar: #93c5fd;
+  --bar-hi: #1d4ed8;
+  --color-page: #ebe6dc;
+  --color-surface: #f7f4ec;
+  --color-bar: #f1ede3;
+  --color-line: #d6cfbf;
+  --color-line-strong: #c4bcaa;
+  --color-track: #e3ddce;
+  --color-wash: #dde7fa;
+  --color-wash-ink: #1d4ed8;
+  --color-ink: #0f172a;
+  --color-ink-soft: #5b6678;
+  --color-rule: #e0dacb;
+  --color-link: #2563eb;
+}
+:root.dark {
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --grid: #1e2a44;
+  --axis: #94a3b8;
+  --bar: #3b82f6;
+  --bar-hi: #60a5fa;
+  --color-page: #0b1220;
+  --color-surface: #111b2e;
+  --color-bar: #0e1627;
+  --color-line: #1e2a44;
+  --color-line-strong: #2b3a5c;
+  --color-track: #1e293b;
+  --color-wash: #1e3a8a;
+  --color-wash-ink: #93c5fd;
+  --color-ink: #e5e9f2;
+  --color-ink-soft: #94a3b8;
+  --color-rule: #1e2a44;
+  --color-link: #60a5fa;
+}
+/* o fundo do app (o <body> ganha `app-shell` enquanto o app está aberto) */
+body.app-shell {
+  background: var(--color-page);
+  color: var(--color-ink);
+}
+/* cor de cada categoria: ponto e nome (6 cores; o nome fica mais claro no escuro) */
+.cat-0 { --cat-dot: #3b82f6; --cat-ink: #1e40af; }
+.cat-1 { --cat-dot: #f97316; --cat-ink: #9a3412; }
+.cat-2 { --cat-dot: #10b981; --cat-ink: #065f46; }
+.cat-3 { --cat-dot: #8b5cf6; --cat-ink: #5b21b6; }
+.cat-4 { --cat-dot: #14b8a6; --cat-ink: #115e59; }
+.cat-5 { --cat-dot: #ec4899; --cat-ink: #9d174d; }
+:root.dark .cat-0 { --cat-ink: #93c5fd; }
+:root.dark .cat-1 { --cat-ink: #fdba74; }
+:root.dark .cat-2 { --cat-ink: #6ee7b7; }
+:root.dark .cat-3 { --cat-ink: #c4b5fd; }
+:root.dark .cat-4 { --cat-ink: #5eead4; }
+:root.dark .cat-5 { --cat-ink: #f9a8d4; }
+/* destaque (total gasto): o "céu" da landing */
+.sky-card {
+  background: linear-gradient(180deg, #040a1c 0%, #0a1a45 55%, #12307a 100%);
+}
+:root.dark .sky-card {
+  box-shadow: inset 0 0 0 1px #1e3a8a;
 }
 
 body {
@@ -37,28 +148,28 @@ body {
 }
 
 @utility card {
-  @apply rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900;
+  @apply rounded-2xl border border-line bg-surface p-5 shadow-[0_6px_20px_rgb(15_23_42/0.06)];
 }
 @utility input {
-  @apply w-full min-w-0 max-w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100;
+  @apply w-full min-w-0 max-w-full rounded-xl border border-line-strong bg-surface px-3 py-2 text-base text-ink outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30;
 }
 @utility label {
-  @apply mb-1 block text-sm font-medium text-slate-600 dark:text-slate-300;
+  @apply mb-1 block text-sm font-medium text-ink-soft;
 }
 @utility btn {
-  @apply inline-flex items-center justify-center gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50;
+  @apply inline-flex items-center justify-center gap-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50;
 }
 @utility btn-primary {
   @apply btn bg-blue-600 text-white hover:bg-blue-700;
 }
 @utility btn-ghost {
-  @apply btn text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800;
+  @apply btn text-ink-soft hover:bg-track;
 }
 @utility btn-danger {
-  @apply btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950;
+  @apply btn text-red-600 hover:bg-red-50 night:text-red-400 night:hover:bg-red-950;
 }
 @utility btn-outline {
-  @apply btn border border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800;
+  @apply btn border border-line-strong text-ink hover:bg-track;
 }
 /* Botão branco: destaque sobre fundo escuro e navegação (landing, login).
  * Tamanhos (btn-lg, btn-xl) são só medidas e se juntam a qualquer botão (btn, btn-light...). Eles e os utilitários do Tailwind
@@ -74,7 +185,7 @@ body {
   @apply gap-2.5 rounded-2xl px-8 py-4 text-lg;
 }
 @utility muted {
-  @apply text-sm text-slate-500 dark:text-slate-400;
+  @apply text-sm text-ink-soft;
 }
 
 /* Landing: blocos que entram ao rolar (ver components/Reveal.tsx) */

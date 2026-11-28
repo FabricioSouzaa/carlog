@@ -146,8 +146,8 @@ export function ExpenseForm({ title, submitLabel = 'Salvar', categories, initial
                 aria-pressed={type === t}
                 className={`rounded-lg border px-2 py-2 text-sm font-medium ${
                   type === t
-                    ? 'border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                    : 'border-slate-300 text-slate-600 dark:border-slate-700 dark:text-slate-300'
+                    ? 'border-blue-600 bg-wash text-wash-ink'
+                    : 'border-line-strong text-ink-soft'
                 }`}
               >
                 {EXPENSE_TYPE_LABEL[t]}
@@ -180,7 +180,7 @@ export function ExpenseForm({ title, submitLabel = 'Salvar', categories, initial
               </div>
             ))}
             {kept.length + added.length < MAX_ATTACHMENTS && (
-              <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className="flex h-16 w-16 flex-col items-center justify-center rounded-lg border border-dashed border-slate-400 text-xs text-slate-500 disabled:opacity-50 dark:border-slate-600 dark:text-slate-400">
+              <button type="button" onClick={() => fileRef.current?.click()} disabled={busy} className="flex h-16 w-16 flex-col items-center justify-center rounded-lg border border-dashed border-line-strong text-xs text-ink-soft disabled:opacity-50">
                 <span className="text-xl leading-none">{busy ? '…' : '📷'}</span>
                 {busy ? 'Lendo' : 'Adicionar'}
               </button>
@@ -189,8 +189,8 @@ export function ExpenseForm({ title, submitLabel = 'Salvar', categories, initial
           <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
           <p className="muted mt-1">Tire uma foto ou escolha da galeria. Até {MAX_ATTACHMENTS} imagens, reduzidas automaticamente.</p>
         </div>
-        {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-        <div className="sticky bottom-0 -mx-5 -mb-5 flex justify-end gap-2 border-t border-slate-200 bg-white px-5 py-3 dark:border-slate-800 dark:bg-slate-900">
+        {error && <p role="alert" className="text-sm text-red-600 night:text-red-400">{error}</p>}
+        <div className="sticky bottom-0 -mx-5 -mb-5 flex justify-end gap-2 border-t border-line bg-surface px-5 py-3">
           <button type="button" className="btn-ghost" onClick={onClose}>Cancelar</button>
           <button type="submit" className="btn-primary" disabled={busy}>{busy ? 'Salvando…' : submitLabel}</button>
         </div>
