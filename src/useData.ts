@@ -1,18 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { diffAttachments } from './lib/attachments'
+import { deleteCarBlocker, resolveActiveCarId } from './lib/cars'
 import { newId } from './lib/id'
 import { importInto, type ImportResult } from './storage/backup'
 import { cleanupOnError, thenCleanup } from './storage/cleanup'
 import { deleteImage } from './storage/images'
 import * as remote from './storage/remote'
-import type { AppData, Expense, PlannedExpense } from './types'
+import type { AppData, BackupData, Car, Expense, PlannedExpense } from './types'
 
-export type ExpenseInput = Omit<Expense, 'id' | 'createdAt'>
-export type PlannedInput = Omit<PlannedExpense, 'id' | 'status' | 'expenseId'>
+// `carId` é opcional na entrada: sem ele, o lançamento vai para o carro ativo
+export type ExpenseInput = Omit<Expense, 'id' | 'createdAt' | 'carId'> & { carId?: string }
+export type PlannedInput = Omit<PlannedExpense, 'id' | 'status' | 'expenseId' | 'carId'> & { carId?: string }
+export type CarInput = Omit<Car, 'id'>
+
+const ACTIVE_CAR_KEY = 'carlog:active-car'
+// só uma conveniência deste aparelho: se o armazenamento falhar, vale o carro mais antigo
+const readActiveCar = (): string | null => {
+  try {
+    return localStorage.getItem(ACTIVE_CAR_KEY)
+  } catch {
+    return null
+  }
+}
 
 const dropPhotos = (ids: string[] = []) => Promise.allSettled(ids.map((id) => deleteImage(id)))
 
-const EMPTY: AppData = { categories: [], expenses: [], planned: [] }
+const EMPTY: AppData = { cars: [], categories: [], expenses: [], planned: [] }
 
 /**
  * Estado do app espelhando o banco. As alterações aparecem na hora (otimista) e são enviadas
@@ -22,11 +35,27 @@ export function useData() {
   const [data, setData] = useState<AppData>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [storedCar, setStoredCar] = useState(readActiveCar)
+  const activeCarId = resolveActiveCarId(data.cars, storedCar)
 
   const dataRef = useRef(data)
   useEffect(() => {
     dataRef.current = data
   }, [data])
+
+  const activeCarRef = useRef(activeCarId)
+  useEffect(() => {
+    activeCarRef.current = activeCarId
+  }, [activeCarId])
+
+  const setActiveCar = useCallback((id: string) => {
+    setStoredCar(id)
+    try {
+      localStorage.setItem(ACTIVE_CAR_KEY, id)
+    } catch {
+      // sem armazenamento (janela privada etc.): vale só até recarregar
+    }
+  }, [])
 
   const refresh = useCallback(async () => {
     try {
@@ -63,7 +92,9 @@ export function useData() {
 
   const addExpense = useCallback(
     (input: ExpenseInput) => {
-      const expense: Expense = { ...input, id: newId(), createdAt: new Date().toISOString() }
+      const carId = input.carId ?? activeCarRef.current
+      if (!carId) return // ainda carregando: sem carro não há onde gravar
+      const expense: Expense = { ...input, carId, id: newId(), createdAt: new Date().toISOString() }
       setData((d) => ({ ...d, expenses: [...d.expenses, expense] }))
       persist(cleanupOnError(remote.insertExpenses([expense]), () => dropPhotos(expense.attachments)))
     },
@@ -74,7 +105,7 @@ export function useData() {
     (id: string, input: ExpenseInput) => {
       const prev = dataRef.current.expenses.find((e) => e.id === id)
       if (!prev) return
-      const next: Expense = { ...prev, ...input }
+      const next: Expense = { ...prev, ...input, carId: input.carId ?? prev.carId }
       setData((d) => ({ ...d, expenses: d.expenses.map((e) => (e.id === id ? next : e)) }))
       // fotos tiradas do gasto só são apagadas depois de o banco confirmar a gravação
       const { added, removed } = diffAttachments(prev.attachments, next.attachments)
@@ -101,7 +132,9 @@ export function useData() {
 
   const addPlanned = useCallback(
     (input: PlannedInput) => {
-      const item: PlannedExpense = { ...input, id: newId(), status: 'planned' }
+      const carId = input.carId ?? activeCarRef.current
+      if (!carId) return
+      const item: PlannedExpense = { ...input, carId, id: newId(), status: 'planned' }
       setData((d) => ({ ...d, planned: [...d.planned, item] }))
       persist(remote.insertPlanned([item]))
     },
@@ -112,7 +145,7 @@ export function useData() {
     (id: string, input: PlannedInput) => {
       const prev = dataRef.current.planned.find((p) => p.id === id)
       if (!prev) return
-      const next: PlannedExpense = { ...prev, ...input }
+      const next: PlannedExpense = { ...prev, ...input, carId: input.carId ?? prev.carId }
       setData((d) => ({ ...d, planned: d.planned.map((p) => (p.id === id ? next : p)) }))
       persist(remote.updatePlanned(next))
     },
@@ -130,13 +163,46 @@ export function useData() {
   /** Cria o gasto real e marca o planejado como realizado. */
   const completePlanned = useCallback(
     (plannedId: string, input: ExpenseInput) => {
-      const expense: Expense = { ...input, id: newId(), createdAt: new Date().toISOString() }
+      // o banco copia o carro do planejado para o gasto (o cliente não escolhe): o estado local faz o mesmo
+      const planned = dataRef.current.planned.find((p) => p.id === plannedId)
+      if (!planned) return
+      const expense: Expense = { ...input, carId: planned.carId, id: newId(), createdAt: new Date().toISOString() }
       setData((d) => ({
         ...d,
         expenses: [...d.expenses, expense],
         planned: d.planned.map((p) => (p.id === plannedId ? { ...p, status: 'done', expenseId: expense.id } : p)),
       }))
       persist(cleanupOnError(remote.completePlanned(plannedId, expense), () => dropPhotos(expense.attachments)))
+    },
+    [persist],
+  )
+
+  const addCar = useCallback(
+    (input: CarInput) => {
+      const car: Car = { ...input, id: newId() }
+      setData((d) => ({ ...d, cars: [...d.cars, car] }))
+      persist(remote.insertCars([car]))
+    },
+    [persist],
+  )
+
+  const updateCar = useCallback(
+    (id: string, input: CarInput) => {
+      setData((d) => ({ ...d, cars: d.cars.map((c) => (c.id === id ? { ...c, ...input } : c)) }))
+      persist(remote.updateCar({ ...input, id }))
+    },
+    [persist],
+  )
+
+  /** Só apaga carro vazio e que não seja o último; devolve o motivo quando recusa (o banco confere de novo). */
+  const deleteCar = useCallback(
+    (id: string): string | null => {
+      const { cars, expenses, planned } = dataRef.current
+      const blocker = deleteCarBlocker(cars, id, { expenses, planned })
+      if (blocker) return blocker
+      setData((d) => ({ ...d, cars: d.cars.filter((c) => c.id !== id) }))
+      persist(remote.deleteCar(id))
+      return null
     },
     [persist],
   )
@@ -166,6 +232,7 @@ export function useData() {
       const move = <T extends { categoryId: string }>(item: T): T =>
         item.categoryId === id ? { ...item, categoryId: fallback.id } : item
       setData((d) => ({
+        ...d,
         categories: d.categories.filter((c) => c.id !== id),
         expenses: d.expenses.map(move),
         planned: d.planned.map(move),
@@ -177,8 +244,9 @@ export function useData() {
 
   /** Adiciona dados (backup ou migração) à conta e recarrega. */
   const importData = useCallback(
-    async (source: AppData, opts?: { withLegacyImages?: boolean }): Promise<ImportResult> => {
-      const result = await importInto(source, opts)
+    async (source: BackupData, opts?: { withLegacyImages?: boolean }): Promise<ImportResult> => {
+      // quem vem sem carro (backup antigo) cai no carro ativo
+      const result = await importInto(source, { ...opts, carId: activeCarRef.current })
       await refresh()
       return result
     },
@@ -190,6 +258,11 @@ export function useData() {
     loading,
     error,
     clearError: () => setError(''),
+    activeCarId,
+    setActiveCar,
+    addCar,
+    updateCar,
+    deleteCar,
     addExpense,
     updateExpense,
     deleteExpense,

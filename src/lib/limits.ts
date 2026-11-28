@@ -3,9 +3,11 @@
 export const DESCRIPTION_MAX = 200
 export const NOTES_MAX = 2000
 export const CATEGORY_NAME_MAX = 100
+export const CAR_NAME_MAX = 100 // nome e modelo do carro
 export const MAX_ATTACHMENTS = 5 // fotos por gasto
 
 // só na importação de backup
 export const MAX_BACKUP_BYTES = 10 * 1024 * 1024
 export const MAX_BACKUP_CATEGORIES = 200
+export const MAX_BACKUP_CARS = 50
 export const MAX_BACKUP_ROWS = 10_000 // gastos, e também planejados

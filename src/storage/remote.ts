@@ -1,11 +1,14 @@
 import { supabase } from '../supabase'
-import type { AppData, Category, Expense, PlannedExpense } from '../types'
+import type { AppData, Car, Category, Expense, PlannedExpense } from '../types'
 import {
+  carFromRow,
+  carToRow,
   categoryFromRow,
   expenseFromRow,
   expenseToRow,
   plannedFromRow,
   plannedToRow,
+  type CarRow,
   type CategoryRow,
   type ExpenseRow,
   type PlannedRow,
@@ -20,12 +23,14 @@ function check<T>(res: { data: T | null; error: { message: string; code?: string
 }
 
 export async function fetchAll(): Promise<AppData> {
-  const [cats, exps, plans] = await Promise.all([
+  const [cars, cats, exps, plans] = await Promise.all([
+    supabase.from('cars').select('id,name,model,year').order('created_at').order('id'),
     supabase.from('categories').select('id,name,is_fallback').order('created_at'),
     supabase.from('expenses').select('*').order('created_at'),
     supabase.from('planned_expenses').select('*').order('created_at'),
   ])
   return {
+    cars: check<CarRow[]>(cars).map(carFromRow),
     categories: check<CategoryRow[]>(cats).map(categoryFromRow),
     expenses: check<ExpenseRow[]>(exps).map(expenseFromRow),
     planned: check<PlannedRow[]>(plans).map(plannedFromRow),
@@ -78,6 +83,21 @@ export async function completePlanned(plannedId: string, e: Expense): Promise<vo
       p_created_at: e.createdAt,
     }),
   )
+}
+
+export async function insertCars(list: Car[]): Promise<void> {
+  if (list.length === 0) return
+  check(await supabase.from('cars').insert(list.map(carToRow)))
+}
+
+export async function updateCar(c: Car): Promise<void> {
+  const { id, ...row } = carToRow(c)
+  check(await supabase.from('cars').update(row).eq('id', id))
+}
+
+/** O banco recusa apagar o último carro (gatilho, code P0002) e carro com gastos ou planejados (chave estrangeira, 23503). */
+export async function deleteCar(id: string): Promise<void> {
+  check(await supabase.from('cars').delete().eq('id', id))
 }
 
 export async function insertCategories(list: Category[]): Promise<void> {

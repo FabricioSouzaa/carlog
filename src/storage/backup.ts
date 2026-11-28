@@ -1,5 +1,5 @@
 import { newId } from '../lib/id'
-import type { AppData, Category, Expense, PlannedExpense } from '../types'
+import type { BackupData, Car, Category, Expense, PlannedExpense } from '../types'
 import { cleanupOnError } from './cleanup'
 import { deleteImage, saveImage } from './images'
 import { getLegacyImage } from './legacy'
@@ -17,8 +17,15 @@ export interface ImportResult {
  * Adiciona os dados de `source` à conta (nunca apaga nada). Categorias são casadas pelo nome;
  * as que não existem são criadas. Ids são regenerados. Fotos só vêm da migração local.
  */
-export async function importInto(source: AppData, opts: { withLegacyImages?: boolean } = {}): Promise<ImportResult> {
+export async function importInto(
+  source: BackupData,
+  opts: { withLegacyImages?: boolean; carId?: string } = {},
+): Promise<ImportResult> {
   const current = await remote.fetchAll()
+  // carro de destino de quem vem sem carro (backup antigo): o escolhido, se ainda existir, senão o mais antigo
+  const target = current.cars.find((c) => c.id === opts.carId) ?? current.cars[0]
+  if (!target) throw new Error('Nenhum carro encontrado na conta.')
+
   const fallback = current.categories.find((c) => c.isFallback)
   if (!fallback) throw new Error('Categoria "Outros" não encontrada na conta.')
 
@@ -36,6 +43,23 @@ export async function importInto(source: AppData, opts: { withLegacyImages?: boo
     categoryMap.set(c.id, id)
   }
   await remote.insertCategories(toCreate)
+
+  // carros casados pelo nome, como as categorias; os que não existem são criados
+  const carByName = new Map(current.cars.map((c) => [c.name.trim().toLowerCase(), c.id]))
+  const carMap = new Map<string, string>() // id antigo -> id novo
+  const carsToCreate: Car[] = []
+  for (const c of source.cars ?? []) {
+    const key = c.name.trim().toLowerCase()
+    let id = carByName.get(key)
+    if (!id) {
+      id = newId()
+      carsToCreate.push({ id, name: c.name.trim(), model: c.model, year: c.year })
+      carByName.set(key, id)
+    }
+    carMap.set(c.id, id)
+  }
+  await remote.insertCars(carsToCreate)
+  const mapCar = (old?: string) => (old ? carMap.get(old) : undefined) ?? target.id
   const mapCategory = (old: string) => categoryMap.get(old) ?? fallback.id
 
   let photos = 0
@@ -66,7 +90,7 @@ export async function importInto(source: AppData, opts: { withLegacyImages?: boo
           photos++
         }
       }
-      expenses.push({ ...e, id, categoryId: mapCategory(e.categoryId), attachments: attachments.length ? attachments : undefined })
+      expenses.push({ ...e, id, categoryId: mapCategory(e.categoryId), carId: mapCar(e.carId), attachments: attachments.length ? attachments : undefined })
     }
   } catch (e) {
     // qualquer falha no meio do envio das fotos: as que já subiram saem do Storage antes de repassar o erro
@@ -79,6 +103,7 @@ export async function importInto(source: AppData, opts: { withLegacyImages?: boo
     ...p,
     id: newId(),
     categoryId: mapCategory(p.categoryId),
+    carId: mapCar(p.carId),
     expenseId: p.expenseId ? expenseMap.get(p.expenseId) : undefined,
     status: p.status === 'done' && p.expenseId && expenseMap.has(p.expenseId) ? 'done' : 'planned',
   }))
