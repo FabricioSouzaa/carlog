@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { CarsSection } from '../components/CarsSection'
 import { PasswordForm } from '../components/PasswordForm'
 import { Notice } from '../components/ui'
 import { validateBackup } from '../lib/backup'
@@ -19,6 +20,7 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
   const [changingPassword, setChangingPassword] = useState(false)
   const [legacy, setLegacy] = useState(loadLegacyData)
   const [migratedCopy, setMigratedCopy] = useState(hasMigratedCopy)
+  const activeCarName = data.cars.find((c) => c.id === api.activeCarId)?.name ?? ''
   const fileRef = useRef<HTMLInputElement>(null)
 
   const nameTaken = (name: string, exceptId?: string) =>
@@ -43,13 +45,14 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
   }
 
   function remove(id: string, name: string) {
-    const used = data.expenses.filter((e) => e.categoryId === id).length + data.planned.filter((p) => p.categoryId === id).length
+    const all = api.allData // categorias são da conta: conta os lançamentos de todos os carros
+    const used = all.expenses.filter((e) => e.categoryId === id).length + all.planned.filter((p) => p.categoryId === id).length
     const extra = used > 0 ? ` Os ${used} lançamentos dela vão para "Outros".` : ''
     if (window.confirm(`Remover a categoria "${name}"?${extra}`)) api.removeCategory(id)
   }
 
   function exportJson() {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const blob = new Blob([JSON.stringify(api.allData, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -108,6 +111,8 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Ajustes</h1>
       {notice && <Notice tone={notice.error ? 'error' : 'ok'}>{notice.text}</Notice>}
+
+      <CarsSection api={api} onMessage={setMessage} />
 
       <section className="card space-y-3">
         <h2 className="font-semibold">Categorias</h2>
@@ -170,7 +175,7 @@ export function Ajustes({ api, email }: { api: DataApi; email: string }) {
 
       <section className="card space-y-3">
         <h2 className="font-semibold">Backup dos dados</h2>
-        <p className="muted">Seus dados ficam na nuvem. O backup JSON é uma cópia extra (sem as fotos). Importar adiciona ao que já existe, sem apagar nada.</p>
+        <p className="muted">Seus dados ficam na nuvem. O backup JSON é uma cópia extra (sem as fotos). Importar adiciona ao que já existe, sem apagar nada. Itens de backups sem carro entram em &quot;{activeCarName}&quot;.</p>
         <div className="flex flex-wrap gap-2">
           <button type="button" className="btn-outline" onClick={exportJson}>Exportar JSON</button>
           <button type="button" className="btn-outline" onClick={() => fileRef.current?.click()} disabled={busy}>Importar JSON</button>

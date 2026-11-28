@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { diffAttachments } from './lib/attachments'
-import { deleteCarBlocker, resolveActiveCarId } from './lib/cars'
+import { deleteCarBlocker, forCar, resolveActiveCarId } from './lib/cars'
 import { newId } from './lib/id'
 import { importInto, type ImportResult } from './storage/backup'
 import { cleanupOnError, thenCleanup } from './storage/cleanup'
@@ -13,6 +13,7 @@ export type ExpenseInput = Omit<Expense, 'id' | 'createdAt' | 'carId'> & { carId
 export type PlannedInput = Omit<PlannedExpense, 'id' | 'status' | 'expenseId' | 'carId'> & { carId?: string }
 export type CarInput = Omit<Car, 'id'>
 
+const NO_CAR = 'Os dados ainda estão carregando. Tente de novo em instantes.'
 const ACTIVE_CAR_KEY = 'carlog:active-car'
 // só uma conveniência deste aparelho: se o armazenamento falhar, vale o carro mais antigo
 const readActiveCar = (): string | null => {
@@ -42,6 +43,16 @@ export function useData() {
   useEffect(() => {
     dataRef.current = data
   }, [data])
+
+  // as telas veem só o carro ativo (categorias e lista de carros são da conta toda); `allData` é para o backup
+  const view = useMemo<AppData>(
+    () => ({ ...data, expenses: forCar(data.expenses, activeCarId), planned: forCar(data.planned, activeCarId) }),
+    [data, activeCarId],
+  )
+
+  // gravações de carro em andamento: um gasto num carro recém-criado espera o carro chegar ao banco (a chave estrangeira recusaria antes)
+  const carWrites = useRef<Promise<unknown>>(Promise.resolve())
+  const afterCars = useCallback(<T,>(run: () => Promise<T>): Promise<T> => carWrites.current.then(run), [])
 
   const activeCarRef = useRef(activeCarId)
   useEffect(() => {
@@ -93,12 +104,12 @@ export function useData() {
   const addExpense = useCallback(
     (input: ExpenseInput) => {
       const carId = input.carId ?? activeCarRef.current
-      if (!carId) return // ainda carregando: sem carro não há onde gravar
+      if (!carId) return setError(NO_CAR)
       const expense: Expense = { ...input, carId, id: newId(), createdAt: new Date().toISOString() }
       setData((d) => ({ ...d, expenses: [...d.expenses, expense] }))
-      persist(cleanupOnError(remote.insertExpenses([expense]), () => dropPhotos(expense.attachments)))
+      persist(cleanupOnError(afterCars(() => remote.insertExpenses([expense])), () => dropPhotos(expense.attachments)))
     },
-    [persist],
+    [persist, afterCars],
   )
 
   const updateExpense = useCallback(
@@ -133,12 +144,12 @@ export function useData() {
   const addPlanned = useCallback(
     (input: PlannedInput) => {
       const carId = input.carId ?? activeCarRef.current
-      if (!carId) return
+      if (!carId) return setError(NO_CAR)
       const item: PlannedExpense = { ...input, carId, id: newId(), status: 'planned' }
       setData((d) => ({ ...d, planned: [...d.planned, item] }))
-      persist(remote.insertPlanned([item]))
+      persist(afterCars(() => remote.insertPlanned([item])))
     },
-    [persist],
+    [persist, afterCars],
   )
 
   const updatePlanned = useCallback(
@@ -165,7 +176,7 @@ export function useData() {
     (plannedId: string, input: ExpenseInput) => {
       // o banco copia o carro do planejado para o gasto (o cliente não escolhe): o estado local faz o mesmo
       const planned = dataRef.current.planned.find((p) => p.id === plannedId)
-      if (!planned) return
+      if (!planned) return setError('Esse planejado não existe mais. Recarregue a página.')
       const expense: Expense = { ...input, carId: planned.carId, id: newId(), createdAt: new Date().toISOString() }
       setData((d) => ({
         ...d,
@@ -181,7 +192,9 @@ export function useData() {
     (input: CarInput) => {
       const car: Car = { ...input, id: newId() }
       setData((d) => ({ ...d, cars: [...d.cars, car] }))
-      persist(remote.insertCars([car]))
+      const write = remote.insertCars([car])
+      carWrites.current = write.catch(() => {})
+      persist(write)
     },
     [persist],
   )
@@ -254,7 +267,8 @@ export function useData() {
   )
 
   return {
-    data,
+    data: view,
+    allData: data,
     loading,
     error,
     clearError: () => setError(''),

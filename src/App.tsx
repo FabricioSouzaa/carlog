@@ -1,6 +1,7 @@
 import { lazy, Suspense, startTransition, useEffect, useState } from 'react'
 import { startupLink, supabaseConfigured } from './supabase'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { CarSwitcher } from './components/CarSwitcher'
 import { Logo } from './components/Logo'
 import { APP_NAME } from './config'
 import { useSession } from './useSession'
@@ -170,6 +171,7 @@ function Main({ email }: { email: string }) {
         </div>
       </nav>
       <main className="mx-auto max-w-3xl p-4 pb-40 md:pb-24">
+        {tab !== 'galeria' && !api.loading && <CarSwitcher cars={api.data.cars} activeId={api.activeCarId} onChange={api.setActiveCar} />}
         {api.error && (
           <div role="alert" className="mb-4 flex items-start justify-between gap-3 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
             <span>{api.error}</span>
