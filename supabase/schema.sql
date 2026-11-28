@@ -25,6 +25,20 @@ create unique index categories_one_fallback_idx on public.categories (user_id) w
 -- alvo das chaves compostas abaixo (ver migrations/2026-11-07_fk-composta-user-id.sql)
 create unique index categories_user_id_id_idx on public.categories (user_id, id);
 
+create table public.cars (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  name text not null check (length(trim(name)) > 0),
+  model text,
+  year integer check (year between 1900 and 2100),
+  created_at timestamptz not null default now(),
+  constraint cars_name_len check (char_length(name) <= 100),
+  constraint cars_model_len check (char_length(model) <= 100)
+);
+create unique index cars_user_name_idx on public.cars (user_id, lower(name));
+-- alvo das chaves compostas (gastos e planejados → carro; ver migrations/2026-11-26_veiculos-expandir.sql)
+create unique index cars_user_id_id_idx on public.cars (user_id, id);
+
 create table public.expenses (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
@@ -32,6 +46,7 @@ create table public.expenses (
   amount numeric(12, 2) not null check (amount > 0),
   date date not null,
   category_id uuid not null,
+  car_id uuid, -- fica obrigatório no passo 3 da migração de veículos; até lá um gatilho preenche
   type text not null check (type in ('maintenance', 'upgrade', 'routine')),
   odometer integer check (odometer >= 0),
   notes text,
@@ -39,6 +54,7 @@ create table public.expenses (
   created_at timestamptz not null default now(),
   -- chave composta: só aceita categoria do mesmo usuário (o RLS não vale dentro da checagem de uma FK simples)
   constraint expenses_user_category_fk foreign key (user_id, category_id) references public.categories (user_id, id) on delete restrict,
+  constraint expenses_user_car_fk foreign key (user_id, car_id) references public.cars (user_id, id) on delete no action,
   -- limites de tamanho (iguais aos de src/lib/limits.ts; mesmos nomes da migração 2026-11-17)
   constraint expenses_description_len check (char_length(description) <= 200),
   constraint expenses_notes_len check (char_length(notes) <= 2000),
@@ -48,6 +64,7 @@ create unique index expenses_user_id_id_idx on public.expenses (user_id, id);
 create index expenses_user_date_idx on public.expenses (user_id, date desc);
 -- índices nas colunas que apontam (apagar categoria/gasto procura quem ainda usa)
 create index expenses_user_category_idx on public.expenses (user_id, category_id);
+create index expenses_user_car_idx on public.expenses (user_id, car_id);
 
 create table public.planned_expenses (
   id uuid primary key default gen_random_uuid(),
@@ -56,6 +73,7 @@ create table public.planned_expenses (
   estimated_amount numeric(12, 2) not null check (estimated_amount > 0),
   estimated_max numeric(12, 2) check (estimated_max >= estimated_amount),
   category_id uuid not null,
+  car_id uuid, -- idem expenses.car_id
   type text not null check (type in ('maintenance', 'upgrade', 'routine')),
   priority text not null check (priority in ('low', 'medium', 'high')),
   notes text,
@@ -63,6 +81,7 @@ create table public.planned_expenses (
   expense_id uuid,
   created_at timestamptz not null default now(),
   constraint planned_user_category_fk foreign key (user_id, category_id) references public.categories (user_id, id) on delete restrict,
+  constraint planned_user_car_fk foreign key (user_id, car_id) references public.cars (user_id, id) on delete no action,
   -- set null só em expense_id: um set null simples também zeraria user_id (obrigatório). Postgres 15+.
   constraint planned_user_expense_fk foreign key (user_id, expense_id) references public.expenses (user_id, id) on delete set null (expense_id),
   constraint planned_description_len check (char_length(description) <= 200),
@@ -71,9 +90,11 @@ create table public.planned_expenses (
 create index planned_user_idx on public.planned_expenses (user_id);
 create index planned_user_category_idx on public.planned_expenses (user_id, category_id);
 create index planned_user_expense_idx on public.planned_expenses (user_id, expense_id);
+create index planned_user_car_idx on public.planned_expenses (user_id, car_id);
 
 -- ============ Segurança: cada usuário só enxerga as próprias linhas ============
 
+alter table public.cars enable row level security;
 alter table public.categories enable row level security;
 alter table public.expenses enable row level security;
 alter table public.planned_expenses enable row level security;
@@ -87,6 +108,15 @@ create policy "own rows update" on public.categories for update to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 create policy "own rows delete" on public.categories for delete to authenticated
   using (user_id = (select auth.uid()) and not is_fallback);
+-- cars: o último carro não sai (gatilho keep_last_car); carro com gastos/planejados também não (FK no action)
+create policy "own rows select" on public.cars for select to authenticated
+  using (user_id = (select auth.uid()));
+create policy "own rows insert" on public.cars for insert to authenticated
+  with check (user_id = (select auth.uid()));
+create policy "own rows update" on public.cars for update to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+create policy "own rows delete" on public.cars for delete to authenticated
+  using (user_id = (select auth.uid()));
 create policy "own rows" on public.expenses for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 create policy "own rows" on public.planned_expenses for all to authenticated
@@ -94,7 +124,7 @@ create policy "own rows" on public.planned_expenses for all to authenticated
 
 -- ============ Operações em vários passos (atômicas; security invoker mantém o RLS) ============
 
--- 1) Marcar um planejado como realizado: cria o gasto e liga os dois, de uma vez.
+-- 1) Marcar um planejado como realizado: cria o gasto (no mesmo carro do planejado) e liga os dois, de uma vez.
 create or replace function public.complete_planned(
   p_planned_id uuid,
   p_expense_id uuid,
@@ -113,6 +143,8 @@ language plpgsql
 security invoker
 set search_path = public
 as $$
+declare
+  v_car uuid;
 begin
   -- repetir a chamada (resposta perdida) não é erro: se este mesmo gasto já foi ligado ao planejado, não há o que fazer
   perform 1 from public.planned_expenses where id = p_planned_id and status = 'done' and expense_id = p_expense_id;
@@ -121,13 +153,13 @@ begin
   end if;
 
   -- trava a linha do planejado: duas chamadas ao mesmo tempo não criam dois gastos
-  perform 1 from public.planned_expenses where id = p_planned_id and status = 'planned' for update;
+  select car_id into v_car from public.planned_expenses where id = p_planned_id and status = 'planned' for update;
   if not found then
     raise exception 'Planejado não encontrado ou já realizado.' using errcode = 'P0002';
   end if;
 
-  insert into public.expenses (id, description, amount, date, category_id, type, odometer, notes, attachments, created_at)
-  values (p_expense_id, p_description, p_amount, p_date, p_category_id, p_type, p_odometer, p_notes, coalesce(p_attachments, '{}'), p_created_at);
+  insert into public.expenses (id, description, amount, date, category_id, type, odometer, notes, attachments, created_at, car_id)
+  values (p_expense_id, p_description, p_amount, p_date, p_category_id, p_type, p_odometer, p_notes, coalesce(p_attachments, '{}'), p_created_at, v_car);
 
   update public.planned_expenses set status = 'done', expense_id = p_expense_id where id = p_planned_id;
 end;
@@ -204,9 +236,50 @@ begin
     (new.id, 'Multas', false),
     (new.id, 'Acessórios', false),
     (new.id, 'Outros', true);
+  insert into public.cars (user_id, name) values (new.id, 'Meu carro');
   return new;
 end;
 $$;
+
+-- Gastos e planejados sem `car_id` informado ficam com o carro mais antigo da pessoa (some quando `car_id` virar obrigatório).
+create or replace function public.fill_car_id()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if new.car_id is null then
+    select c.id into new.car_id from public.cars c where c.user_id = new.user_id order by c.created_at, c.id limit 1;
+  end if;
+  return new;
+end;
+$$;
+
+create or replace function public.keep_last_car()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- apagar a CONTA (cascade de auth.users) leva todos os carros: aí a linha do usuário já não existe e tudo bem
+  if not exists (select 1 from auth.users where id = old.user_id) then
+    return old;
+  end if;
+  -- trava os carros do usuário: dois apagamentos ao mesmo tempo esperam um pelo outro e o segundo já enxerga o resultado do primeiro
+  perform 1 from public.cars where user_id = old.user_id for update;
+  if not exists (select 1 from public.cars where user_id = old.user_id and id <> old.id) then
+    raise exception 'O último carro não pode ser removido.' using errcode = 'P0002';
+  end if;
+  return old;
+end;
+$$;
+drop trigger if exists cars_keep_last on public.cars;
+create trigger cars_keep_last before delete on public.cars for each row execute function public.keep_last_car();
+
+create trigger expenses_fill_car before insert on public.expenses for each row execute function public.fill_car_id();
+create trigger planned_fill_car before insert on public.planned_expenses for each row execute function public.fill_car_id();
 
 create trigger on_auth_user_created
   after insert on auth.users

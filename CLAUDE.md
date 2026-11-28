@@ -11,6 +11,7 @@ Idioma: interface, textos e mensagens em **português (pt-BR)**. Valores em **R$
 - Gráficos: Recharts
 - Uso em **celular e computador**: o app é um **PWA** (instalável na tela inicial do celular) com layout responsivo.
 - Persistência e sincronização: **Supabase** (Postgres + login por e-mail, plano gratuito atende). Os dados ficam na nuvem e aparecem igual nos dois dispositivos. Login simples (e-mail + link mágico ou senha) só para proteger os dados, uso individual. Regras de acesso (RLS) garantem que cada usuário só vê os próprios dados. Chaves estrangeiras compostas `(user_id, id)` (gasto/planejado → categoria, planejado → gasto) impedem referenciar linhas de outro usuário, o que o RLS sozinho não cobre (a checagem de uma FK simples ignora o RLS). Senha mínima de 8 caracteres também no servidor (painel do Supabase: Authentication → Sign In / Providers → Email → Minimum password length), além da checagem do app em `lib/password.ts`. Ao trocar a senha, o app encerra as outras sessões (`signOut({ scope: 'others' })`); o painel também deve ter "Secure password change" ligado (Authentication → Sign In / Providers → Email), que exige login recente para trocar a senha (o app mostra "entre de novo" se o servidor pedir). A tela de nova senha só abre com o evento `PASSWORD_RECOVERY` da biblioteca (ouvido em `supabase.ts`), não por um `type=recovery` solto na URL. O login não confere tamanho de senha no cliente (quem decide é o servidor). Verificação em duas etapas (MFA) decidida como fora do escopo: o cadastro é fechado e o uso é individual.
+- **Vários veículos (issue #9, em andamento):** o banco já tem `cars` e `car_id` em gastos e planejados (migração `2026-11-26_veiculos-expandir.sql`, fase "expandir": `car_id` ainda aceita vazio e um gatilho preenche com o carro mais antigo da pessoa, para o app antigo não quebrar). O app ainda NÃO usa carros; as próximas fases (camada de dados, telas, e por fim `not null` + remover o gatilho) estão no checklist da #9. Categorias são da conta (valem para todos os carros); carro com dados não pode ser apagado (FK `no action`) e o último carro também não (gatilho `keep_last_car`, com trava). Antes do `not null` o gatilho `fill_car_id` põe gastos sem carro no carro mais antigo: a fase "expandir" deve durar pouco.
 - Acesso aos dados isolado em uma camada (`src/storage/`) para poder trocar o provedor (ex.: Firebase) sem mexer nas telas.
 - Sem cache local por enquanto: o app carrega tudo do Supabase ao abrir (precisa de internet). Modo offline fica como melhoria futura.
 - Esquema do banco, regras de acesso (RLS), categorias padrão e bucket de fotos: `supabase/schema.sql` (rodar uma vez no SQL Editor). Mudanças depois disso vão em `supabase/migrations/AAAA-MM-DD_nome.sql` (o usuário roda no SQL Editor) e também são refletidas no `schema.sql`, para instalações novas.
@@ -77,6 +78,8 @@ Quem não tem sessão vê a **landing** (`src/pages/Landing.tsx`) e, ao clicar e
 - **Login:** tela dividida (marca em gradiente + formulário); no celular a marca vira uma faixa no topo. "Esqueci minha senha" (botão que só aparece depois de errar a senha) usa o e-mail digitado e `resetPasswordForEmail`; a resposta é sempre a mesma exista a conta ou não, e o botão trava por 60 s depois de um envio (só na tela; o Supabase também limita no servidor). O link do e-mail leva à origem de onde foi pedido, se ela estiver em Redirect URLs; senão, ao Site URL (produção).
 
 ## Modelo de dados
+
+> Vários veículos (#9): o banco já tem `cars` e `car_id`; `Car` e `carId` entram nos tipos abaixo na fase 2 (ver Stack). Até lá o app trata um carro só.
 
 ```ts
 type ExpenseType = 'maintenance' | 'upgrade' | 'routine';
@@ -145,11 +148,11 @@ Node instalado via Homebrew; se `node`/`npm` não forem encontrados no shell, us
 
 ## Fora do escopo (por enquanto)
 
-Múltiplos veículos (desejado no futuro, não agora), contas para outros usuários, modo offline completo, controle de consumo (km/l), lembretes de manutenção por km/data, OCR de notas fiscais. Podem virar fases futuras; o modelo de dados deve facilitar adicionar `carId` depois.
+Múltiplos veículos (em andamento, issue #9; ver Stack), contas para outros usuários, modo offline completo, controle de consumo (km/l), lembretes de manutenção por km/data, OCR de notas fiscais. Podem virar fases futuras; o modelo de dados deve facilitar adicionar `carId` depois.
 
 ## Perguntas em aberto
 
-- ~~Um carro só ou vários?~~ Decidido: um carro por enquanto, com suporte a vários veículos numa fase futura.
+- ~~Um carro só ou vários?~~ Decidido: vários veículos (issue #9, em andamento; o app ainda usa um só até as telas chegarem).
 - ~~Sincronização?~~ Decidido: celular + computador, via Supabase e PWA.
 - ~~Km?~~ Decidido: campo opcional de quilometragem em qualquer gasto. Controle de consumo (km/l) fica fora por ora.
 - ~~Provedor?~~ Decidido: Supabase. O usuário vai criar a conta e o projeto (gratuito); o app só é ligado aos dados depois, com a URL e a chave `anon` em `.env.local`.
