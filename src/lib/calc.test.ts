@@ -13,6 +13,7 @@ import type { Expense, PlannedExpense } from '../types'
 const exp = (p: Partial<Expense>): Expense => ({
   id: Math.random().toString(),
   description: 'x',
+  carId: 'car',
   amount: 10,
   date: '2026-10-01',
   categoryId: 'combustivel',
@@ -85,7 +86,7 @@ describe('costPerKm', () => {
 describe('plannedTotals', () => {
   it('ignora realizados e usa o máximo da faixa', () => {
     const base: PlannedExpense = {
-      id: '1', description: 'LED', estimatedAmount: 300, categoryId: 'x', type: 'upgrade',
+      id: '1', description: 'LED', estimatedAmount: 300, categoryId: 'x', carId: 'car', type: 'upgrade',
       priority: 'low', status: 'planned',
     }
     const r = plannedTotals([

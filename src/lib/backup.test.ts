@@ -68,4 +68,21 @@ describe('validateBackup', () => {
     expect(error(backup({ categories: [{ id: 'c1', name: '' }] }))).toMatch(/Categoria 1: nome vazia/)
     expect(error(backup({ categories: [{ id: 'c1', name: 'x', isFallback: 'sim' }] }))).toMatch(/marca inválida/)
   })
+
+  it('aceita backup antigo (sem carros) e com carros', () => {
+    expect(validateBackup(backup()).ok).toBe(true)
+    expect(validateBackup(backup({ cars: [{ id: 'k1', name: 'Gol', model: '1.0', year: 2012 }], expenses: [expense({ carId: 'k1' })] })).ok).toBe(true)
+  })
+
+  it('valida os carros', () => {
+    expect(error(backup({ cars: 'x' }))).toMatch(/não parece um backup/)
+    expect(error(backup({ cars: [{ id: 'k1', name: ' ' }] }))).toMatch(/Carro 1: nome vazia/)
+    expect(error(backup({ cars: [{ id: 'k1', name: 'Gol', year: 1800 }] }))).toMatch(/ano inválido/)
+    expect(error(backup({ cars: [{ id: 'k1', name: 'Gol', model: 'x'.repeat(101) }] }))).toMatch(/modelo com mais de 100/)
+  })
+
+  it('valida o carId dos gastos e planejados', () => {
+    expect(error(backup({ expenses: [expense({ carId: 5 })] }))).toMatch(/Gasto 1: carro inválido/)
+    expect(error(backup({ planned: [planned({ carId: '' })] }))).toMatch(/Planejado 1: carro inválido/)
+  })
 })

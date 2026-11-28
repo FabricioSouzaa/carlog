@@ -1,4 +1,4 @@
-import type { AppData } from '../types'
+import type { BackupData } from '../types'
 
 // Dados da versão anterior (só neste navegador): localStorage + IndexedDB.
 // Lidos apenas para migrar para a conta; nada é apagado — o localStorage é renomeado como cópia.
@@ -8,11 +8,11 @@ const BACKUP_KEY = 'historico-carro:v1:migrado'
 const DB_NAME = 'historico-carro-images'
 const STORE = 'images'
 
-export function loadLegacyData(): AppData | null {
+export function loadLegacyData(): BackupData | null {
   try {
     const raw = localStorage.getItem(KEY)
     if (!raw) return null
-    const v = JSON.parse(raw) as AppData
+    const v = JSON.parse(raw) as BackupData
     if (!Array.isArray(v.categories) || !Array.isArray(v.expenses) || !Array.isArray(v.planned)) return null
     return v.expenses.length + v.planned.length > 0 ? v : null
   } catch {
