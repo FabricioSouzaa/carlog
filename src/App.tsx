@@ -1,6 +1,7 @@
 import { lazy, Suspense, startTransition, useEffect, useState } from 'react'
 import { startupLink, supabaseConfigured } from './supabase'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { CarSwitcher } from './components/CarSwitcher'
 import { Logo } from './components/Logo'
 import { APP_NAME } from './config'
 import { useSession } from './useSession'
@@ -112,11 +113,11 @@ export default function App() {
       </ErrorBoundary>
     )
   }
-  return <Main email={session.user.email ?? ''} />
+  return <Main email={session.user.email ?? ''} userId={session.user.id} />
 }
 
-function Main({ email }: { email: string }) {
-  const api = useData()
+function Main({ email, userId }: { email: string; userId: string }) {
+  const api = useData(userId)
   const [tab, setTabNow] = useState<TabId | 'galeria'>('visao')
   // em transição, a tela atual continua visível até o pedaço da aba nova chegar (sem piscar "Carregando…")
   const setTab = (t: TabId | 'galeria') => startTransition(() => setTabNow(t))
@@ -170,6 +171,7 @@ function Main({ email }: { email: string }) {
         </div>
       </nav>
       <main className="mx-auto max-w-3xl p-4 pb-40 md:pb-24">
+        {tab !== 'galeria' && !api.loading && <CarSwitcher cars={api.data.cars} activeId={api.activeCarId} onChange={api.setActiveCar} />}
         {api.error && (
           <div role="alert" className="mb-4 flex items-start justify-between gap-3 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
             <span>{api.error}</span>
@@ -182,6 +184,9 @@ function Main({ email }: { email: string }) {
               <Galeria onBack={() => setTab('visao')} />
             ) : api.loading ? (
               <p className="py-10 text-center muted">Carregando seus dados…</p>
+            ) : !api.activeCarId ? (
+              // a carga falhou (o erro está no aviso acima): sem carro nenhuma tela consegue gravar
+              <p className="py-10 text-center muted">Não foi possível carregar seus dados. Recarregue a página.</p>
             ) : (
               <>
                 {tab === 'visao' && <VisaoGeral api={api} />}

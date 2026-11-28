@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { diffAttachments } from './lib/attachments'
-import { deleteCarBlocker, resolveActiveCarId } from './lib/cars'
+import { deleteCarBlocker, forCar, resolveActiveCarId } from './lib/cars'
 import { newId } from './lib/id'
 import { importInto, type ImportResult } from './storage/backup'
 import { cleanupOnError, thenCleanup } from './storage/cleanup'
@@ -13,11 +13,13 @@ export type ExpenseInput = Omit<Expense, 'id' | 'createdAt' | 'carId'> & { carId
 export type PlannedInput = Omit<PlannedExpense, 'id' | 'status' | 'expenseId' | 'carId'> & { carId?: string }
 export type CarInput = Omit<Car, 'id'>
 
-const ACTIVE_CAR_KEY = 'carlog:active-car'
+const NO_CAR = 'Os dados ainda estão carregando. Tente de novo em instantes.'
+// uma chave por usuário: em navegador compartilhado, a escolha de uma conta não vale para outra
+const activeCarKey = (userId: string) => `carlog:active-car:${userId}`
 // só uma conveniência deste aparelho: se o armazenamento falhar, vale o carro mais antigo
-const readActiveCar = (): string | null => {
+const readActiveCar = (userId: string): string | null => {
   try {
-    return localStorage.getItem(ACTIVE_CAR_KEY)
+    return localStorage.getItem(activeCarKey(userId))
   } catch {
     return null
   }
@@ -31,17 +33,33 @@ const EMPTY: AppData = { cars: [], categories: [], expenses: [], planned: [] }
  * Estado do app espelhando o banco. As alterações aparecem na hora (otimista) e são enviadas
  * ao Supabase; se o envio falhar, mostra o erro e recarrega o estado real do servidor.
  */
-export function useData() {
+export function useData(userId: string) {
   const [data, setData] = useState<AppData>(EMPTY)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [storedCar, setStoredCar] = useState(readActiveCar)
+  const [storedCar, setStoredCar] = useState(() => readActiveCar(userId))
   const activeCarId = resolveActiveCarId(data.cars, storedCar)
 
   const dataRef = useRef(data)
   useEffect(() => {
     dataRef.current = data
   }, [data])
+
+  // as telas veem só o carro ativo (categorias e lista de carros são da conta toda); `allData` é para o backup
+  const view = useMemo<AppData>(
+    () => ({ ...data, expenses: forCar(data.expenses, activeCarId), planned: forCar(data.planned, activeCarId) }),
+    [data, activeCarId],
+  )
+
+  // gravações de carro em andamento: um gasto num carro recém-criado espera o carro chegar ao banco (a chave estrangeira recusaria antes)
+  const carWrites = useRef<Promise<unknown>>(Promise.resolve())
+  const afterCars = useCallback(<T,>(run: () => Promise<T>): Promise<T> => carWrites.current.then(run), [])
+  /** Gravação de carro em fila: cada uma espera a anterior (inserir, renomear e apagar o mesmo carro seguem a ordem dos toques). */
+  const queueCar = useCallback(<T,>(run: () => Promise<T>): Promise<T> => {
+    const write = carWrites.current.then(run)
+    carWrites.current = write.catch(() => {})
+    return write
+  }, [])
 
   const activeCarRef = useRef(activeCarId)
   useEffect(() => {
@@ -51,11 +69,11 @@ export function useData() {
   const setActiveCar = useCallback((id: string) => {
     setStoredCar(id)
     try {
-      localStorage.setItem(ACTIVE_CAR_KEY, id)
+      localStorage.setItem(activeCarKey(userId), id)
     } catch {
       // sem armazenamento (janela privada etc.): vale só até recarregar
     }
-  }, [])
+  }, [userId])
 
   const refresh = useCallback(async () => {
     try {
@@ -93,12 +111,12 @@ export function useData() {
   const addExpense = useCallback(
     (input: ExpenseInput) => {
       const carId = input.carId ?? activeCarRef.current
-      if (!carId) return // ainda carregando: sem carro não há onde gravar
+      if (!carId) return setError(NO_CAR)
       const expense: Expense = { ...input, carId, id: newId(), createdAt: new Date().toISOString() }
       setData((d) => ({ ...d, expenses: [...d.expenses, expense] }))
-      persist(cleanupOnError(remote.insertExpenses([expense]), () => dropPhotos(expense.attachments)))
+      persist(cleanupOnError(afterCars(() => remote.insertExpenses([expense])), () => dropPhotos(expense.attachments)))
     },
-    [persist],
+    [persist, afterCars],
   )
 
   const updateExpense = useCallback(
@@ -133,12 +151,12 @@ export function useData() {
   const addPlanned = useCallback(
     (input: PlannedInput) => {
       const carId = input.carId ?? activeCarRef.current
-      if (!carId) return
+      if (!carId) return setError(NO_CAR)
       const item: PlannedExpense = { ...input, carId, id: newId(), status: 'planned' }
       setData((d) => ({ ...d, planned: [...d.planned, item] }))
-      persist(remote.insertPlanned([item]))
+      persist(afterCars(() => remote.insertPlanned([item])))
     },
-    [persist],
+    [persist, afterCars],
   )
 
   const updatePlanned = useCallback(
@@ -165,7 +183,7 @@ export function useData() {
     (plannedId: string, input: ExpenseInput) => {
       // o banco copia o carro do planejado para o gasto (o cliente não escolhe): o estado local faz o mesmo
       const planned = dataRef.current.planned.find((p) => p.id === plannedId)
-      if (!planned) return
+      if (!planned) return setError('Esse planejado não existe mais. Recarregue a página.')
       const expense: Expense = { ...input, carId: planned.carId, id: newId(), createdAt: new Date().toISOString() }
       setData((d) => ({
         ...d,
@@ -181,17 +199,17 @@ export function useData() {
     (input: CarInput) => {
       const car: Car = { ...input, id: newId() }
       setData((d) => ({ ...d, cars: [...d.cars, car] }))
-      persist(remote.insertCars([car]))
+      persist(queueCar(() => remote.insertCars([car])))
     },
-    [persist],
+    [persist, queueCar],
   )
 
   const updateCar = useCallback(
     (id: string, input: CarInput) => {
       setData((d) => ({ ...d, cars: d.cars.map((c) => (c.id === id ? { ...c, ...input } : c)) }))
-      persist(remote.updateCar({ ...input, id }))
+      persist(queueCar(() => remote.updateCar({ ...input, id })))
     },
-    [persist],
+    [persist, queueCar],
   )
 
   /** Só apaga carro vazio e que não seja o último; devolve o motivo quando recusa (o banco confere de novo). */
@@ -201,10 +219,10 @@ export function useData() {
       const blocker = deleteCarBlocker(cars, id, { expenses, planned })
       if (blocker) return blocker
       setData((d) => ({ ...d, cars: d.cars.filter((c) => c.id !== id) }))
-      persist(remote.deleteCar(id))
+      persist(queueCar(() => remote.deleteCar(id)))
       return null
     },
-    [persist],
+    [persist, queueCar],
   )
 
   const addCategory = useCallback(
@@ -254,7 +272,8 @@ export function useData() {
   )
 
   return {
-    data,
+    data: view,
+    allData: data,
     loading,
     error,
     clearError: () => setError(''),

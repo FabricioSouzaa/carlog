@@ -19,7 +19,7 @@ export function deleteCarBlocker(
 ): string | null {
   if (cars.length <= 1) return 'O último carro não pode ser removido.'
   if (usage.expenses.some((e) => e.carId === carId) || usage.planned.some((p) => p.carId === carId)) {
-    return 'Esse carro tem gastos ou planejados. Mova ou apague esses lançamentos antes de remover o carro.'
+    return 'Esse carro tem gastos ou planejados. Apague esses lançamentos antes de remover o carro.'
   }
   return null
 }
