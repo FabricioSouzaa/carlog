@@ -36,7 +36,7 @@ create table public.cars (
   constraint cars_model_len check (char_length(model) <= 100)
 );
 create unique index cars_user_name_idx on public.cars (user_id, lower(name));
--- alvo das chaves compostas (gastos e planejados → carro; ver migrations/2026-11-26_veiculos-expandir.sql)
+-- alvo das chaves compostas (gastos e planejados → carro; ver migrations/2026-11-26_veiculos-expandir.sql e 2026-11-28_veiculos-contrair.sql)
 create unique index cars_user_id_id_idx on public.cars (user_id, id);
 
 create table public.expenses (
@@ -46,7 +46,7 @@ create table public.expenses (
   amount numeric(12, 2) not null check (amount > 0),
   date date not null,
   category_id uuid not null,
-  car_id uuid, -- fica obrigatório no passo 3 da migração de veículos; até lá um gatilho preenche
+  car_id uuid not null,
   type text not null check (type in ('maintenance', 'upgrade', 'routine')),
   odometer integer check (odometer >= 0),
   notes text,
@@ -73,7 +73,7 @@ create table public.planned_expenses (
   estimated_amount numeric(12, 2) not null check (estimated_amount > 0),
   estimated_max numeric(12, 2) check (estimated_max >= estimated_amount),
   category_id uuid not null,
-  car_id uuid, -- idem expenses.car_id
+  car_id uuid not null,
   type text not null check (type in ('maintenance', 'upgrade', 'routine')),
   priority text not null check (priority in ('low', 'medium', 'high')),
   notes text,
@@ -241,21 +241,6 @@ begin
 end;
 $$;
 
--- Gastos e planejados sem `car_id` informado ficam com o carro mais antigo da pessoa (some quando `car_id` virar obrigatório).
-create or replace function public.fill_car_id()
-returns trigger
-language plpgsql
-security invoker
-set search_path = public
-as $$
-begin
-  if new.car_id is null then
-    select c.id into new.car_id from public.cars c where c.user_id = new.user_id order by c.created_at, c.id limit 1;
-  end if;
-  return new;
-end;
-$$;
-
 create or replace function public.keep_last_car()
 returns trigger
 language plpgsql
@@ -277,9 +262,6 @@ end;
 $$;
 drop trigger if exists cars_keep_last on public.cars;
 create trigger cars_keep_last before delete on public.cars for each row execute function public.keep_last_car();
-
-create trigger expenses_fill_car before insert on public.expenses for each row execute function public.fill_car_id();
-create trigger planned_fill_car before insert on public.planned_expenses for each row execute function public.fill_car_id();
 
 create trigger on_auth_user_created
   after insert on auth.users
