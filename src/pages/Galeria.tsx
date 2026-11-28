@@ -205,7 +205,7 @@ export function Galeria({ onBack }: { onBack: () => void }) {
         <button type="button" className="btn-ghost" onClick={onBack}>← Voltar</button>
       </div>
 
-      {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800 night:bg-red-950 night:text-red-200">{error}</p>}
 
       {photos === null ? (
         <p className="py-10 text-center muted">Carregando fotos…</p>

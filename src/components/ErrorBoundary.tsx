@@ -24,7 +24,7 @@ export class ErrorBoundary extends Component<Props, { failed: boolean }> {
   render() {
     if (!this.state.failed) return this.props.children
     return (
-      <div role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
+      <div role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-800 night:bg-red-950 night:text-red-200">
         <p>{this.props.message}</p>
         <button type="button" className="mt-2 font-medium underline" onClick={() => window.location.reload()}>
           Recarregar

@@ -100,8 +100,8 @@ export function PlannedForm({ categories, initial, onSubmit, onClose }: Props) {
                 aria-pressed={priority === p}
                 className={`rounded-lg border px-2 py-2 text-sm font-medium ${
                   priority === p
-                    ? 'border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-                    : 'border-slate-300 text-slate-600 dark:border-slate-700 dark:text-slate-300'
+                    ? 'border-blue-600 bg-wash text-wash-ink'
+                    : 'border-line-strong text-ink-soft'
                 }`}
               >
                 {PRIORITY_LABEL[p]}
@@ -113,8 +113,8 @@ export function PlannedForm({ categories, initial, onSubmit, onClose }: Props) {
           <label className="label" htmlFor="p-notes">Observações ou link (opcional)</label>
           <textarea id="p-notes" className="input" rows={2} maxLength={NOTES_MAX} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
-        {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-        <div className="sticky bottom-0 -mx-5 -mb-5 flex justify-end gap-2 border-t border-slate-200 bg-white px-5 py-3 dark:border-slate-800 dark:bg-slate-900">
+        {error && <p role="alert" className="text-sm text-red-600 night:text-red-400">{error}</p>}
+        <div className="sticky bottom-0 -mx-5 -mb-5 flex justify-end gap-2 border-t border-line bg-surface px-5 py-3">
           <button type="button" className="btn-ghost" onClick={onClose}>Cancelar</button>
           <button type="submit" className="btn-primary">Salvar</button>
         </div>

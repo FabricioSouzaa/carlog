@@ -6,6 +6,7 @@ import { Logo } from './components/Logo'
 import { APP_NAME } from './config'
 import { useSession } from './useSession'
 import { useData } from './useData'
+import { useTheme } from './useTheme'
 
 // as telas de quem ainda não entrou (landing, login, redefinir senha) são pedaços separados do app: quem já tem sessão nunca baixa a landing
 // (a mais pesada, por causa das animações), e quem só visita a landing não baixa o app. Cada aba também é um pedaço, baixado só quando é aberta.
@@ -118,62 +119,60 @@ export default function App() {
 
 function Main({ email, userId }: { email: string; userId: string }) {
   const api = useData(userId)
+  const theme = useTheme()
   const [tab, setTabNow] = useState<TabId | 'galeria'>('visao')
   // em transição, a tela atual continua visível até o pedaço da aba nova chegar (sem piscar "Carregando…")
   const setTab = (t: TabId | 'galeria') => startTransition(() => setTabNow(t))
 
   useEffect(prefetchPages, [])
 
+  const logo = (cls: string) => (
+    <button
+      type="button"
+      onClick={() => setTab('galeria')}
+      aria-label={`${APP_NAME}: abrir fotos do carro`}
+      aria-current={tab === 'galeria' ? 'page' : undefined}
+      className={`${cls} items-center gap-2 rounded-xl px-1 py-1 font-display text-lg ${tab === 'galeria' ? 'text-wash-ink' : 'text-ink'}`}
+    >
+      <Logo size={30} />
+      {APP_NAME}
+    </button>
+  )
+  const car = !api.loading && <CarSwitcher cars={api.data.cars} activeId={api.activeCarId} onChange={api.setActiveCar} />
+
   return (
-    <div className="min-h-dvh">
-      {/* no celular o nome do app não cabe na barra de baixo: fica numa barra fina no topo */}
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 backdrop-blur md:hidden dark:border-slate-800 dark:bg-slate-900/95">
-        <button
-          type="button"
-          onClick={() => setTab('galeria')}
-          aria-label={`${APP_NAME}: abrir fotos do carro`}
-          aria-current={tab === 'galeria' ? 'page' : undefined}
-          className={`flex items-center gap-2 py-2 font-bold ${tab === 'galeria' ? 'text-blue-600 dark:text-blue-400' : ''}`}
-        >
-          <Logo size={24} />
-          {APP_NAME}
-        </button>
+    <div className="min-h-dvh text-ink">
+      {/* no celular o topo leva o logo e o carro; as abas ficam na barra de baixo */}
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-line bg-bar/95 px-4 py-2 backdrop-blur md:hidden">
+        {logo('flex')}
+        {car}
       </header>
       <nav
         aria-label="Navegação principal"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur md:sticky md:top-0 md:bottom-auto md:border-t-0 md:border-b dark:border-slate-800 dark:bg-slate-900/95"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-bar/95 backdrop-blur md:sticky md:top-0 md:bottom-auto md:border-t-0 md:border-b"
       >
-        <div className="mx-auto flex max-w-3xl items-center justify-around md:justify-start md:gap-2 md:px-4">
-          <button
-            type="button"
-            onClick={() => setTab('galeria')}
-            aria-label={`${APP_NAME}: abrir fotos do carro`}
-            aria-current={tab === 'galeria' ? 'page' : undefined}
-            className={`mr-4 hidden items-center gap-2 rounded-lg px-2 py-1 font-bold hover:bg-slate-100 md:flex dark:hover:bg-slate-800 ${tab === 'galeria' ? 'text-blue-600 dark:text-blue-400' : ''}`}
-          >
-            <Logo size={24} />
-            {APP_NAME}
-          </button>
+        <div className="mx-auto flex max-w-5xl items-center justify-around gap-1 p-2 md:justify-start md:gap-2 md:px-8 md:py-3">
+          {logo('mr-4 hidden md:flex')}
           {TABS.map((t) => (
             <button
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
               aria-current={tab === t.id ? 'page' : undefined}
-              className={`flex flex-1 flex-col items-center gap-0.5 px-2 py-2 text-xs font-medium md:flex-none md:flex-row md:gap-2 md:text-sm ${
-                tab === t.id ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'
+              className={`flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-2 py-2 text-xs md:flex-none md:flex-row md:gap-2 md:rounded-xl md:px-4 md:py-2 md:text-sm ${
+                tab === t.id ? 'bg-wash font-semibold text-wash-ink' : 'font-medium text-ink-soft hover:bg-track'
               }`}
             >
               <span aria-hidden="true" className="text-lg md:text-base">{t.icon}</span>
               {t.label}
             </button>
           ))}
+          <span className="ml-auto hidden md:block">{car}</span>
         </div>
       </nav>
-      <main className="mx-auto max-w-3xl p-4 pb-40 md:pb-24">
-        {tab !== 'galeria' && !api.loading && <CarSwitcher cars={api.data.cars} activeId={api.activeCarId} onChange={api.setActiveCar} />}
+      <main className="mx-auto max-w-5xl p-4 pb-40 md:px-8 md:py-8 md:pb-24">
         {api.error && (
-          <div role="alert" className="mb-4 flex items-start justify-between gap-3 rounded-lg bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
+          <div role="alert" className="mb-4 flex items-start justify-between gap-3 rounded-xl bg-red-50 p-3 text-sm text-red-800 night:bg-red-950 night:text-red-200">
             <span>{api.error}</span>
             <button type="button" className="shrink-0 font-medium underline" onClick={api.clearError}>Fechar</button>
           </div>
@@ -192,7 +191,7 @@ function Main({ email, userId }: { email: string; userId: string }) {
                 {tab === 'visao' && <VisaoGeral api={api} />}
                 {tab === 'gastos' && <Gastos api={api} />}
                 {tab === 'planejados' && <Planejados api={api} />}
-                {tab === 'ajustes' && <Ajustes api={api} email={email} />}
+                {tab === 'ajustes' && <Ajustes api={api} email={email} theme={theme} />}
               </>
             )}
           </Suspense>

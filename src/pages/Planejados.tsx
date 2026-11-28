@@ -10,9 +10,9 @@ import { PRIORITY_LABEL, type PlannedExpense, type Priority } from '../types'
 
 const PRIORITY_ORDER: Record<Priority, number> = { high: 0, medium: 1, low: 2 }
 const PRIORITY_STYLE: Record<Priority, string> = {
-  high: 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300',
-  medium: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
-  low: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+  high: 'bg-red-100 text-red-800 night:bg-red-950 night:text-red-300',
+  medium: 'bg-amber-100 text-amber-800 night:bg-amber-950 night:text-amber-300',
+  low: 'bg-track text-ink-soft',
 }
 
 const estimate = (p: PlannedExpense) =>
@@ -21,9 +21,9 @@ const estimate = (p: PlannedExpense) =>
 function Notes({ text }: { text: string }) {
   const href = safeHttpUrl(text)
   return href ? (
-    <a href={href} target="_blank" rel="noreferrer" className="mt-2 block truncate text-sm text-blue-600 underline dark:text-blue-400">{text}</a>
+    <a href={href} target="_blank" rel="noreferrer" className="mt-2 block truncate text-sm text-link underline">{text}</a>
   ) : (
-    <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{text}</p>
+    <p className="mt-2 text-sm text-ink-soft">{text}</p>
   )
 }
 
@@ -51,7 +51,7 @@ export function Planejados({ api }: { api: DataApi }) {
         <p className="muted">Total estimado ({totals.count} {totals.count === 1 ? 'item' : 'itens'})</p>
         <p className="text-3xl font-bold tabular-nums">
           {formatCurrency(totals.min)}
-          {totals.max > totals.min && <span className="text-xl font-semibold text-slate-500"> até {formatCurrency(totals.max)}</span>}
+          {totals.max > totals.min && <span className="text-xl font-semibold text-ink-soft"> até {formatCurrency(totals.max)}</span>}
         </p>
       </div>
 
@@ -93,7 +93,7 @@ export function Planejados({ api }: { api: DataApi }) {
           <ul className="mt-3 space-y-2">
             {done.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
-                <span className="truncate text-slate-500 line-through dark:text-slate-400">{p.description}</span>
+                <span className="truncate text-ink-soft line-through">{p.description}</span>
                 <button type="button" className="btn-danger" onClick={() => handleDelete(p)}>Excluir</button>
               </li>
             ))}
